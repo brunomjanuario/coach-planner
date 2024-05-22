@@ -1,0 +1,38 @@
+.side-nav-container {
+    height: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.sidenav-content {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    flex-direction: column;
+}
+
+.sidenav-option {
+    padding-top: 25%;
+    padding-bottom: 25%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidenav-option:hover {
+    padding-top: 25%;
+    padding-bottom: 25%;
+    width: 100%;
+    transform: scale(1.5);
+}
+
+.sidenav-icon {
+    font-size: 25px;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
