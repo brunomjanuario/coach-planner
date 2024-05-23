@@ -1,4 +1,4 @@
-@import '@angular/material/prebuilt-themes/indigo-pink.css';
+@import '@angular/material/prebuilt-themes/pink-bluegrey.css';
 
 html,
 body {
@@ -9,4 +9,6 @@ body {
     margin: 0;
     font-family: Roboto, "Helvetica Neue", sans-serif;
     overflow: hidden;
+    background-color: rgb(70, 70, 70);
+    color: white;
 }
