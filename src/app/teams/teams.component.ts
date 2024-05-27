@@ -59,10 +59,8 @@ export class TeamsComponent implements OnInit, OnDestroy {
 
       if (result) {
 
-        console.log(result)
-
         const team: Team = {
-          id: 1,
+          id: Math.floor(Math.random() * 1000),
           name: result['name'],
           club: result['club'],
           season: result['season'],

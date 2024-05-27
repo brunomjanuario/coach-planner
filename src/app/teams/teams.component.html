@@ -14,7 +14,7 @@
     </div>
 
     <div class="players-list" *ngIf="selectedTeam">
-        <app-players [players]="selectedTeam.players"></app-players>
+        <app-players [players]="selectedTeam.players" [teamId]="selectedTeam.id"></app-players>
     </div>
 
     <div class="player-info" *ngIf="selectedPlayer">

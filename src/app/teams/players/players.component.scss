@@ -1,5 +1,8 @@
 .players-header-container {
     padding: 3%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .header-container {
