@@ -4,7 +4,7 @@
         <div class="team-header-container">
             <h1>Teams</h1>
         </div>
-        <mat-card *ngFor="let team of teams" class="team-container">
+        <mat-card *ngFor="let team of teams" class="team-container" (click)="selectTeam(team)">
             <img src="../../assets/images/logo.png" alt="">
             <mat-card-content class="content"> {{ team.club }} </mat-card-content>
             <mat-card-content class="content"> {{ team.name }} </mat-card-content>
@@ -12,11 +12,11 @@
         </mat-card>
     </div>
 
-    <div class="players-list">
-        <h1>Players List</h1>
+    <div class="players-list" *ngIf="selectedTeam">
+        <app-players [players]="selectedTeam.players"></app-players>
     </div>
 
-    <div class="player-info">
+    <div class="player-info" *ngIf="selectedPlayer">
         <h1>Player info</h1>
     </div>
 

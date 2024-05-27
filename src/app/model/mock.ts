@@ -1,4 +1,4 @@
-import { Team } from "./teams";
+import { Positions, Team } from "./teams";
 
 export const teams: Team[] = [
     {
@@ -6,13 +6,95 @@ export const teams: Team[] = [
         name: "Sub-11",
         club: "Amadora",
         season: "23/24",
-        players: [],
+        players: [
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 1,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0,
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 2,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0,
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 3,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0, 
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 4,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0, 
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 5,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0, 
+                position: Positions.CAM,
+            },
+        ],
     },
     {
         id: 2,
         name: "Sub-19",
         club: "Areias",
         season: "23/24",
-        players: [],
+        players: [
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 3,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0, 
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 3,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0, 
+                position: Positions.CAM,
+            },
+            {
+                id: 1,
+                name: "João",
+                age: 15,
+                shirtNumber: 3,
+                goals: 3,
+                assists: 1,
+                concededGoals: 0,
+                position: Positions.CAM,
+            },
+        ],
     }
 ]
