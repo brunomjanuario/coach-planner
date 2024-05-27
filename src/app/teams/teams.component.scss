@@ -45,6 +45,9 @@
 
 .team-header-container {
     padding: 5%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .content {

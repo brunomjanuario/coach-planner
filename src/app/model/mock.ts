@@ -1,6 +1,6 @@
 import { Positions, Team } from "./teams";
 
-export const teams: Team[] = [
+export var teams: Team[] = [
     {
         id: 1,
         name: "Sub-11",

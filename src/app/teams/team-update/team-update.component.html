@@ -1,0 +1,39 @@
+<h1 mat-dialog-title>New Team</h1>
+<div mat-dialog-content>
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <mat-form-field appearance="fill">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name">
+      <mat-error *ngIf="form.controls['name'].hasError('required')">
+        Name is required
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Club</mat-label>
+      <input matInput formControlName="club">
+      <mat-error *ngIf="form.controls['club'].hasError('required')">
+        Club is required
+      </mat-error>
+      <mat-error *ngIf="form.controls['club'].hasError('club')">
+        Enter a valid club
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Season</mat-label>
+      <input matInput formControlName="season">
+      <mat-error *ngIf="form.controls['season'].hasError('required')">
+        Season is required
+      </mat-error>
+      <mat-error *ngIf="form.controls['season'].hasError('season')">
+        Enter a valid season
+      </mat-error>
+    </mat-form-field>
+
+    <div mat-dialog-actions>
+      <button mat-button type="button" (click)="onCancel()">Cancel</button>
+      <button mat-button type="submit" [disabled]="!form.valid">Submit</button>
+    </div>
+  </form>
+</div>
