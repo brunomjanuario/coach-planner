@@ -1,0 +1,25 @@
+<div *ngIf="team">
+    <div class="team-header-container">
+        <h1>Team Info</h1>
+    </div>
+
+    <mat-card class="team-card">
+        <mat-card-header>
+          <mat-card-title> {{ team.name }} </mat-card-title>
+          <mat-card-subtitle> {{ team.club }} </mat-card-subtitle>
+        </mat-card-header>
+        <div class="team-image">
+            <img src="../../assets/images/logo.png" [alt]="team.name">
+        </div>
+        <mat-card-content>
+            <div>
+                <mat-card-subtitle> Season </mat-card-subtitle>
+                <p> {{ team.season }} </p>
+            </div>
+            <div>
+                <mat-card-subtitle> No. Players </mat-card-subtitle>
+                <p> {{ team.players.length }} </p>
+            </div>
+        </mat-card-content>
+    </mat-card>
+</div>

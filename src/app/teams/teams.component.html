@@ -14,11 +14,13 @@
     </div>
 
     <div class="players-list" *ngIf="selectedTeam">
-        <app-players [players]="selectedTeam.players" [teamId]="selectedTeam.id"></app-players>
+        <app-players [players]="selectedTeam.players" [teamId]="selectedTeam.id" (event)="selectPlayer($event)"></app-players>
     </div>
 
-    <div class="player-info" *ngIf="selectedPlayer">
-        <h1>Player info</h1>
+    <div class="info">
+        <app-player-info *ngIf="selectedPlayer; else showTeamInfo" [player]="selectedPlayer"></app-player-info>
+        <ng-template class="info" #showTeamInfo>
+            <app-team-info [team]="selectedTeam"></app-team-info>
+        </ng-template>
     </div>
-
 </div>

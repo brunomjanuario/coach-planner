@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import {MatTableModule} from '@angular/material/table';
+import {MatTable, MatTableModule} from '@angular/material/table';
 import { Player, Team } from '../../model/teams';
 import { AddButtonComponent } from '../../shared/add-button/add-button.component';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -17,6 +17,8 @@ import { TeamService } from '../../service/team-service';
   styleUrl: './players.component.scss'
 })
 export class PlayersComponent implements OnChanges {
+
+  @ViewChild(MatTable) table!: MatTable<Player>;
 
   @Input() players!: Player[];
   @Input() teamId!: number;
@@ -57,6 +59,7 @@ export class PlayersComponent implements OnChanges {
         }
 
         this.teamService.addPlayer(this.teamId, player);
+        this.table.renderRows();
       }
     })
   }
