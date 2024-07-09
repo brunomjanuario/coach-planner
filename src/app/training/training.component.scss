@@ -1,0 +1,16 @@
+.trainings-container {
+    display: flex;
+    flex-direction: row;
+}
+
+.future-trainings {
+    width: 30%;
+}
+
+.past-trainings {
+    width: 30%;
+}
+
+.training-info {
+    width: 40%;
+}
