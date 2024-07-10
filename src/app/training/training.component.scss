@@ -1,16 +1,19 @@
 .trainings-container {
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: row;
 }
 
 .future-trainings {
-    width: 30%;
+    width: 40%;
 }
 
 .past-trainings {
-    width: 30%;
+    width: 35%;
 }
 
-.training-info {
-    width: 40%;
+.teams-list {
+    width: 25%;
+    height: 100%;
 }

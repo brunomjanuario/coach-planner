@@ -10,49 +10,26 @@ import { TeamUpdateComponent } from './team-update/team-update.component';
 import { AddButtonComponent } from '../shared/add-button/add-button.component';
 import { TeamInfoComponent } from './team-info/team-info.component';
 import { PlayerInfoComponent } from './players/player-info/player-info.component';
+import { TeamsListComponent } from "./teams-list/teams-list.component";
 
 @Component({
   selector: 'app-teams',
   standalone: true,
   imports: [
-    CommonModule, 
-    MatCardModule, 
-    PlayersComponent, 
-    MatDialogModule, 
+    CommonModule,
+    PlayersComponent,
     TeamUpdateComponent,
-    AddButtonComponent, 
     TeamInfoComponent,
-    PlayerInfoComponent
-  ],
+    PlayerInfoComponent,
+    TeamsListComponent
+],
   templateUrl: './teams.component.html',
   styleUrl: './teams.component.scss'
 })
-export class TeamsComponent implements OnInit, OnDestroy {
+export class TeamsComponent {
 
-  public teams?: Team[];
   public selectedTeam?: Team;
   public selectedPlayer?: Player;
-
-  private teamsSubscription?: Subscription;
-
-  constructor(private teamService: TeamService, private dialog: MatDialog) {
-
-  }
-
-  ngOnInit(): void {
-
-    this.teamsSubscription = this.teamService.getAll().subscribe( (teams: Team[]) => {
-      this.teams = teams;
-    })
-  }
-
-  ngOnDestroy(): void {
-    
-    if (!this.teamsSubscription?.closed) {
-      
-      this.teamsSubscription?.unsubscribe();
-    }
-  }
 
   selectTeam(team: Team) {
     this.selectedTeam = team;
@@ -61,26 +38,5 @@ export class TeamsComponent implements OnInit, OnDestroy {
 
   selectPlayer(player: Player) {
     this.selectedPlayer = player;
-  }
-
-  addTeam() {
-
-    const dialogRef = this.dialog.open(TeamUpdateComponent);
-
-    dialogRef.afterClosed().subscribe( result => {
-
-      if (result) {
-
-        const team: Team = {
-          id: Math.floor(Math.random() * 1000),
-          name: result['name'],
-          club: result['club'],
-          season: result['season'],
-          players: []
-        }
-
-        this.teamService.addTeam(team);
-      }
-    })
   }
 }

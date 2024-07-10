@@ -1,4 +1,5 @@
 import { Positions, Team } from "./teams";
+import { Training } from "./training";
 
 export var teams: Team[] = [
     {
@@ -97,4 +98,42 @@ export var teams: Team[] = [
             },
         ],
     }
+]
+
+export var trainings: Training[] = [
+    {
+        id: 1,
+        teamId: 1,
+        day: new Date(),
+        duration: 90,
+        exercises: [
+            {
+                id: 1,
+                trainingId: 1,
+                numberOfPlayers: 21,
+                duration: 10,
+                repetitions: 1,
+                description: "Corrida",
+                image: ""
+            },
+            {
+                id: 2,
+                trainingId: 1,
+                numberOfPlayers: 21,
+                duration: 20,
+                repetitions: 2,
+                description: "SSG",
+                image: ""
+            },
+            {
+                id: 3,
+                trainingId: 1,
+                numberOfPlayers: 21,
+                duration: 10,
+                repetitions: 3,
+                description: "Jogo",
+                image: ""
+            },
+        ],
+    },
 ]

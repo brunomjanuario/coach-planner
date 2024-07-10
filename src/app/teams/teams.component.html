@@ -1,16 +1,7 @@
 <div class="teams-container">
 
     <div class="teams-list">
-        <div class="team-header-container">
-            <h1>Teams</h1>
-            <app-add-button (event)="addTeam()"></app-add-button>
-        </div>
-        <mat-card *ngFor="let team of teams" class="team-container" (click)="selectTeam(team)">
-            <img src="../../assets/images/logo.png" alt="">
-            <mat-card-content class="content"> {{ team.club }} </mat-card-content>
-            <mat-card-content class="content"> {{ team.name }} </mat-card-content>
-            <mat-card-content class="content"> {{ team.season }} </mat-card-content>
-        </mat-card>
+        <app-teams-list (event)="selectTeam($event)"></app-teams-list>
     </div>
 
     <div class="players-list" *ngIf="selectedTeam">
