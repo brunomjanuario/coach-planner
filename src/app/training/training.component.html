@@ -1,16 +1,58 @@
-<div class="trainings-container">
-
-    <div class="teams-list">
-        <app-teams-list></app-teams-list>
+<div class="training-content">
+    <div class="training-header">
+        <div class="header">
+            <h1>Trainings</h1>
+            <app-add-button (event)="addTraining()"></app-add-button>
+        </div>
+        <div class="filter">
+            <mat-card [class]="!selectedTeam ? 'team-selected-container' : 'team-container'" (click)="selectAll()">
+                <mat-card-content class="content"> All </mat-card-content>
+            </mat-card>
+            <mat-card *ngFor="let team of teams" [class]="isSelected(team) ? 'team-selected-container' : 'team-container'" (click)="selectTeam(team)">
+                <mat-card-content class="content"> {{ team.club }} </mat-card-content>
+                <mat-card-content class="content"> {{ team.name }} </mat-card-content>
+                <mat-card-content class="content"> {{ team.season }} </mat-card-content>
+            </mat-card>
+        </div>
     </div>
     
-    <div class="future-trainings">
-        <h1>Future Trainings</h1>
-
-        <app-canvas></app-canvas>
-    </div>
+    <div class="trainings-container">
     
-    <div class="past-trainings">
-        <h1>Past Trainings</h1>
-    </div>
+        <div class="future-trainings">
+            <div class="header-container">
+                <h1>Future Sessions</h1>
+            </div>
+            <div>
+                <mat-card *ngFor="let training of futureTrainings" class="train-container" (click)="selectTrain(training)">
+                    <mat-card-content class="content"> {{ training.id }} </mat-card-content>
+                    <mat-card-content class="content"> {{ training.day.getDate() }} - {{ training.day.getMonth() }} - {{ training.day.getFullYear() }} </mat-card-content>
+                    <mat-card-content class="content"> {{ training.duration }} </mat-card-content>
+                </mat-card>
+            </div>
+        </div>
+        
+        <div class="past-trainings">
+            <div class="header-container">
+                <h1>Past Sessions</h1>
+            </div>
+            <div>
+                <mat-card *ngFor="let training of pastTrainings" class="train-container" (click)="selectTrain(training)">
+                    <mat-card-content class="content"> {{ training.id }} </mat-card-content>
+                    <mat-card-content class="content"> {{ training.day.getDate() }} - {{ training.day.getMonth() }} - {{ training.day.getFullYear() }} </mat-card-content>
+                    <mat-card-content class="content"> {{ training.duration }} </mat-card-content>
+                    <mat-card-content class="content"> 
+                        <button mat-button (click)="selectTrain(training)" matTooltip="Edit">
+                            <mat-icon matTooltip="Edit" fontIcon="edit"></mat-icon>
+                        </button>
+                        <button mat-button (click)="selectTrain(training)" matTooltip="Copy">
+                            <mat-icon matTooltip="Copy" fontIcon="content_copy"></mat-icon>
+                        </button>
+                        <button mat-button (click)="selectTrain(training)" matTooltip="Delete">
+                            <mat-icon matTooltip="Delete" fontIcon="delete"></mat-icon>
+                        </button>
+                    </mat-card-content>
+                </mat-card>
+            </div>
+        </div>
+    </div>    
 </div>

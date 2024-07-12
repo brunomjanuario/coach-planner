@@ -104,7 +104,7 @@ export var trainings: Training[] = [
     {
         id: 1,
         teamId: 1,
-        day: new Date(),
+        day: new Date("2024-10-24T15:00:00Z"),
         duration: 90,
         exercises: [
             {
@@ -128,6 +128,41 @@ export var trainings: Training[] = [
             {
                 id: 3,
                 trainingId: 1,
+                numberOfPlayers: 21,
+                duration: 10,
+                repetitions: 3,
+                description: "Jogo",
+                image: ""
+            },
+        ],
+    },
+    {
+        id: 2,
+        teamId: 1,
+        day: new Date("2023-06-24T15:00:00Z"),
+        duration: 90,
+        exercises: [
+            {
+                id: 4,
+                trainingId: 2,
+                numberOfPlayers: 21,
+                duration: 10,
+                repetitions: 1,
+                description: "Corrida",
+                image: ""
+            },
+            {
+                id: 5,
+                trainingId: 2,
+                numberOfPlayers: 21,
+                duration: 20,
+                repetitions: 2,
+                description: "SSG",
+                image: ""
+            },
+            {
+                id: 6,
+                trainingId: 2,
                 numberOfPlayers: 21,
                 duration: 10,
                 repetitions: 3,
