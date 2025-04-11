@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 export default function Sidebar() {
   return (
     <div
-      className="h-screen w-[16%] text-white flex flex-col p-4 items-center"
+      className="h-screen w-[16%] text-white flex flex-col p-4 items-center border-r"
       style={{ backgroundColor: "#171717" }}
     >
       <nav className="flex flex-col gap-4">

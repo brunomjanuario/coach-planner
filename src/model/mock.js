@@ -1,7 +1,24 @@
-import { Positions, Team } from "./teams";
-import { Training } from "./training";
+const Positions = {
+  GK: "GK",
+  RB: "RB",
+  CB: "CB",
+  LB: "LB",
+  RWB: "RWB",
+  LWB: "LWB",
+  CDM: "CDM",
+  RM: "RM",
+  CM: "CM",
+  LM: "LM",
+  CAM: "CAM",
+  RW: "RW",
+  LW: "LW",
+  ST: "ST",
+  CF: "CF",
+  RF: "RF",
+  LF: "LF",
+};
 
-export var teams: Team[] = [
+export var teams = [
   {
     id: 1,
     name: "Sub-11",
@@ -100,7 +117,7 @@ export var teams: Team[] = [
   },
 ];
 
-export var trainings: Training[] = [
+export var trainings = [
   {
     id: 1,
     teamId: 1,
