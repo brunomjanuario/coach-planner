@@ -10,7 +10,7 @@ import Settings from "./pages/Settings";
 
 function App() {
   return (
-    <div className="flex">
+    <div className="flex w-screen">
       <Sidebar></Sidebar>
       <Routes>
         <Route path="/" element={<Home />} />
