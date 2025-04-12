@@ -36,7 +36,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 2,
         name: "João",
         age: 15,
         shirtNumber: 2,
@@ -46,7 +46,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 3,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -56,7 +56,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 4,
         name: "João",
         age: 15,
         shirtNumber: 4,
@@ -66,7 +66,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 5,
         name: "João",
         age: 15,
         shirtNumber: 5,
@@ -84,7 +84,7 @@ export var teams = [
     season: "23/24",
     players: [
       {
-        id: 1,
+        id: 6,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -94,7 +94,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 7,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -104,7 +104,7 @@ export var teams = [
         position: Positions.CAM,
       },
       {
-        id: 1,
+        id: 8,
         name: "João",
         age: 15,
         shirtNumber: 3,
