@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-lightblack: #171717
+  --color-lightblack: #171717;
+  --color-lightgrey: rgb(71, 71, 71);
 }
 
 :root {

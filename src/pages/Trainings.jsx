@@ -1,8 +1,37 @@
-import { useState } from "react";
-import { teams } from "../model/mock";
+import { useState, useEffect } from "react";
+import { teamService } from "../services/teamService";
+import { trainingService } from "../services/trainingService";
 
 export default function Trainings() {
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [trainings, setTrainings] = useState([]);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const data = await teamService.getAll();
+        setTeams(data);
+      } catch (err) {
+        console.error("Failed to load teams:", err);
+      }
+    };
+
+    loadTeams();
+  }, []);
+
+  useEffect(() => {
+    const loadTrainings = async () => {
+      try {
+        const data = await trainingService.getAll();
+        setTrainings(data);
+      } catch (err) {
+        console.error("Failed to load teams:", err);
+      }
+    };
+
+    loadTrainings();
+  }, []);
 
   return (
     <div className="w-full">
@@ -27,14 +56,34 @@ export default function Trainings() {
         </div>
 
         <div className="flex-3 p-4 h-full">
-          <div className="h-[50%]">
-            <h2 className="text-lg font-semibold mt-2">Next Trainings</h2>
-            <div className="rounded border h-60">Trains</div>
+          <div className="h-[50%] rounded border">
+            <h2 className="text-lg font-semibold p-3">Next Trainings</h2>
+            <div className="">
+              <ul>
+                {trainings.map((training) => (
+                  <li
+                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
+                  >
+                    {training.id} {training.day.toString()} {training.duration}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="h-[50%]">
             <h2 className="text-lg font-semibold mt-4">Past Trainings</h2>
-            <div className="rounded border h-60">Done</div>
+            <div className="rounded border h-60">
+              <ul>
+                {trainings.map((training) => (
+                  <li
+                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
+                  >
+                    {training.id} {training.day.toString()} {training.duration}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

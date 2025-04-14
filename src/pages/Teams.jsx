@@ -1,15 +1,35 @@
-import { useState } from "react";
-import { teams } from "../model/mock";
+import { useState, useEffect } from "react";
 import TeamCard from "../components/TeamCard";
+import { teamService } from "../services/teamService";
+import { IconShieldPlus, IconUsersPlus } from "@tabler/icons-react";
 
 export default function Teams() {
+  const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const data = await teamService.getAll();
+        setTeams(data);
+      } catch (err) {
+        console.error("Failed to load teams:", err);
+      }
+    };
+
+    loadTeams();
+  }, []);
 
   return (
     <div class="w-full flex">
       <div class="flex-1 p-4 text-center">
-        <h2 className="text-lg font-semibold mb-4">Teams</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="flex-1 text-center text-xl font-semibold">Teams</h2>
+          <div className="cursor-pointer rounded hover:bg-lightgrey">
+            <IconShieldPlus />
+          </div>
+        </div>
         <div>
           <ul>
             {teams.map((team) => (
@@ -27,7 +47,12 @@ export default function Teams() {
       </div>
 
       <div class="flex-1 p-4 text-center">
-        <h2 className="text-lg font-semibold mb-4">Players</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="flex-1 text-center text-xl font-semibold">Players</h2>
+          <div className="cursor-pointer rounded hover:bg-lightgrey">
+            <IconUsersPlus />
+          </div>
+        </div>
         <div>
           <ul>
             {selectedTeam?.players?.map((player) => (
