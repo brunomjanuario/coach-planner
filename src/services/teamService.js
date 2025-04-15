@@ -15,15 +15,7 @@ export const teamService = {
   },
 
   create: async (teamData) => {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(teamData),
-    });
-    if (!res.ok) throw new Error("Failed to create team");
-    return res.json();
+    teamsData.push(teamData);
   },
 
   update: async (id, teamData) => {
@@ -44,5 +36,11 @@ export const teamService = {
     });
     if (!res.ok) throw new Error("Failed to delete team");
     return true;
+  },
+
+  addPlayer: async (teamId, playerData) => {
+    const team = teamsData.find((team) => team.id === teamId);
+    console.log(teamId);
+    team.players.push(playerData);
   },
 };

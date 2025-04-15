@@ -13,7 +13,7 @@ export default function TeamCard({ team }) {
             {team.club} {team.name}
           </h2>
         </div>
-        <div className="cursor-pointer rounded hover:bg-gray-500">
+        <div className="cursor-pointer rounded hover:bg-lightgrey">
           <IconEdit />
         </div>
       </div>
