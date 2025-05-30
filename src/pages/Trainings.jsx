@@ -38,7 +38,7 @@ export default function Trainings() {
       <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
 
       <div className="flex">
-        <div class="flex-1 p-4 text-center">
+        <div className="flex-1 p-4 text-center">
           <div>
             <ul>
               {teams.map((team) => (

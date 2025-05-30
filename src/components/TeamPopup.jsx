@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { teamService } from "../services/teamService";
 
-export default function TeamPopup({ onClose }) {
+export default function TeamPopup({ team, onClose }) {
   const [formData, setFormData] = useState({
-    id: 5,
-    name: "",
-    club: "",
-    season: "",
-    players: [],
+    id: team != null ? team.id : Math.floor(Math.random() * 100),
+    name: team != null ? team.name : "",
+    club: team != null ? team.club : "",
+    season: team != null ? team.season : "",
+    players: team != null ? team.players : [],
   });
 
   const handleChange = (e) => {
@@ -17,7 +17,13 @@ export default function TeamPopup({ onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    teamService.create(formData);
+
+    if (team != null) {
+      teamService.update(formData);
+    } else {
+      teamService.create(formData);
+    }
+
     onClose();
   };
 

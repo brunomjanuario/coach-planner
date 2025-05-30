@@ -1,31 +1,40 @@
 import React, { useState } from "react";
 import { teamService } from "../services/teamService";
 
-export default function PlayerPopup({ teamId, onClose }) {
+export default function PlayerPopup({ player, teamId, onClose }) {
   const [formData, setFormData] = useState({
-    name: "",
-    age: "",
-    shirtNumber: "",
-    goals: 0,
-    assists: 0,
-    concededGoals: 0,
-    position: "",
+    id: player !== null ? player.id : Math.floor(Math.random() * 100),
+    teamId: player !== null ? player.teamId : teamId,
+    name: player !== null ? player.name : "",
+    age: player !== null ? player.age : "",
+    shirtNumber: player !== null ? player.shirtNumber : "",
+    goals: player !== null ? player.goals : 0,
+    assists: player !== null ? player.assists : 0,
+    concededGoals: player !== null ? player.concededGoals : 0,
+    position: player !== null ? player.position : "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const data =
+      name === "age" || name === "shirtNumber" ? Number(value) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: data }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    teamService.addPlayer(teamId, formData);
+    if (player !== null) {
+      teamService.updatePlayer(formData);
+    } else {
+      teamService.addPlayer(teamId, formData);
+    }
     onClose();
   };
 
   return (
     <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-md text-black">
+      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
         <h2 className="text-xl mb-4 font-bold">Player Form</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

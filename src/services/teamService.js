@@ -18,29 +18,36 @@ export const teamService = {
     teamsData.push(teamData);
   },
 
-  update: async (id, teamData) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(teamData),
-    });
-    if (!res.ok) throw new Error("Failed to update team");
-    return res.json();
+  update: async (teamData) => {
+    const team = teamsData.find((team) => team.id === teamData.id);
+    team.name = teamData.name;
+    team.club = teamData.club;
+    team.season = teamData.season;
   },
 
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete team");
-    return true;
+    teamsData = teamsData.filter((team) => team.id !== id);
   },
 
   addPlayer: async (teamId, playerData) => {
     const team = teamsData.find((team) => team.id === teamId);
-    console.log(teamId);
     team.players.push(playerData);
+  },
+
+  updatePlayer: async (playerData) => {
+    const team = teamsData.find((team) => team.id === playerData.teamId);
+    const player = team.players.find((player) => player.id === playerData.id);
+    player.age = playerData.age;
+    player.name = playerData.name;
+    player.shirtNumber = playerData.shirtNumber;
+    player.position = playerData.position;
+  },
+
+  deletePlayer: async (playerData) => {
+    const team = teamsData.find((team) => team.id === playerData.teamId);
+    const newList = team.players.filter(
+      (player) => player.id !== playerData.id
+    );
+    team.players = newList;
   },
 };

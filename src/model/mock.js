@@ -27,6 +27,7 @@ export var teams = [
     players: [
       {
         id: 1,
+        teamId: 1,
         name: "João",
         age: 15,
         shirtNumber: 1,
@@ -37,6 +38,7 @@ export var teams = [
       },
       {
         id: 2,
+        teamId: 1,
         name: "João",
         age: 15,
         shirtNumber: 2,
@@ -47,6 +49,7 @@ export var teams = [
       },
       {
         id: 3,
+        teamId: 1,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -57,6 +60,7 @@ export var teams = [
       },
       {
         id: 4,
+        teamId: 1,
         name: "João",
         age: 15,
         shirtNumber: 4,
@@ -67,6 +71,7 @@ export var teams = [
       },
       {
         id: 5,
+        teamId: 1,
         name: "João",
         age: 15,
         shirtNumber: 5,
@@ -85,6 +90,7 @@ export var teams = [
     players: [
       {
         id: 6,
+        teamId: 2,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -95,6 +101,7 @@ export var teams = [
       },
       {
         id: 7,
+        teamId: 2,
         name: "João",
         age: 15,
         shirtNumber: 3,
@@ -105,6 +112,7 @@ export var teams = [
       },
       {
         id: 8,
+        teamId: 2,
         name: "João",
         age: 15,
         shirtNumber: 3,
