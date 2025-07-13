@@ -7,6 +7,19 @@ export default function Trainings() {
   const [teams, setTeams] = useState([]);
   const [trainings, setTrainings] = useState([]);
 
+  const filterTranings = async (teamId) => {
+    const data = await trainingService.getAll();
+
+    const filtered = data.filter((t) => t.teamId === teamId);
+
+    setTrainings(filtered);
+  };
+
+  const selectTeam = (team) => {
+    setSelectedTeam(team);
+    filterTranings(team.id);
+  };
+
   useEffect(() => {
     const loadTeams = async () => {
       try {
@@ -37,7 +50,7 @@ export default function Trainings() {
     <div className="w-full">
       <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
 
-      <div className="flex">
+      <div className="flex h-80">
         <div className="flex-1 p-4 text-center">
           <div>
             <ul>
@@ -46,7 +59,7 @@ export default function Trainings() {
                   className={`mt-2 p-3 rounded cursor-pointer hover:bg-lightblack ${
                     selectedTeam?.id === team.id ? "bg-lightblack" : ""
                   }`}
-                  onClick={() => setSelectedTeam(team)}
+                  onClick={() => selectTeam(team)}
                 >
                   {team.club} {team.name}
                 </li>
@@ -55,9 +68,9 @@ export default function Trainings() {
           </div>
         </div>
 
-        <div className="flex-3 p-4 h-full">
+        <div className="flex-3 p-4">
+          <h2 className="text-lg font-semibold">Next Trainings</h2>
           <div className="h-[50%] rounded border">
-            <h2 className="text-lg font-semibold p-3">Next Trainings</h2>
             <div className="">
               <ul>
                 {trainings.map((training) => (

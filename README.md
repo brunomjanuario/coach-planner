@@ -1,27 +1,33 @@
 # CoachPlanner
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.7.
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Development server
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Run `npm start` to start the development server. Navigate to `http://localhost:3000/`. The application will automatically reload if you change any of the source files.
 
 ## Code scaffolding
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+To generate a new component, create a new file in the `src/components/` directory. You can structure and name your components as you like.
+
+Example:
+
+Create a folder `MyComponent` inside `src/components` and add `MyComponent.jsx` and `MyComponent.css`.
+
+If you're using TypeScript, use `.tsx` instead of `.jsx`.
 
 ## Build
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Run `npm run build` to build the project for production. The build artifacts will be stored in the `build/` directory.
 
 ## Running unit tests
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Run `npm test` to execute the unit tests using [Jest](https://jestjs.io). It will watch for file changes and re-run the relevant tests.
 
 ## Further help
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+To learn more about React and Create React App, visit the following resources:
+
+- [React documentation](https://reactjs.org/)
+- [Create React App documentation](https://create-react-app.dev/docs/getting-started/)
+- [React CLI tools](https://www.npmjs.com/package/create-react-app)
