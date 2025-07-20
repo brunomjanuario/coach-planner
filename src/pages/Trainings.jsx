@@ -15,10 +15,18 @@ export default function Trainings() {
     setTrainings(filtered);
   };
 
-  const selectTeam = (team) => {
+  async function selectTeam(team) {
+    if (team === selectedTeam) {
+      setSelectedTeam(null);
+
+      const data = await trainingService.getAll();
+      setTrainings(data);
+      return;
+    }
+
     setSelectedTeam(team);
     filterTranings(team.id);
-  };
+  }
 
   useEffect(() => {
     const loadTeams = async () => {
