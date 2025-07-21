@@ -14,16 +14,8 @@ export const trainingService = {
     return res.json();
   },
 
-  create: async (teamData) => {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(teamData),
-    });
-    if (!res.ok) throw new Error("Failed to create team");
-    return res.json();
+  create: async (trainingData) => {
+    trainingsData.push(trainingData);
   },
 
   update: async (id, teamData) => {
