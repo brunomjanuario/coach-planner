@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/00-test-harness/spec.md`
 **Design**: not required — no architectural decisions
-**Status**: Implementation Complete (6/6 done) — pending Verifier
+**Status**: ✅ Verified — PASS (see `validation.md`)
 **Batches**: 6 tasks → 1 batch, execute inline (no sub-agents)
 
 > **Bootstrapping note:** this feature builds the gate that every other feature
