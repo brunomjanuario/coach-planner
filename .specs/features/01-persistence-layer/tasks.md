@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T4/10 done)
+**Status**: In Progress (T5/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -224,10 +224,10 @@ T8 → T9 → T10
 
 ---
 
-### T5: Migrate teamService team methods
+### T5: Migrate teamService team methods ✅ Complete
 
 **What**: Rewrite `getAll`/`getById`/`create`/`update`/`delete` over the store.
-**Where**: `src/services/teamService.js` (modify)
+**Where**: `src/services/teamService.js` (modify), plus per `design.md`'s corrected scope: `src/lib/errors.js` (new), `src/components/TeamPopup.jsx` (modify)
 **Depends on**: T4
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-08
@@ -235,19 +235,28 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The `fetch`-based `getById` is replaced with a store lookup returning `null` when absent
-- [ ] `create` assigns an id via `newId()` — callers no longer pass one
-- [ ] `update` persists and returns the updated team; unknown id throws a typed `NotFoundError`, not a `TypeError`
-- [ ] `delete` persists the removal and survives a reload (AC PERSIST-01.3) — the current reference-rebinding bug is gone
-- [ ] `update` no longer silently drops `players` (it currently copies only name/club/season)
-- [ ] `API_URL` constant removed
-- [ ] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
-- [ ] Test count: 11 tests pass
+- [x] The `fetch`-based `getById` is replaced with a store lookup returning `null` when absent
+- [x] `create` assigns an id via `newId()` — callers no longer pass one
+- [x] `update` persists and returns the updated team; unknown id throws a typed `NotFoundError`, not a `TypeError`
+- [x] `delete` persists the removal and survives a reload (AC PERSIST-01.3) — the current reference-rebinding bug is gone
+- [x] `update` no longer silently drops `players` (it currently copies only name/club/season)
+- [x] `API_URL` constant removed
+- [x] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
+- [x] Test count: 11 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(teams): migrate team methods to the persistent store`
+**Commit**: `refactor(teams): migrate team methods to the persistent store` — [1ed65de]
+
+> `addPlayer`/`updatePlayer`/`deletePlayer` (same file, T6's methods) were
+> re-plumbed onto the same `getTeams()`/`saveTeams()` store helpers so the
+> file stays internally consistent and the build/lint gate stays green —
+> their *behavior* is unchanged here (still the pre-existing bugs: no
+> `newId()` for players, `TypeError` on unknown `teamId`, dropped stat
+> fields on update). T6 applies the behavioral upgrades. Not a
+> SPEC_DEVIATION — no AC or test changed, just which lines a shared helper
+> lives behind.
 
 ---
 
