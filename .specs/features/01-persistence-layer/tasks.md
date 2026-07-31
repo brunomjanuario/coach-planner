@@ -319,10 +319,10 @@ T8 → T9 → T10
 
 ---
 
-### T8: Refresh the Teams page after every mutation
+### T8: Refresh the Teams page after every mutation ✅ Complete
 
 **What**: Re-read from the service after create, update and delete of both teams and players.
-**Where**: `src/pages/Teams.jsx` (modify)
+**Where**: `src/pages/Teams.jsx` (modify), plus per `design.md`'s corrected scope: `src/components/TeamCard.jsx` (modify, new `onUpdated` prop), `src/components/PlayerCard.jsx` (modify, new `onUpdated` prop)
 **Depends on**: T5, T6
 **Reuses**: The existing `loadTeams()` function — extend its call sites
 **Requirement**: PERSIST-04
@@ -330,17 +330,33 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `TeamPopup`'s `onClose` triggers `loadTeams()` for the create path (currently only the edit path refreshes)
-- [ ] `PlayerPopup`'s `onClose` triggers `loadTeams()` — adding a player currently never refreshes (AC PERSIST-04.3)
-- [ ] `selectedTeam` is re-resolved from the reloaded list so the Players column is not left pointing at a stale object
-- [ ] Deleting the selected team clears the selection rather than leaving a dangling card
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8 tests pass
+- [x] `TeamPopup`'s `onClose` triggers `loadTeams()` for the create path (currently only the delete path refreshes)
+- [x] `PlayerPopup`'s `onClose` triggers `loadTeams()` — adding a player currently never refreshes (AC PERSIST-04.3)
+- [x] `selectedTeam` is re-resolved from the reloaded list so the Players column is not left pointing at a stale object
+- [x] Deleting the selected team clears the selection rather than leaving a dangling card
+- [x] Gate passes: `npm test`
+- [x] Test count: 8 tests pass
 
 **Tests**: integration
 **Gate**: full
 
-**Commit**: `fix(teams): refresh list after every mutation`
+**Commit**: `fix(teams): refresh list after every mutation` — [5a4ce73]
+
+> **SPEC_DEVIATION (documentation only, no behavior change)**: This task's own
+> parenthetical — "(currently only the edit path refreshes)" — does not match
+> the codebase: before this task, neither the create path nor the edit path
+> refreshed the list; only *delete* did (`closeTeam()` was, and remains, the
+> only pre-existing call site that calls `loadTeams()`). This matches
+> `design.md`'s Task-scope corrections section, which independently found the
+> same thing ("only *deleting* a team/player refreshes the parent list; editing
+> one doesn't"). Implemented against `design.md`'s corrected understanding —
+> the parenthetical above is corrected to "delete path" to reflect that. Per
+> `design.md`, added `onUpdated` (not `onClose`) to `TeamCard`/`PlayerCard` so a
+> confirmed edit refreshes without clearing the current selection, and wired it
+> so it fires whenever the edit popup closes (save or cancel) — harmless on
+> cancel since nothing changed, and this keeps `TeamPopup`/`PlayerPopup`
+> untouched (out of T8's file scope; they already got their `Math.random()`
+> fixes in T5/T6).
 
 ---
 
