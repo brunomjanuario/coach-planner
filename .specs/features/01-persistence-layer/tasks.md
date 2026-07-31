@@ -9,8 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
-**Design**: ⚠️ **required before Execute** — run the skill's Design phase first; see Design Notes below
-**Status**: Draft
+**Design**: ✅ Complete — see `design.md`
+**Status**: In Progress (T1/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -95,7 +95,7 @@ T8 → T9 → T10
 
 ## Task Breakdown
 
-### T1: Create the storage adapter
+### T1: Create the storage adapter ✅ Complete
 
 **What**: A localStorage wrapper handling JSON, namespaced keys, `Date` revival and every failure mode.
 **Where**: `src/lib/storage.js` (new)
@@ -106,20 +106,28 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `read(collection, dateFields)` returns the parsed array with listed fields revived to `Date`
-- [ ] `write(collection, value)` serializes and stores under `coachplanner:v1:<collection>`
-- [ ] Returns `null` (not a throw) when the key is absent — the signal T4 uses to decide on seeding
-- [ ] Corrupt JSON returns `null` and logs one warning (edge case: corruption)
-- [ ] A quota-exceeded write throws a typed `StorageQuotaError` carrying the collection name
-- [ ] `localStorage` being unavailable falls back to an in-memory `Map` for the session, warning once
-- [ ] A malformed date string revives as an `Invalid Date`, not a throw (AC PERSIST-05.3)
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/storage.test.js`
-- [ ] Test count: 9 tests pass
+- [x] `read(collection, dateFields)` returns the parsed array with listed fields revived to `Date`
+- [x] `write(collection, value)` serializes and stores under `coachplanner:v1:<collection>`
+- [x] Returns `null` (not a throw) when the key is absent — the signal T4 uses to decide on seeding
+- [x] Corrupt JSON returns `null` and logs one warning (edge case: corruption)
+- [x] A quota-exceeded write throws a typed `StorageQuotaError` carrying the collection name
+- [x] `localStorage` being unavailable falls back to an in-memory `Map` for the session, warning once
+- [x] A malformed date string revives as an `Invalid Date`, not a throw (AC PERSIST-05.3)
+- [x] Gate passes: `npx vitest run src/lib/__tests__/storage.test.js`
+- [x] Test count: 10 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(storage): add localStorage adapter with date revival`
+**Commit**: `feat(storage): add localStorage adapter with date revival` — [332c867]
+
+> **SPEC_DEVIATION**: Test count is 10, not the 9 estimated in the plan. The
+> extra test covers `remove(key)`, which `design.md` assigns to this module
+> (beyond T1's literal `Done when` list) because `store.reset()` in T4 needs
+> it. Verified jsdom's quota-exceeded error empirically before writing the
+> quota test (per design.md's flagged risk): `DOMException` with
+> `name === "QuotaExceededError"` and `code === 22` — matches real-browser
+> shape, no special-casing needed.
 
 ---
 

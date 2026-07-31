@@ -148,9 +148,9 @@ a predictable fixture.
 | PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Pending |
 | PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Pending |
 | PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending |
-| PERSIST-05 | P1: Date fidelity | Tasks | Pending |
+| PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1 done: storage adapter revives Date fields, handles malformed dates) |
 | PERSIST-06 | P2: Reset to demo data | Tasks | Pending |
-| PERSIST-07 | Edge cases: storage failure, corruption, quota | Tasks | Pending |
+| PERSIST-07 | Edge cases: storage failure, corruption, quota | Tasks | Implementing (T1 done: quota/corruption/unavailability handling) |
 | PERSIST-08 | Id generation without collisions (AD-003) | Tasks | Pending |
 
 **Coverage:** 8 total, 8 mapped to tasks, 0 unmapped
