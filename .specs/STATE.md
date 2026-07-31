@@ -76,11 +76,11 @@
 
 ## Handoff
 
-- **Feature**: `02-select-team-color` — done and verified (PASS, zero blocking gaps after one fix→re-verify iteration).
-- **Phase / Task**: All 4 tasks complete (T1 theme tokens → T2 `SelectableListItem` → T3 Teams adoption → T4 Trainings adoption → Verifier). Single inline batch, no sub-agents (fits ≤8 tasks). Verifier found one real gap (Trainings.jsx team-filter list missing empty-state message for the edge case that applies to every list) — fixed in a follow-up commit and re-verified PASS. See `.specs/features/02-select-team-color/validation.md`.
-- **Completed**: T1–T4 plus one post-Verifier fix commit, all committed individually on `feature/02/select-team-color`. Three candidate lessons recorded (L-003, L-004, L-005) in `.specs/LESSONS.md`/`.specs/lessons.json`.
+- **Feature**: `03-training-team-assignment` — done and verified (PASS after one fix→re-verify iteration).
+- **Phase / Task**: All 5 tasks complete (T1 team select → T2 pre-select → T3 submit validation + shadowed-`onSubmit` fix → T4 refresh/report → T5 Unassigned bucket + `getUnassigned` → Verifier). Single inline batch, no sub-agents. Verifier found two real gaps (outer create button not disabled with zero teams; `TrainingSavePopup`'s `onSubmit` prop called without `await`/`.catch`, silently swallowing a real `StorageQuotaError`) — both fixed in a follow-up commit and re-verified PASS. One low-severity survived mutant on T2's pre-select guard was accepted as non-blocking (covered end-to-end by T3's redundant submit-time revalidation). See `.specs/features/03-training-team-assignment/validation.md`.
+- **Completed**: T1–T5 plus one post-Verifier fix commit, all committed individually on `feature/03/training-team-assignment`.
 - **In-progress** (file:line): none — feature closed out.
-- **Next step**: `feature/02/select-team-color` is not yet merged to `main`. `01-persistence-layer` (branch `feature/01/persistence-layer`) also remains unmerged from the prior session. Next features per the roadmap: `03-training-team-assignment` and `04-training-form` both depend on `01-persistence-layer`, not on `02` — confirm merge order/timing with the user before starting new work.
+- **Next step**: `feature/03/training-team-assignment` is not yet merged to `main`. `01-persistence-layer` and `02-select-team-color` are both merged (PRs #3 and #4). Next features per the roadmap: `04-training-form`, `05-training-number`, `06-training-edit` all build on the trainings work — `04-training-form` and `06-training-edit` likely want this feature's team-select/validation patterns merged first. Confirm merge order/timing with the user before starting new work.
 - **Blockers**: none
 - **Uncommitted files**: none — working tree clean
-- **Branch**: `feature/02/select-team-color` (not yet merged to `main`) — branches for this project have consistently been merged outside the session (via GitHub PRs); don't assume `main` is current without checking.
+- **Branch**: `feature/03/training-team-assignment` (not yet merged to `main`) — branches for this project have consistently been merged outside the session (via GitHub PRs); don't assume `main` is current without checking.
