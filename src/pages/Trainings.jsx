@@ -4,6 +4,7 @@ import { trainingService } from "../services/trainingService";
 import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
+import SelectableListItem from "../components/SelectableListItem";
 
 /** Splits trainings into future/past buckets by comparing `day` to now. */
 function splitTrainings(trainings) {
@@ -96,46 +97,61 @@ export default function Trainings() {
       </div>
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
-          <ul>
-            {teams.map((team) => (
-              <li
-                className={`mt-2 p-3 rounded cursor-pointer hover:bg-lightblack ${
-                  selectedTeam?.id === team.id ? "bg-lightblack" : ""
-                }`}
-                onClick={() => selectTeam(team)}
-              >
-                {team.club} {team.name}
-              </li>
-            ))}
-          </ul>
+          {teams.length === 0 ? (
+            <p>No teams yet.</p>
+          ) : (
+            <ul>
+              {teams.map((team) => (
+                <SelectableListItem
+                  key={team.id}
+                  selected={selectedTeam?.id === team.id}
+                  onSelect={() => selectTeam(team)}
+                >
+                  {team.club} {team.name}
+                </SelectableListItem>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex-3 p-4 flex flex-col gap-4 flex-1 min-h-0">
           <h2 className="text-lg font-semibold">Next Trainings</h2>
           <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
-            <ul className="flex-1 overflow-y-auto">
-              {futureTrainings.map((training) => (
-                <li
-                  className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                  onClick={() => selectTraining(training)}
-                >
-                  {training.id} {training.day.toString()} {training.duration}
-                </li>
-              ))}
-            </ul>
+            {futureTrainings.length === 0 ? (
+              <p className="p-3">No upcoming trainings.</p>
+            ) : (
+              <ul className="flex-1 overflow-y-auto">
+                {futureTrainings.map((training) => (
+                  <li
+                    key={training.id}
+                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
+                    onClick={() => selectTraining(training)}
+                  >
+                    {training.id} {training.day.toString()}{" "}
+                    {training.duration}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <h2 className="text-lg font-semibold">Past Trainings</h2>
           <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
-            <ul className="flex-1 overflow-y-auto">
-              {pastTrainings.map((training) => (
-                <li
-                  className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                  onClick={() => selectTraining(training)}
-                >
-                  {training.id} {training.day.toString()} {training.duration}
-                </li>
-              ))}
-            </ul>
+            {pastTrainings.length === 0 ? (
+              <p className="p-3">No past trainings.</p>
+            ) : (
+              <ul className="flex-1 overflow-y-auto">
+                {pastTrainings.map((training) => (
+                  <li
+                    key={training.id}
+                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
+                    onClick={() => selectTraining(training)}
+                  >
+                    {training.id} {training.day.toString()}{" "}
+                    {training.duration}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           {showTrainingDetailsPopup && (
             <TrainingDetailsPopup

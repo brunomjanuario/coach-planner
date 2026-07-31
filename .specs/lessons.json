@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 6,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,60 @@
       ],
       "created": "2026-07-31T08:17:28Z",
       "last_seen": "2026-07-31T08:17:28Z"
+    },
+    {
+      "id": "L-003",
+      "key": "spec_precision_gap::when a spec edge case is a css layout claim untestable in jsdom e g wrapping content computed height name the test after what it actually asserts class presence instead of the layout outcome or note the jsdom limitation in a comment",
+      "text": "When a spec edge case is a CSS/layout claim untestable in jsdom (e.g. wrapping content, computed height), name the test after what it actually asserts (class presence) instead of the layout outcome, or note the jsdom limitation in a comment.",
+      "signal": "spec_precision_gap",
+      "scope": "components",
+      "status": "candidate",
+      "features": [
+        "02-select-team-color"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SelectableListItem.test.jsx:88-97 (components)"
+      ],
+      "created": "2026-07-31T15:39:39Z",
+      "last_seen": "2026-07-31T15:39:39Z"
+    },
+    {
+      "id": "L-004",
+      "key": "ac_gap::when a spec edge case says every empty list gets an empty state message apply it to every list rendering call site in the diff not just the ones with an existing precedent to copy",
+      "text": "When a spec edge case says 'every empty list gets an empty-state message,' apply it to every list-rendering call site in the diff, not just the ones with an existing precedent to copy.",
+      "signal": "ac_gap",
+      "scope": "pages",
+      "status": "candidate",
+      "features": [
+        "02-select-team-color"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/pages/Trainings.jsx:100-110 (pages)"
+      ],
+      "created": "2026-07-31T15:39:39Z",
+      "last_seen": "2026-07-31T15:39:39Z"
+    },
+    {
+      "id": "L-005",
+      "key": "spec_precision_gap::when a task s done when claims a specific contrast ratio verify it against every active color scheme variant light and dark media queries not just the one visually checked during implementation",
+      "text": "When a task's Done-when claims a specific contrast ratio, verify it against every active color-scheme variant (light and dark media queries), not just the one visually checked during implementation.",
+      "signal": "spec_precision_gap",
+      "scope": "theme",
+      "status": "candidate",
+      "features": [
+        "02-select-team-color"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/index.css:6 (T1 Done-when: WCAG AA 4.5:1) (theme)"
+      ],
+      "created": "2026-07-31T15:39:39Z",
+      "last_seen": "2026-07-31T15:39:39Z"
     }
   ]
 }

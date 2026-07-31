@@ -15,9 +15,9 @@ players, `Trainings.jsx` teams), all of them missing React `key` props.
 
 ## Goals
 
-- [ ] Selected and hovered rows are visually distinct at a glance
-- [ ] One list-row component replaces three copies of the markup
-- [ ] The missing `key` props are gone
+- [x] Selected and hovered rows are visually distinct at a glance
+- [x] One list-row component replaces three copies of the markup
+- [x] The missing `key` props are gone
 
 ## Out of Scope
 
@@ -93,10 +93,10 @@ change lands in one place.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| SELECT-01 | P1: Distinguishable selection | Tasks | Pending |
-| SELECT-02 | P1: Selection accessibility (`aria-current`, keyboard) | Tasks | Pending |
-| SELECT-03 | P2: Single list-row component | Tasks | Pending |
-| SELECT-04 | P2: Stable keys | Tasks | Pending |
+| SELECT-01 | P1: Distinguishable selection | Tasks | Implemented |
+| SELECT-02 | P1: Selection accessibility (`aria-current`, keyboard) | Tasks | Implemented |
+| SELECT-03 | P2: Single list-row component | Tasks | Implemented |
+| SELECT-04 | P2: Stable keys | Tasks | Implemented |
 
 **Coverage:** 4 total, 4 mapped to tasks, 0 unmapped
 
@@ -104,6 +104,6 @@ change lands in one place.
 
 ## Success Criteria
 
-- [ ] Selected and hovered rows are distinguishable in a side-by-side screenshot
-- [ ] Zero React key warnings in the console on `/teams` and `/trainings`
-- [ ] The row markup exists in exactly one file
+- [x] Selected and hovered rows are distinguishable in a side-by-side screenshot
+- [x] Zero React key warnings in the console on `/teams` and `/trainings`
+- [x] The row markup exists in exactly one file

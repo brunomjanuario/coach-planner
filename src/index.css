@@ -3,6 +3,9 @@
 @theme {
   --color-lightblack: #171717;
   --color-lightgrey: rgb(71, 71, 71);
+  --color-selected: #1e3a8a;
+  --color-selected-border: #3b82f6;
+  --color-hover: #262626;
 }
 
 :root {

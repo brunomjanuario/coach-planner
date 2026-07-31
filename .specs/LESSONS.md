@@ -26,6 +26,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: vite.config.js:11 (mutation 3, AC TEST-01.3) (test-harness)
 - last seen: 2026-07-31T08:17:28Z
 
+### L-003 — When a spec edge case is a CSS/layout claim untestable in jsdom (e.g. wrapping content, computed height), name the test after what it actually asserts (class presence) instead of the layout outcome, or note the jsdom limitation in a comment.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `components` · harmful: 0
+- features: 02-select-team-color
+- evidence: SelectableListItem.test.jsx:88-97 (components)
+- last seen: 2026-07-31T15:39:39Z
+
+### L-004 — When a spec edge case says 'every empty list gets an empty-state message,' apply it to every list-rendering call site in the diff, not just the ones with an existing precedent to copy.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `pages` · harmful: 0
+- features: 02-select-team-color
+- evidence: src/pages/Trainings.jsx:100-110 (pages)
+- last seen: 2026-07-31T15:39:39Z
+
+### L-005 — When a task's Done-when claims a specific contrast ratio, verify it against every active color-scheme variant (light and dark media queries), not just the one visually checked during implementation.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `theme` · harmful: 0
+- features: 02-select-team-color
+- evidence: src/index.css:6 (T1 Done-when: WCAG AA 4.5:1) (theme)
+- last seen: 2026-07-31T15:39:39Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

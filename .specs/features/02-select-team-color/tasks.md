@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/02-select-team-color/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Complete
 **Batches**: 4 tasks → 1 batch, execute inline (no sub-agents)
 
 > This feature depends on `00-test-harness` only. It does **not** need the
@@ -69,11 +69,11 @@ T3 → T4
 **Tools**: MCP: `context7` (Tailwind 4 `@theme` token syntax) · Skill: NONE
 
 **Done when**:
-- [ ] `--color-selected` and `--color-selected-border` added to `@theme`
-- [ ] `--color-hover` added, distinct from both `--color-selected` and the surface
-- [ ] Contrast of selected background against its text meets WCAG AA (4.5:1)
-- [ ] Existing `lightblack` / `lightgrey` tokens unchanged — nothing else re-styles
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
+- [x] `--color-selected` and `--color-selected-border` added to `@theme`
+- [x] `--color-hover` added, distinct from both `--color-selected` and the surface
+- [x] Contrast of selected background against its text meets WCAG AA (4.5:1)
+- [x] Existing `lightblack` / `lightgrey` tokens unchanged — nothing else re-styles
+- [x] Gate passes: `npm run lint && npm run build && npm test`
 
 **Tests**: none (matrix: theme tokens → none) — verified through T2
 **Gate**: build
@@ -93,17 +93,17 @@ T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Props: `selected`, `onSelect`, `children`
-- [ ] Selected renders accent background + left border bar (AC SELECT-01.1)
-- [ ] Hover-not-selected renders the hover token, visually distinct (AC SELECT-01.2)
-- [ ] Selected + hovered keeps selected styling dominant (AC SELECT-01.3)
-- [ ] Sets `aria-current="true"` only when selected (AC SELECT-01.5)
-- [ ] Click invokes `onSelect` exactly once (AC SELECT-03.2)
-- [ ] Enter and Space each invoke `onSelect` (AC SELECT-03.3)
-- [ ] Row is focusable and reachable by Tab
-- [ ] Long content wraps with the border bar spanning full height (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/SelectableListItem.test.jsx`
-- [ ] Test count: 9 tests pass
+- [x] Props: `selected`, `onSelect`, `children`
+- [x] Selected renders accent background + left border bar (AC SELECT-01.1)
+- [x] Hover-not-selected renders the hover token, visually distinct (AC SELECT-01.2)
+- [x] Selected + hovered keeps selected styling dominant (AC SELECT-01.3)
+- [x] Sets `aria-current="true"` only when selected (AC SELECT-01.5)
+- [x] Click invokes `onSelect` exactly once (AC SELECT-03.2)
+- [x] Enter and Space each invoke `onSelect` (AC SELECT-03.3)
+- [x] Row is focusable and reachable by Tab
+- [x] Long content wraps with the border bar spanning full height (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/SelectableListItem.test.jsx`
+- [x] Test count: 9 tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -123,14 +123,14 @@ T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The teams list renders through `SelectableListItem` with `key={team.id}`
-- [ ] The players list renders through it with `key={player.id}`
-- [ ] Zero React key warnings in the console for this page (AC SELECT-04.1)
-- [ ] Empty teams list renders an empty-state message (edge case)
-- [ ] Empty/absent selected team renders a "select a team" message in the players column (edge case)
-- [ ] Selecting a team still clears the player selection — existing behaviour preserved
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 7 tests pass
+- [x] The teams list renders through `SelectableListItem` with `key={team.id}`
+- [x] The players list renders through it with `key={player.id}`
+- [x] Zero React key warnings in the console for this page (AC SELECT-04.1)
+- [x] Empty teams list renders an empty-state message (edge case)
+- [x] Empty/absent selected team renders a "select a team" message in the players column (edge case)
+- [x] Selecting a team still clears the player selection — existing behaviour preserved
+- [x] Gate passes: `npm test`
+- [x] Test count: 7 tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -150,13 +150,13 @@ T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The team filter list renders through `SelectableListItem` with `key={team.id}`
-- [ ] The two training lists get `key={training.id}` (they are not selectable rows — keys only)
-- [ ] Zero React key warnings on this page
-- [ ] Click-to-deselect still works — clicking the selected team clears the filter
-- [ ] Empty future/past lists render empty-state messages (edge case: the shipped seed leaves "Next Trainings" empty)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 6 tests pass
+- [x] The team filter list renders through `SelectableListItem` with `key={team.id}`
+- [x] The two training lists get `key={training.id}` (they are not selectable rows — keys only)
+- [x] Zero React key warnings on this page
+- [x] Click-to-deselect still works — clicking the selected team clears the filter
+- [x] Empty future/past lists render empty-state messages (edge case: the shipped seed leaves "Next Trainings" empty)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 6 tests pass
 
 **Tests**: integration
 **Gate**: build
