@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { trainingService } from "../services/trainingService";
+import { teamService } from "../services/teamService";
 
 export default function TrainingSavePopup({ teamId, onClose }) {
+  const [teams, setTeams] = useState([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
   const [formData, setFormData] = useState({
     id: undefined,
     teamId: teamId || null,
@@ -10,6 +13,21 @@ export default function TrainingSavePopup({ teamId, onClose }) {
     exercises: [],
     exerciseInput: "",
   });
+
+  useEffect(() => {
+    async function loadTeams() {
+      try {
+        const data = await teamService.getAll();
+        setTeams(data);
+      } catch (err) {
+        console.error("Failed to load teams:", err);
+      } finally {
+        setLoadingTeams(false);
+      }
+    }
+
+    loadTeams();
+  }, []);
 
   function onSubmit(training) {
     trainingService.create(training);
@@ -58,6 +76,29 @@ export default function TrainingSavePopup({ teamId, onClose }) {
       <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
         <h2 className="text-xl mb-4 font-bold">Create Training</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium">Team</label>
+            <select
+              name="teamId"
+              value={formData.teamId ?? ""}
+              onChange={handleChange}
+              disabled={loadingTeams || teams.length === 0}
+              className="w-full border px-3 py-2 rounded"
+              required
+            >
+              <option value="">Select a team</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.club} {team.name}
+                </option>
+              ))}
+            </select>
+            {!loadingTeams && teams.length === 0 && (
+              <p className="text-sm text-red-500">
+                No teams yet. Add one on the Teams page first.
+              </p>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium">Date & Time</label>
             <input
