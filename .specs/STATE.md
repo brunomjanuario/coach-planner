@@ -76,11 +76,11 @@
 
 ## Handoff
 
-- **Feature**: `01-persistence-layer` — done and verified (PASS, clean — no lessons recorded).
-- **Phase / Task**: All 10 tasks complete (Design → Batch 1 T1-T7 → Batch 2 T8-T10 → Verifier). Implemented across two sub-agent batches; Batch 2's session was interrupted by an API session limit mid-way through committing T10 — the orchestrator resumed directly, verified the in-flight work against T10's Done-when criteria, ran the gate, and committed it before dispatching the Verifier. See `.specs/features/01-persistence-layer/validation.md`.
-- **Completed**: T1–T10, all committed individually on `feature/01/persistence-layer`; `design.md` also committed (Large scope required Design before Execute).
+- **Feature**: `02-select-team-color` — done and verified (PASS, zero blocking gaps after one fix→re-verify iteration).
+- **Phase / Task**: All 4 tasks complete (T1 theme tokens → T2 `SelectableListItem` → T3 Teams adoption → T4 Trainings adoption → Verifier). Single inline batch, no sub-agents (fits ≤8 tasks). Verifier found one real gap (Trainings.jsx team-filter list missing empty-state message for the edge case that applies to every list) — fixed in a follow-up commit and re-verified PASS. See `.specs/features/02-select-team-color/validation.md`.
+- **Completed**: T1–T4 plus one post-Verifier fix commit, all committed individually on `feature/02/select-team-color`. Three candidate lessons recorded (L-003, L-004, L-005) in `.specs/LESSONS.md`/`.specs/lessons.json`.
 - **In-progress** (file:line): none — feature closed out.
-- **Next step**: `00-test-harness` was squash-merged to `main` via PR #2 outside this session (commit `407d689`). `01-persistence-layer`'s branch is not yet merged. Next feature per the roadmap is `02-select-team-color` (only depends on `00`, ships independently) or `03-training-team-assignment` (depends on `01`) — either can start once `01` is merged, or in parallel on their own branches if the user prefers. Confirm merge timing with the user before starting new work.
+- **Next step**: `feature/02/select-team-color` is not yet merged to `main`. `01-persistence-layer` (branch `feature/01/persistence-layer`) also remains unmerged from the prior session. Next features per the roadmap: `03-training-team-assignment` and `04-training-form` both depend on `01-persistence-layer`, not on `02` — confirm merge order/timing with the user before starting new work.
 - **Blockers**: none
 - **Uncommitted files**: none — working tree clean
-- **Branch**: `feature/01/persistence-layer` (not yet merged to `main`) — branches for this project have consistently been switched/merged outside the session (via GitHub PRs); don't assume `main` is current without checking.
+- **Branch**: `feature/02/select-team-color` (not yet merged to `main`) — branches for this project have consistently been merged outside the session (via GitHub PRs); don't assume `main` is current without checking.
