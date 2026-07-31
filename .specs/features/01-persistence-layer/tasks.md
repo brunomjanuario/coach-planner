@@ -360,7 +360,7 @@ T8 → T9 → T10
 
 ---
 
-### T9: Refresh the Trainings page after every mutation
+### T9: Refresh the Trainings page after every mutation ✅ Complete
 
 **What**: Re-read after create, preserving the active team filter.
 **Where**: `src/pages/Trainings.jsx` (modify)
@@ -371,18 +371,32 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Creating a training refreshes both lists (AC PERSIST-04.4)
-- [ ] The refresh **preserves the active team filter** — it must not silently reset to showing all teams
-- [ ] The duplicated future/past split logic (currently inlined in three places) is extracted to one helper
-- [ ] The two mount-time `useEffect`s are consolidated into one
-- [ ] Typo `filterTranings` → `filterTrainings` fixed
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 9 tests pass
+- [x] Creating a training refreshes both lists (AC PERSIST-04.4)
+- [x] The refresh **preserves the active team filter** — it must not silently reset to showing all teams
+- [x] The duplicated future/past split logic (currently inlined in three places) is extracted to one helper
+- [x] The two mount-time `useEffect`s are consolidated into one
+- [x] Typo `filterTranings` → `filterTrainings` fixed
+- [x] Gate passes: `npm test`
+- [x] Test count: 9 tests pass
 
 **Tests**: integration
 **Gate**: full
 
-**Commit**: `fix(trainings): refresh lists after create and preserve filter`
+**Commit**: `fix(trainings): refresh lists after create and preserve filter` — [242c324]
+
+> `filterTrainings(teamId)` now also handles the "no team selected" case
+> (`teamId` falsy → unfiltered), so it's reused by `selectTeam`'s deselect
+> branch and the create-training refresh, not just the team-selected path.
+> The mount-time effect calls `splitTrainings()` directly on the unfiltered
+> `trainingService.getAll()` result rather than going through
+> `filterTrainings`, to avoid an ESLint `exhaustive-deps` dependency-cycle
+> concern in the consolidated `useEffect`; this still leaves exactly one
+> place (`splitTrainings`) that knows about the future/past day comparison,
+> which is what the Done-when item asks for. `TrainingSavePopup`'s dead,
+> unused `onSubmit` prop (the component never destructures it — a
+> pre-existing rough edge, not introduced here) was left untouched per the
+> "don't remove pre-existing dead code unless asked" rule; it is out of
+> T9's file scope (`TrainingSavePopup.jsx` isn't listed).
 
 ---
 
