@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T5/10 done)
+**Status**: In Progress (T6/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -260,10 +260,10 @@ T8 → T9 → T10
 
 ---
 
-### T6: Migrate teamService player methods
+### T6: Migrate teamService player methods ✅ Complete
 
 **What**: Rewrite `addPlayer`/`updatePlayer`/`deletePlayer` over the store.
-**Where**: `src/services/teamService.js` (modify)
+**Where**: `src/services/teamService.js` (modify), plus per `design.md`'s corrected scope: `src/components/PlayerPopup.jsx` (modify)
 **Depends on**: T5
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-08
@@ -271,18 +271,18 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `addPlayer` assigns an id via `newId()` and persists
-- [ ] `addPlayer` with an unknown `teamId` throws `NotFoundError` — it currently throws `TypeError` on `undefined.players`, which is the crash behind the `03` bug
-- [ ] `updatePlayer` persists and preserves `goals`, `assists`, `concededGoals` (they are not on the form)
-- [ ] `deletePlayer` persists and survives reload
-- [ ] Player ids stay unique across all teams (invariant `09-player-ratings` depends on)
-- [ ] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
-- [ ] Test count: 19 tests pass (11 from T5 + 8 new)
+- [x] `addPlayer` assigns an id via `newId()` and persists
+- [x] `addPlayer` with an unknown `teamId` throws `NotFoundError` — it currently throws `TypeError` on `undefined.players`, which is the crash behind the `03` bug
+- [x] `updatePlayer` persists and preserves `goals`, `assists`, `concededGoals` (they are not on the form)
+- [x] `deletePlayer` persists and survives reload
+- [x] Player ids stay unique across all teams (invariant `09-player-ratings` depends on)
+- [x] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
+- [x] Test count: 19 tests pass (11 from T5 + 8 new)
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(players): migrate player methods to the persistent store`
+**Commit**: `refactor(players): migrate player methods to the persistent store` — [28f3665]
 
 ---
 
