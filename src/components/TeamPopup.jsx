@@ -3,7 +3,7 @@ import { teamService } from "../services/teamService";
 
 export default function TeamPopup({ team, onClose }) {
   const [formData, setFormData] = useState({
-    id: team != null ? team.id : Math.floor(Math.random() * 100),
+    id: team != null ? team.id : undefined,
     name: team != null ? team.name : "",
     club: team != null ? team.club : "",
     season: team != null ? team.season : "",
