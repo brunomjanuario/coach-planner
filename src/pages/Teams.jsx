@@ -17,8 +17,10 @@ export default function Teams() {
     try {
       const data = await teamService.getAll();
       setTeams(data);
+      return data;
     } catch (err) {
       console.error("Failed to load teams:", err);
+      return [];
     }
   };
 
@@ -36,6 +38,26 @@ export default function Teams() {
     loadTeams();
   };
 
+  const refreshAndResync = async () => {
+    const data = await loadTeams();
+    setSelectedTeam((prev) =>
+      prev ? data.find((t) => t.id === prev.id) ?? null : prev
+    );
+  };
+
+  const refreshAndResyncPlayer = async () => {
+    const data = await loadTeams();
+    const nextTeam = selectedTeam
+      ? data.find((t) => t.id === selectedTeam.id) ?? null
+      : selectedTeam;
+    setSelectedTeam(nextTeam);
+    setSelectedPlayer((prev) =>
+      prev && nextTeam
+        ? nextTeam.players.find((p) => p.id === prev.id) ?? null
+        : prev
+    );
+  };
+
   return (
     <div className="w-full flex">
       <div className="flex-1 p-4 text-center">
@@ -47,7 +69,14 @@ export default function Teams() {
           >
             <IconShieldPlus />
           </div>
-          {showPopup && <TeamPopup onClose={() => setShowPopup(false)} />}
+          {showPopup && (
+            <TeamPopup
+              onClose={() => {
+                setShowPopup(false);
+                refreshAndResync();
+              }}
+            />
+          )}
         </div>
         <div>
           <ul>
@@ -78,7 +107,10 @@ export default function Teams() {
             <PlayerPopup
               player={null}
               teamId={selectedTeam?.id}
-              onClose={() => setShowPlayerPopup(false)}
+              onClose={() => {
+                setShowPlayerPopup(false);
+                refreshAndResync();
+              }}
             />
           )}
         </div>
@@ -101,7 +133,11 @@ export default function Teams() {
       <div className="flex-1 p-4 text-center">
         <h2 className="text-lg font-semibold mb-4">Edit</h2>
         {selectedTeam !== null && selectedPlayer === null ? (
-          <TeamCard team={selectedTeam} onClose={() => closeTeam()} />
+          <TeamCard
+            team={selectedTeam}
+            onClose={() => closeTeam()}
+            onUpdated={() => refreshAndResync()}
+          />
         ) : (
           ""
         )}
@@ -109,6 +145,7 @@ export default function Teams() {
           <PlayerCard
             player={selectedPlayer}
             onClose={() => setSelectedPlayer(null)}
+            onUpdated={() => refreshAndResyncPlayer()}
           />
         ) : (
           ""

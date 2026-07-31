@@ -1,53 +1,90 @@
-const API_URL = "/api/teams";
-import { teams } from "../model/mock";
+import { getCollection, setCollection } from "./store";
+import { newId } from "../lib/id";
+import { NotFoundError } from "../lib/errors";
 
-let teamsData = teams;
+function getTeams() {
+  return getCollection("teams");
+}
+
+function saveTeams(teams) {
+  setCollection("teams", teams);
+}
 
 export const teamService = {
   getAll: async () => {
-    return teamsData;
+    return getTeams();
   },
 
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/${id}`);
-    if (!res.ok) throw new Error("Failed to fetch team");
-    return res.json();
+    const teams = getTeams();
+    return teams.find((team) => team.id === id) ?? null;
   },
 
   create: async (teamData) => {
-    teamsData.push(teamData);
+    const teams = getTeams();
+    const newTeam = { ...teamData, id: newId() };
+    teams.push(newTeam);
+    saveTeams(teams);
+    return newTeam;
   },
 
   update: async (teamData) => {
-    const team = teamsData.find((team) => team.id === teamData.id);
-    team.name = teamData.name;
-    team.club = teamData.club;
-    team.season = teamData.season;
+    const teams = getTeams();
+    const index = teams.findIndex((team) => team.id === teamData.id);
+    if (index === -1) {
+      throw new NotFoundError(`Team not found: ${teamData.id}`);
+    }
+    teams[index] = { ...teams[index], ...teamData };
+    saveTeams(teams);
+    return teams[index];
   },
 
   delete: async (id) => {
-    teamsData = teamsData.filter((team) => team.id !== id);
+    const teams = getTeams().filter((team) => team.id !== id);
+    saveTeams(teams);
   },
 
   addPlayer: async (teamId, playerData) => {
-    const team = teamsData.find((team) => team.id === teamId);
-    team.players.push(playerData);
+    const teams = getTeams();
+    const team = teams.find((team) => team.id === teamId);
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${teamId}`);
+    }
+    const newPlayer = { ...playerData, teamId, id: newId() };
+    team.players.push(newPlayer);
+    saveTeams(teams);
+    return newPlayer;
   },
 
   updatePlayer: async (playerData) => {
-    const team = teamsData.find((team) => team.id === playerData.teamId);
-    const player = team.players.find((player) => player.id === playerData.id);
-    player.age = playerData.age;
-    player.name = playerData.name;
-    player.shirtNumber = playerData.shirtNumber;
-    player.position = playerData.position;
+    const teams = getTeams();
+    const team = teams.find((team) => team.id === playerData.teamId);
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${playerData.teamId}`);
+    }
+    const playerIndex = team.players.findIndex(
+      (player) => player.id === playerData.id
+    );
+    if (playerIndex === -1) {
+      throw new NotFoundError(`Player not found: ${playerData.id}`);
+    }
+    team.players[playerIndex] = {
+      ...team.players[playerIndex],
+      ...playerData,
+    };
+    saveTeams(teams);
+    return team.players[playerIndex];
   },
 
   deletePlayer: async (playerData) => {
-    const team = teamsData.find((team) => team.id === playerData.teamId);
-    const newList = team.players.filter(
+    const teams = getTeams();
+    const team = teams.find((team) => team.id === playerData.teamId);
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${playerData.teamId}`);
+    }
+    team.players = team.players.filter(
       (player) => player.id !== playerData.id
     );
-    team.players = newList;
+    saveTeams(teams);
   },
 };

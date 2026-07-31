@@ -4,7 +4,7 @@ import PlayerPopup from "../components/PlayerPopup";
 import ConfirmationPopup from "./ConfirmationPopup";
 import { teamService } from "../services/teamService";
 
-export default function PlayerCard({ player, onClose }) {
+export default function PlayerCard({ player, onClose, onUpdated }) {
   const [showEditPlayerPopup, setShowEditPlayerPopup] = useState(false);
   const [toDeletePlayer, setToDeletePlayer] = useState(false);
 
@@ -44,7 +44,10 @@ export default function PlayerCard({ player, onClose }) {
           <PlayerPopup
             player={player}
             teamId={player?.teamId}
-            onClose={() => setShowEditPlayerPopup(false)}
+            onClose={() => {
+              setShowEditPlayerPopup(false);
+              onUpdated();
+            }}
           />
         )}
         {toDeletePlayer && (

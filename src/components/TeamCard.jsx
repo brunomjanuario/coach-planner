@@ -4,7 +4,7 @@ import { useState } from "react";
 import ConfirmationPopup from "./ConfirmationPopup";
 import TeamPopup from "./TeamPopup";
 
-export default function TeamCard({ team, onClose }) {
+export default function TeamCard({ team, onClose, onUpdated }) {
   const [toDeleteTeam, setToDeleteTeam] = useState(false);
   const [showEditTeam, setShowEditTeam] = useState(false);
 
@@ -40,7 +40,13 @@ export default function TeamCard({ team, onClose }) {
             <IconTrash />
           </div>
           {showEditTeam && (
-            <TeamPopup team={team} onClose={() => setShowEditTeam(false)} />
+            <TeamPopup
+              team={team}
+              onClose={() => {
+                setShowEditTeam(false);
+                onUpdated();
+              }}
+            />
           )}
           {toDeleteTeam && (
             <ConfirmationPopup

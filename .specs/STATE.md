@@ -76,11 +76,11 @@
 
 ## Handoff
 
-- **Feature**: `00-test-harness` — done and verified (PASS).
-- **Phase / Task**: All 6 tasks complete; Verifier ran and reported PASS with 2 advisory (non-blocking) gaps, recorded as candidate lessons L-001/L-002. See `.specs/features/00-test-harness/validation.md`.
-- **Completed**: T1–T6, all committed individually on `feature/00/test-harness`.
+- **Feature**: `01-persistence-layer` — done and verified (PASS, clean — no lessons recorded).
+- **Phase / Task**: All 10 tasks complete (Design → Batch 1 T1-T7 → Batch 2 T8-T10 → Verifier). Implemented across two sub-agent batches; Batch 2's session was interrupted by an API session limit mid-way through committing T10 — the orchestrator resumed directly, verified the in-flight work against T10's Done-when criteria, ran the gate, and committed it before dispatching the Verifier. See `.specs/features/01-persistence-layer/validation.md`.
+- **Completed**: T1–T10, all committed individually on `feature/01/persistence-layer`; `design.md` also committed (Large scope required Design before Execute).
 - **In-progress** (file:line): none — feature closed out.
-- **Next step**: Start `01-persistence-layer` — it blocks features 03–11. Its `tasks.md` is flagged `Design: required before Execute`; run the skill's Design phase first (see its Design Notes section for the open architectural questions).
+- **Next step**: `00-test-harness` was squash-merged to `main` via PR #2 outside this session (commit `407d689`). `01-persistence-layer`'s branch is not yet merged. Next feature per the roadmap is `02-select-team-color` (only depends on `00`, ships independently) or `03-training-team-assignment` (depends on `01`) — either can start once `01` is merged, or in parallel on their own branches if the user prefers. Confirm merge timing with the user before starting new work.
 - **Blockers**: none
 - **Uncommitted files**: none — working tree clean
-- **Branch**: `feature/00/test-harness` (not yet merged to `main`) — note this branch was switched to outside this session (not by any command I ran); confirm with the user whether/when to merge before starting `01`.
+- **Branch**: `feature/01/persistence-layer` (not yet merged to `main`) — branches for this project have consistently been switched/merged outside the session (via GitHub PRs); don't assume `main` is current without checking.

@@ -9,8 +9,8 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
-**Design**: ⚠️ **required before Execute** — run the skill's Design phase first; see Design Notes below
-**Status**: Draft
+**Design**: ✅ Complete — see `design.md`
+**Status**: ✅ Verified — PASS (see `validation.md`)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -95,7 +95,7 @@ T8 → T9 → T10
 
 ## Task Breakdown
 
-### T1: Create the storage adapter
+### T1: Create the storage adapter ✅ Complete
 
 **What**: A localStorage wrapper handling JSON, namespaced keys, `Date` revival and every failure mode.
 **Where**: `src/lib/storage.js` (new)
@@ -106,24 +106,32 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `read(collection, dateFields)` returns the parsed array with listed fields revived to `Date`
-- [ ] `write(collection, value)` serializes and stores under `coachplanner:v1:<collection>`
-- [ ] Returns `null` (not a throw) when the key is absent — the signal T4 uses to decide on seeding
-- [ ] Corrupt JSON returns `null` and logs one warning (edge case: corruption)
-- [ ] A quota-exceeded write throws a typed `StorageQuotaError` carrying the collection name
-- [ ] `localStorage` being unavailable falls back to an in-memory `Map` for the session, warning once
-- [ ] A malformed date string revives as an `Invalid Date`, not a throw (AC PERSIST-05.3)
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/storage.test.js`
-- [ ] Test count: 9 tests pass
+- [x] `read(collection, dateFields)` returns the parsed array with listed fields revived to `Date`
+- [x] `write(collection, value)` serializes and stores under `coachplanner:v1:<collection>`
+- [x] Returns `null` (not a throw) when the key is absent — the signal T4 uses to decide on seeding
+- [x] Corrupt JSON returns `null` and logs one warning (edge case: corruption)
+- [x] A quota-exceeded write throws a typed `StorageQuotaError` carrying the collection name
+- [x] `localStorage` being unavailable falls back to an in-memory `Map` for the session, warning once
+- [x] A malformed date string revives as an `Invalid Date`, not a throw (AC PERSIST-05.3)
+- [x] Gate passes: `npx vitest run src/lib/__tests__/storage.test.js`
+- [x] Test count: 10 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(storage): add localStorage adapter with date revival`
+**Commit**: `feat(storage): add localStorage adapter with date revival` — [332c867]
+
+> **SPEC_DEVIATION**: Test count is 10, not the 9 estimated in the plan. The
+> extra test covers `remove(key)`, which `design.md` assigns to this module
+> (beyond T1's literal `Done when` list) because `store.reset()` in T4 needs
+> it. Verified jsdom's quota-exceeded error empirically before writing the
+> quota test (per design.md's flagged risk): `DOMException` with
+> `name === "QuotaExceededError"` and `code === 22` — matches real-browser
+> shape, no special-casing needed.
 
 ---
 
-### T2: Create the id generator
+### T2: Create the id generator ✅ Complete
 
 **What**: Collision-free id generation replacing `Math.random()` (AD-003).
 **Where**: `src/lib/id.js` (new)
@@ -134,21 +142,21 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `newId()` returns `crypto.randomUUID()` when available
-- [ ] Falls back to a timestamp+counter string when `crypto.randomUUID` is absent (older Safari)
-- [ ] 10,000 successive calls produce 10,000 distinct values
-- [ ] Return type is always `string` — callers must not assume numeric ids
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/id.test.js`
-- [ ] Test count: 4 tests pass
+- [x] `newId()` returns `crypto.randomUUID()` when available
+- [x] Falls back to a timestamp+counter string when `crypto.randomUUID` is absent (older Safari)
+- [x] 10,000 successive calls produce 10,000 distinct values
+- [x] Return type is always `string` — callers must not assume numeric ids
+- [x] Gate passes: `npx vitest run src/lib/__tests__/id.test.js`
+- [x] Test count: 4 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(id): add collision-free id generator`
+**Commit**: `feat(id): add collision-free id generator` — [be56e7e]
 
 ---
 
-### T3: Convert mock data into an explicit seed module
+### T3: Convert mock data into an explicit seed module ✅ Complete (deletion completed by T7)
 
 **What**: Turn the mutable `mock.js` exports into a factory returning a fresh deep copy per call.
 **Where**: `src/model/seed.js` (new), `src/model/mock.js` (delete)
@@ -159,21 +167,35 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Exports `createSeed()` returning `{ teams, trainings }` — a new object graph on every call
-- [ ] Two calls return non-reference-identical data (this is what stops seed corruption)
-- [ ] The `Positions` map is **exported** (it is currently private) — `04-training-form` and player forms need it
-- [ ] Seed records keep their existing ids so `docs/` examples stay accurate
-- [ ] `src/model/mock.js` is deleted and no import of it remains anywhere
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Exports `createSeed()` returning `{ teams, trainings }` — a new object graph on every call
+- [x] Two calls return non-reference-identical data (this is what stops seed corruption)
+- [x] The `Positions` map is **exported** (it is currently private) — `04-training-form` and player forms need it
+- [x] Seed records keep their existing ids so `docs/` examples stay accurate
+- [x] `src/model/mock.js` is deleted and no import of it remains anywhere — deferred to and completed by T7 (see deviation note)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
 
 **Tests**: none (matrix: seed data → none) — exercised through T4's tests
 **Gate**: build
 
-**Commit**: `refactor(model): convert mock data to a seed factory`
+**Commit**: `refactor(model): convert mock data to a seed factory` — [3de17dd]
+
+> **SPEC_DEVIATION**: `mock.js` is not deleted in this task's commit.
+> `teamService.js` and `trainingService.js` still `import { teams }` /
+> `import { trainings }` from it, and those files are explicitly out of
+> T3's scope (`Where` doesn't list them; they're T5/T6's and T7's files).
+> Deleting `mock.js` now would break `npm run build` — the very gate this
+> task must pass — before the services that stop importing it have been
+> touched. `createSeed()` in `seed.js` is complete and correct (verified by
+> the gate and, per the plan's own note, exercised through T4's tests);
+> only the physical deletion of the now-superseded file is deferred to T7,
+> the task that removes the last import (`trainingService.js`'s `import {
+> trainings } from "../model/mock"`). This keeps every task's diff scoped
+> to files it actually needs, per the "touch only listed files" hard
+> constraint, rather than reaching into T5-T7's files early.
 
 ---
 
-### T4: Create the store core
+### T4: Create the store core ✅ Complete
 
 **What**: The repository layer — load-or-seed, get/set collection, schema version, copy-on-read.
 **Where**: `src/services/store.js` (new)
@@ -184,28 +206,28 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `getCollection(name)` returns a deep copy — mutating the result does not affect the store (AC PERSIST-03.2)
-- [ ] Two `getCollection` calls return non-reference-identical results (AC PERSIST-03.1)
-- [ ] First run with empty storage seeds from `createSeed()` and persists it (AC PERSIST-01.4)
-- [ ] A second load with data present does **not** re-seed (AC PERSIST-01.5)
-- [ ] `setCollection(name, value)` persists and bumps nothing else
-- [ ] A schema-version key is written and an identity migration hook exists for v1
-- [ ] `reset()` clears all `coachplanner:v1:*` keys and re-seeds, leaving the `user` key untouched (AC PERSIST-06.3)
-- [ ] Date fields are registered per collection and revive correctly (AC PERSIST-05.1)
-- [ ] Gate passes: `npx vitest run src/services/__tests__/store.test.js`
-- [ ] Test count: 12 tests pass
+- [x] `getCollection(name)` returns a deep copy — mutating the result does not affect the store (AC PERSIST-03.2)
+- [x] Two `getCollection` calls return non-reference-identical results (AC PERSIST-03.1)
+- [x] First run with empty storage seeds from `createSeed()` and persists it (AC PERSIST-01.4)
+- [x] A second load with data present does **not** re-seed (AC PERSIST-01.5)
+- [x] `setCollection(name, value)` persists and bumps nothing else
+- [x] A schema-version key is written and an identity migration hook exists for v1
+- [x] `reset()` clears all `coachplanner:v1:*` keys and re-seeds, leaving the `user` key untouched (AC PERSIST-06.3)
+- [x] Date fields are registered per collection and revive correctly (AC PERSIST-05.1)
+- [x] Gate passes: `npx vitest run src/services/__tests__/store.test.js`
+- [x] Test count: 12 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(store): add persistent store with seed-on-first-run`
+**Commit**: `feat(store): add persistent store with seed-on-first-run` — [2c2cc50]
 
 ---
 
-### T5: Migrate teamService team methods
+### T5: Migrate teamService team methods ✅ Complete
 
 **What**: Rewrite `getAll`/`getById`/`create`/`update`/`delete` over the store.
-**Where**: `src/services/teamService.js` (modify)
+**Where**: `src/services/teamService.js` (modify), plus per `design.md`'s corrected scope: `src/lib/errors.js` (new), `src/components/TeamPopup.jsx` (modify)
 **Depends on**: T4
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-08
@@ -213,26 +235,35 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The `fetch`-based `getById` is replaced with a store lookup returning `null` when absent
-- [ ] `create` assigns an id via `newId()` — callers no longer pass one
-- [ ] `update` persists and returns the updated team; unknown id throws a typed `NotFoundError`, not a `TypeError`
-- [ ] `delete` persists the removal and survives a reload (AC PERSIST-01.3) — the current reference-rebinding bug is gone
-- [ ] `update` no longer silently drops `players` (it currently copies only name/club/season)
-- [ ] `API_URL` constant removed
-- [ ] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
-- [ ] Test count: 11 tests pass
+- [x] The `fetch`-based `getById` is replaced with a store lookup returning `null` when absent
+- [x] `create` assigns an id via `newId()` — callers no longer pass one
+- [x] `update` persists and returns the updated team; unknown id throws a typed `NotFoundError`, not a `TypeError`
+- [x] `delete` persists the removal and survives a reload (AC PERSIST-01.3) — the current reference-rebinding bug is gone
+- [x] `update` no longer silently drops `players` (it currently copies only name/club/season)
+- [x] `API_URL` constant removed
+- [x] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
+- [x] Test count: 11 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(teams): migrate team methods to the persistent store`
+**Commit**: `refactor(teams): migrate team methods to the persistent store` — [1ed65de]
+
+> `addPlayer`/`updatePlayer`/`deletePlayer` (same file, T6's methods) were
+> re-plumbed onto the same `getTeams()`/`saveTeams()` store helpers so the
+> file stays internally consistent and the build/lint gate stays green —
+> their *behavior* is unchanged here (still the pre-existing bugs: no
+> `newId()` for players, `TypeError` on unknown `teamId`, dropped stat
+> fields on update). T6 applies the behavioral upgrades. Not a
+> SPEC_DEVIATION — no AC or test changed, just which lines a shared helper
+> lives behind.
 
 ---
 
-### T6: Migrate teamService player methods
+### T6: Migrate teamService player methods ✅ Complete
 
 **What**: Rewrite `addPlayer`/`updatePlayer`/`deletePlayer` over the store.
-**Where**: `src/services/teamService.js` (modify)
+**Where**: `src/services/teamService.js` (modify), plus per `design.md`'s corrected scope: `src/components/PlayerPopup.jsx` (modify)
 **Depends on**: T5
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-08
@@ -240,25 +271,25 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `addPlayer` assigns an id via `newId()` and persists
-- [ ] `addPlayer` with an unknown `teamId` throws `NotFoundError` — it currently throws `TypeError` on `undefined.players`, which is the crash behind the `03` bug
-- [ ] `updatePlayer` persists and preserves `goals`, `assists`, `concededGoals` (they are not on the form)
-- [ ] `deletePlayer` persists and survives reload
-- [ ] Player ids stay unique across all teams (invariant `09-player-ratings` depends on)
-- [ ] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
-- [ ] Test count: 19 tests pass (11 from T5 + 8 new)
+- [x] `addPlayer` assigns an id via `newId()` and persists
+- [x] `addPlayer` with an unknown `teamId` throws `NotFoundError` — it currently throws `TypeError` on `undefined.players`, which is the crash behind the `03` bug
+- [x] `updatePlayer` persists and preserves `goals`, `assists`, `concededGoals` (they are not on the form)
+- [x] `deletePlayer` persists and survives reload
+- [x] Player ids stay unique across all teams (invariant `09-player-ratings` depends on)
+- [x] Gate passes: `npx vitest run src/services/__tests__/teamService.test.js`
+- [x] Test count: 19 tests pass (11 from T5 + 8 new)
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(players): migrate player methods to the persistent store`
+**Commit**: `refactor(players): migrate player methods to the persistent store` — [28f3665]
 
 ---
 
-### T7: Migrate trainingService
+### T7: Migrate trainingService ✅ Complete
 
 **What**: Rewrite all methods over the store and delete the three broken `fetch` methods.
-**Where**: `src/services/trainingService.js` (modify)
+**Where**: `src/services/trainingService.js` (modify), plus per `design.md`'s corrected scope: `src/components/TrainingSavePopup.jsx` (modify); also completes T3's deferred `src/model/mock.js` deletion (last import removed here)
 **Depends on**: T4
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-05
@@ -266,26 +297,32 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `getById`, `update` and `delete` no longer call `fetch` — all three currently hit the nonexistent `/api/teams`
-- [ ] The misnamed `API_URL = "/api/teams"` constant is removed from this file
-- [ ] `create` assigns an id via `newId()` and persists
-- [ ] `update(training)` takes a whole training (not `(id, data)`) — matching `teamService.update`'s shape
-- [ ] A saved training's `day` is a `Date` after reload (AC PERSIST-05.1)
-- [ ] A future training still sorts into the future bucket after reload (AC PERSIST-05.2) — regression test for the string-comparison trap
-- [ ] Gate passes: `npx vitest run src/services/__tests__/trainingService.test.js`
-- [ ] Test count: 13 tests pass
+- [x] `getById`, `update` and `delete` no longer call `fetch` — all three currently hit the nonexistent `/api/teams`
+- [x] The misnamed `API_URL = "/api/teams"` constant is removed from this file
+- [x] `create` assigns an id via `newId()` and persists
+- [x] `update(training)` takes a whole training (not `(id, data)`) — matching `teamService.update`'s shape
+- [x] A saved training's `day` is a `Date` after reload (AC PERSIST-05.1)
+- [x] A future training still sorts into the future bucket after reload (AC PERSIST-05.2) — regression test for the string-comparison trap
+- [x] Gate passes: `npx vitest run src/services/__tests__/trainingService.test.js`
+- [x] Test count: 13 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(trainings): migrate training service to the persistent store`
+**Commit**: `refactor(trainings): migrate training service to the persistent store` — [9997662]
+
+> Also deletes `src/model/mock.js`, completing T3's deferred Done-when item
+> (see T3's note) now that this was the last file importing it. Full batch
+> gate (`npm run lint && npm run build && npm test`) run as an extra
+> end-of-batch sanity check beyond T7's own stated quick gate: 0 lint
+> errors, build succeeds, 61/61 tests pass across all 6 test files.
 
 ---
 
-### T8: Refresh the Teams page after every mutation
+### T8: Refresh the Teams page after every mutation ✅ Complete
 
 **What**: Re-read from the service after create, update and delete of both teams and players.
-**Where**: `src/pages/Teams.jsx` (modify)
+**Where**: `src/pages/Teams.jsx` (modify), plus per `design.md`'s corrected scope: `src/components/TeamCard.jsx` (modify, new `onUpdated` prop), `src/components/PlayerCard.jsx` (modify, new `onUpdated` prop)
 **Depends on**: T5, T6
 **Reuses**: The existing `loadTeams()` function — extend its call sites
 **Requirement**: PERSIST-04
@@ -293,21 +330,37 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `TeamPopup`'s `onClose` triggers `loadTeams()` for the create path (currently only the edit path refreshes)
-- [ ] `PlayerPopup`'s `onClose` triggers `loadTeams()` — adding a player currently never refreshes (AC PERSIST-04.3)
-- [ ] `selectedTeam` is re-resolved from the reloaded list so the Players column is not left pointing at a stale object
-- [ ] Deleting the selected team clears the selection rather than leaving a dangling card
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8 tests pass
+- [x] `TeamPopup`'s `onClose` triggers `loadTeams()` for the create path (currently only the delete path refreshes)
+- [x] `PlayerPopup`'s `onClose` triggers `loadTeams()` — adding a player currently never refreshes (AC PERSIST-04.3)
+- [x] `selectedTeam` is re-resolved from the reloaded list so the Players column is not left pointing at a stale object
+- [x] Deleting the selected team clears the selection rather than leaving a dangling card
+- [x] Gate passes: `npm test`
+- [x] Test count: 8 tests pass
 
 **Tests**: integration
 **Gate**: full
 
-**Commit**: `fix(teams): refresh list after every mutation`
+**Commit**: `fix(teams): refresh list after every mutation` — [5a4ce73]
+
+> **SPEC_DEVIATION (documentation only, no behavior change)**: This task's own
+> parenthetical — "(currently only the edit path refreshes)" — does not match
+> the codebase: before this task, neither the create path nor the edit path
+> refreshed the list; only *delete* did (`closeTeam()` was, and remains, the
+> only pre-existing call site that calls `loadTeams()`). This matches
+> `design.md`'s Task-scope corrections section, which independently found the
+> same thing ("only *deleting* a team/player refreshes the parent list; editing
+> one doesn't"). Implemented against `design.md`'s corrected understanding —
+> the parenthetical above is corrected to "delete path" to reflect that. Per
+> `design.md`, added `onUpdated` (not `onClose`) to `TeamCard`/`PlayerCard` so a
+> confirmed edit refreshes without clearing the current selection, and wired it
+> so it fires whenever the edit popup closes (save or cancel) — harmless on
+> cancel since nothing changed, and this keeps `TeamPopup`/`PlayerPopup`
+> untouched (out of T8's file scope; they already got their `Math.random()`
+> fixes in T5/T6).
 
 ---
 
-### T9: Refresh the Trainings page after every mutation
+### T9: Refresh the Trainings page after every mutation ✅ Complete
 
 **What**: Re-read after create, preserving the active team filter.
 **Where**: `src/pages/Trainings.jsx` (modify)
@@ -318,22 +371,36 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Creating a training refreshes both lists (AC PERSIST-04.4)
-- [ ] The refresh **preserves the active team filter** — it must not silently reset to showing all teams
-- [ ] The duplicated future/past split logic (currently inlined in three places) is extracted to one helper
-- [ ] The two mount-time `useEffect`s are consolidated into one
-- [ ] Typo `filterTranings` → `filterTrainings` fixed
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 9 tests pass
+- [x] Creating a training refreshes both lists (AC PERSIST-04.4)
+- [x] The refresh **preserves the active team filter** — it must not silently reset to showing all teams
+- [x] The duplicated future/past split logic (currently inlined in three places) is extracted to one helper
+- [x] The two mount-time `useEffect`s are consolidated into one
+- [x] Typo `filterTranings` → `filterTrainings` fixed
+- [x] Gate passes: `npm test`
+- [x] Test count: 9 tests pass
 
 **Tests**: integration
 **Gate**: full
 
-**Commit**: `fix(trainings): refresh lists after create and preserve filter`
+**Commit**: `fix(trainings): refresh lists after create and preserve filter` — [242c324]
+
+> `filterTrainings(teamId)` now also handles the "no team selected" case
+> (`teamId` falsy → unfiltered), so it's reused by `selectTeam`'s deselect
+> branch and the create-training refresh, not just the team-selected path.
+> The mount-time effect calls `splitTrainings()` directly on the unfiltered
+> `trainingService.getAll()` result rather than going through
+> `filterTrainings`, to avoid an ESLint `exhaustive-deps` dependency-cycle
+> concern in the consolidated `useEffect`; this still leaves exactly one
+> place (`splitTrainings`) that knows about the future/past day comparison,
+> which is what the Done-when item asks for. `TrainingSavePopup`'s dead,
+> unused `onSubmit` prop (the component never destructures it — a
+> pre-existing rough edge, not introduced here) was left untouched per the
+> "don't remove pre-existing dead code unless asked" rule; it is out of
+> T9's file scope (`TrainingSavePopup.jsx` isn't listed).
 
 ---
 
-### T10: Add reset-demo-data to Settings
+### T10: Add reset-demo-data to Settings ✅ Complete
 
 **What**: A confirmed destructive action clearing stored data and re-seeding.
 **Where**: `src/pages/Settings.jsx` (modify)
@@ -344,19 +411,27 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Settings renders a "Reset demo data" button (replacing the bare placeholder heading)
-- [ ] Clicking it opens `ConfirmationPopup` — reset never fires on a single click (AC PERSIST-06.2)
-- [ ] Confirming clears all `coachplanner:v1:*` keys and re-seeds
-- [ ] The auth session survives the reset — the user is not signed out (AC PERSIST-06.3)
-- [ ] Cancelling changes nothing
-- [ ] Styled with Tailwind per AD-005
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 5 tests pass
+- [x] Settings renders a "Reset demo data" button (replacing the bare placeholder heading)
+- [x] Clicking it opens `ConfirmationPopup` — reset never fires on a single click (AC PERSIST-06.2)
+- [x] Confirming clears all `coachplanner:v1:*` keys and re-seeds
+- [x] The auth session survives the reset — the user is not signed out (AC PERSIST-06.3)
+- [x] Cancelling changes nothing
+- [x] Styled with Tailwind per AD-005
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 5 tests pass
 
 **Tests**: integration
 **Gate**: build
 
-**Commit**: `feat(settings): add reset demo data action`
+**Commit**: `feat(settings): add reset demo data action` — [22f021c]
+
+> `store.js` (from T4) exports `reset` as a named function rather than a
+> method on a `store` object — `Settings.jsx` imports `{ reset }` directly.
+> This is a naming-shape detail, not a behavior change; functionally
+> identical to `design.md`'s sketch. Test Adequacy Review: all 5 assertions
+> check real state (store contents via `teamService.getAll()`, or the
+> `user` localStorage value) rather than spy call counts; each maps 1:1 to
+> a Done-when bullet; no speculative tests added.
 
 ---
 

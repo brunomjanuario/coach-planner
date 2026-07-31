@@ -3,7 +3,7 @@ import { trainingService } from "../services/trainingService";
 
 export default function TrainingSavePopup({ teamId, onClose }) {
   const [formData, setFormData] = useState({
-    id: Math.floor(Math.random() * 10000),
+    id: undefined,
     teamId: teamId || null,
     day: "",
     duration: 90,

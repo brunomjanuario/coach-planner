@@ -5,6 +5,15 @@ import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
 
+/** Splits trainings into future/past buckets by comparing `day` to now. */
+function splitTrainings(trainings) {
+  const now = new Date();
+  return {
+    future: trainings.filter((t) => t.day >= now),
+    past: trainings.filter((t) => t.day < now),
+  };
+}
+
 export default function Trainings() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teams, setTeams] = useState([]);
@@ -15,54 +24,46 @@ export default function Trainings() {
     useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
 
-  const filterTranings = async (teamId) => {
+  const filterTrainings = async (teamId) => {
     const data = await trainingService.getAll();
+    const filtered = teamId ? data.filter((t) => t.teamId === teamId) : data;
 
-    const filtered = data.filter((t) => t.teamId === teamId);
-
-    setFutureTrainings(filtered.filter((t) => t.day >= new Date()));
-    setPastTrainings(filtered.filter((t) => t.day < new Date()));
+    const { future, past } = splitTrainings(filtered);
+    setFutureTrainings(future);
+    setPastTrainings(past);
   };
 
   async function selectTeam(team) {
     if (team === selectedTeam) {
       setSelectedTeam(null);
-
-      const data = await trainingService.getAll();
-      setFutureTrainings(data.filter((t) => t.day >= new Date()));
-      setPastTrainings(data.filter((t) => t.day < new Date()));
+      await filterTrainings(null);
       return;
     }
 
     setSelectedTeam(team);
-    filterTranings(team.id);
+    await filterTrainings(team.id);
   }
 
   useEffect(() => {
-    const loadTeams = async () => {
+    async function loadTeamsAndTrainings() {
       try {
         const data = await teamService.getAll();
         setTeams(data);
       } catch (err) {
         console.error("Failed to load teams:", err);
       }
-    };
 
-    loadTeams();
-  }, []);
-
-  useEffect(() => {
-    const loadTrainings = async () => {
       try {
         const data = await trainingService.getAll();
-        setFutureTrainings(data.filter((t) => t.day >= new Date()));
-        setPastTrainings(data.filter((t) => t.day < new Date()));
+        const { future, past } = splitTrainings(data);
+        setFutureTrainings(future);
+        setPastTrainings(past);
       } catch (err) {
-        console.error("Failed to load teams:", err);
+        console.error("Failed to load trainings:", err);
       }
-    };
+    }
 
-    loadTrainings();
+    loadTeamsAndTrainings();
   }, []);
 
   function selectTraining(training) {
@@ -83,7 +84,10 @@ export default function Trainings() {
         {showAddTrainingPopup && (
           <TrainingSavePopup
             teamId={selectedTeam?.id}
-            onClose={() => setShowAddTrainingPopup(false)}
+            onClose={() => {
+              setShowAddTrainingPopup(false);
+              filterTrainings(selectedTeam?.id ?? null);
+            }}
             onSubmit={() => {
               setShowAddTrainingPopup(false);
             }}

@@ -3,7 +3,7 @@ import { teamService } from "../services/teamService";
 
 export default function PlayerPopup({ player, teamId, onClose }) {
   const [formData, setFormData] = useState({
-    id: player !== null ? player.id : Math.floor(Math.random() * 100),
+    id: player !== null ? player.id : undefined,
     teamId: player !== null ? player.teamId : teamId,
     name: player !== null ? player.name : "",
     age: player !== null ? player.age : "",
