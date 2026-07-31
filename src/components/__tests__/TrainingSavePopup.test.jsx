@@ -77,3 +77,40 @@ test("logs an error and stops loading when teamService.getAll rejects", async ()
   await screen.findByText(/No teams yet/);
   expect(errorSpy).toHaveBeenCalledWith("Failed to load teams:", expect.any(Error));
 });
+
+test("pre-selects the team matching the teamId prop once teams have loaded", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup({ teamId: 2 });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("combobox")).toHaveValue("2");
+});
+
+test("leaves the select empty when no teamId prop is passed", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup();
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("combobox")).toHaveValue("");
+});
+
+test("leaves the select empty when the teamId prop matches no loaded team", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup({ teamId: 999 });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("combobox")).toHaveValue("");
+});
+
+test("does not default to the first team when teamId is undefined", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup({ teamId: undefined });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("combobox")).not.toHaveValue("1");
+  expect(screen.getByRole("combobox")).toHaveValue("");
+});

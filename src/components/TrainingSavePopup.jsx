@@ -7,7 +7,7 @@ export default function TrainingSavePopup({ teamId, onClose }) {
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [formData, setFormData] = useState({
     id: undefined,
-    teamId: teamId || null,
+    teamId: null,
     day: "",
     duration: 90,
     exercises: [],
@@ -19,6 +19,9 @@ export default function TrainingSavePopup({ teamId, onClose }) {
       try {
         const data = await teamService.getAll();
         setTeams(data);
+        if (teamId != null && data.some((team) => team.id === teamId)) {
+          setFormData((prev) => ({ ...prev, teamId }));
+        }
       } catch (err) {
         console.error("Failed to load teams:", err);
       } finally {
@@ -27,6 +30,7 @@ export default function TrainingSavePopup({ teamId, onClose }) {
     }
 
     loadTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onSubmit(training) {
