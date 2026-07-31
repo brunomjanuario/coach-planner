@@ -107,13 +107,15 @@ a future failure is unambiguously caused by my change.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TEST-01 | P1: Runnable test suite | Tasks | Pending |
-| TEST-02 | P1: Runnable test suite (exit codes) | Tasks | Pending |
-| TEST-03 | P1: Component rendering | Tasks | Pending |
-| TEST-04 | P1: Component rendering (isolation) | Tasks | Pending |
-| TEST-05 | P2: Green baseline | Tasks | Pending |
+| TEST-01 | P1: Runnable test suite | Verified | ✅ Verified |
+| TEST-02 | P1: Runnable test suite (exit codes) | Verified | ✅ Verified |
+| TEST-03 | P1: Component rendering | Verified | ✅ Verified |
+| TEST-04 | P1: Component rendering (isolation) | Verified | ✅ Verified (outcome holds; see G2 in validation.md — RTL's own auto-cleanup provides the isolation, not the explicit `setup.js` calls) |
+| TEST-05 | P2: Green baseline | Verified | ✅ Verified |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
+
+**Validation**: `.specs/features/00-test-harness/validation.md` (2026-07-31) — PASS. 8/8 spec-anchored ACs matched; gate 3/3 passed (0→3 tests); discrimination sensor 1/3 mutations killed outright, 2/3 survived for explainable, advisory-only reasons (see report).
 
 ---
 

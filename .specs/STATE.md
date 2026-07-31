@@ -76,11 +76,11 @@
 
 ## Handoff
 
-- **Feature**: Planning only — no feature in flight.
-- **Phase / Task**: Specify + Tasks complete for all 12 features. Nothing executed.
-- **Completed**: none (no implementation started)
-- **In-progress** (file:line): none
-- **Next step**: Execute `.specs/features/00-test-harness/tasks.md` — it blocks every other feature.
+- **Feature**: `00-test-harness` — done and verified (PASS).
+- **Phase / Task**: All 6 tasks complete; Verifier ran and reported PASS with 2 advisory (non-blocking) gaps, recorded as candidate lessons L-001/L-002. See `.specs/features/00-test-harness/validation.md`.
+- **Completed**: T1–T6, all committed individually on `feature/00/test-harness`.
+- **In-progress** (file:line): none — feature closed out.
+- **Next step**: Start `01-persistence-layer` — it blocks features 03–11. Its `tasks.md` is flagged `Design: required before Execute`; run the skill's Design phase first (see its Design Notes section for the open architectural questions).
 - **Blockers**: none
-- **Uncommitted files**: `.specs/`, `CLAUDE.md`, `docs/` (all untracked)
-- **Branch**: main
+- **Uncommitted files**: none — working tree clean
+- **Branch**: `feature/00/test-harness` (not yet merged to `main`) — note this branch was switched to outside this session (not by any command I ran); confirm with the user whether/when to merge before starting `01`.
