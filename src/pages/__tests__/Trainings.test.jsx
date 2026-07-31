@@ -283,3 +283,11 @@ test("creating a future training removes the Next Trainings empty-state message"
     expect(screen.queryByText("No upcoming trainings.")).not.toBeInTheDocument();
   });
 });
+
+test("renders an empty-state message for the team filter when there are no teams", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+
+  render(<Trainings />);
+
+  expect(await screen.findByText("No teams yet.")).toBeInTheDocument();
+});

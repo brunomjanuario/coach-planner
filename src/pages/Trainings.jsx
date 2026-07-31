@@ -97,17 +97,21 @@ export default function Trainings() {
       </div>
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
-          <ul>
-            {teams.map((team) => (
-              <SelectableListItem
-                key={team.id}
-                selected={selectedTeam?.id === team.id}
-                onSelect={() => selectTeam(team)}
-              >
-                {team.club} {team.name}
-              </SelectableListItem>
-            ))}
-          </ul>
+          {teams.length === 0 ? (
+            <p>No teams yet.</p>
+          ) : (
+            <ul>
+              {teams.map((team) => (
+                <SelectableListItem
+                  key={team.id}
+                  selected={selectedTeam?.id === team.id}
+                  onSelect={() => selectTeam(team)}
+                >
+                  {team.club} {team.name}
+                </SelectableListItem>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="flex-3 p-4 flex flex-col gap-4 flex-1 min-h-0">
           <h2 className="text-lg font-semibold">Next Trainings</h2>
