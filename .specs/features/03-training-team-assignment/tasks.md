@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/03-training-team-assignment/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Complete
 **Batches**: 5 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -66,13 +66,13 @@ T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] A `<select name="teamId">` renders above the date field
-- [ ] Options list every team as `club` + `name`, matching the label format used on `/teams` (AC TTA-01.1)
-- [ ] Teams are loaded via `teamService.getAll()` inside the popup, not passed as a prop — the popup is mounted from two places
-- [ ] While teams are loading the select renders disabled (edge case)
-- [ ] With zero teams the select renders disabled with a message pointing at `/teams` (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
-- [ ] Test count: 6 tests pass
+- [x] A `<select name="teamId">` renders above the date field
+- [x] Options list every team as `club` + `name`, matching the label format used on `/teams` (AC TTA-01.1)
+- [x] Teams are loaded via `teamService.getAll()` inside the popup, not passed as a prop — the popup is mounted from two places
+- [x] While teams are loading the select renders disabled (edge case)
+- [x] With zero teams the select renders disabled with a message pointing at `/teams` (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
+- [x] Test count: 6 tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -92,12 +92,12 @@ T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] A `teamId` prop pre-selects the matching option (AC TTA-02.1)
-- [ ] An absent or `undefined` `teamId` leaves the select empty — **not** defaulting to the first team (AC TTA-02.2)
-- [ ] A `teamId` matching no existing team leaves the select empty rather than showing a blank selected option
-- [ ] The `teamId || null` fallback in the initial form state is removed — it is the line that produced the orphan bug
-- [ ] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
-- [ ] Test count: 10 tests pass (6 from T1 + 4 new)
+- [x] A `teamId` prop pre-selects the matching option (AC TTA-02.1)
+- [x] An absent or `undefined` `teamId` leaves the select empty — **not** defaulting to the first team (AC TTA-02.2)
+- [x] A `teamId` matching no existing team leaves the select empty rather than showing a blank selected option
+- [x] The `teamId || null` fallback in the initial form state is removed — it is the line that produced the orphan bug
+- [x] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
+- [x] Test count: 10 tests pass (6 from T1 + 4 new)
 
 **Tests**: component
 **Gate**: quick
@@ -117,14 +117,14 @@ T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Submitting with no team chosen blocks and shows a validation message (AC TTA-03.1)
-- [ ] `trainingService.create` is **not** called when validation fails — assert the spy, not just the message
-- [ ] Choosing a team clears the message
-- [ ] Submitting with a team persists with the correct `teamId` (AC TTA-03.2)
-- [ ] A team deleted while the form is open produces a clear failure, not a dangling `teamId` write (edge case)
-- [ ] The shadowed local `onSubmit` is removed and the `onSubmit` **prop** is invoked — the bug documented in `docs/07-components.md`
-- [ ] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
-- [ ] Test count: 15 tests pass
+- [x] Submitting with no team chosen blocks and shows a validation message (AC TTA-03.1)
+- [x] `trainingService.create` is **not** called when validation fails — assert the spy, not just the message
+- [x] Choosing a team clears the message
+- [x] Submitting with a team persists with the correct `teamId` (AC TTA-03.2)
+- [x] A team deleted while the form is open produces a clear failure, not a dangling `teamId` write (edge case)
+- [x] The shadowed local `onSubmit` is removed and the `onSubmit` **prop** is invoked — the bug documented in `docs/07-components.md`
+- [x] Gate passes: `npx vitest run src/components/__tests__/TrainingSavePopup.test.jsx`
+- [x] Test count: 15 tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -144,13 +144,13 @@ T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Creating a training refreshes both lists with no page reload (AC TTA-04.1)
-- [ ] A training created for the active filter's team appears in the filtered list (AC TTA-04.2)
-- [ ] A training created for a different team keeps the filter and shows a message naming the target team (AC TTA-04.3)
-- [ ] A future-dated training lands under "Next Trainings" (AC TTA-04.4)
-- [ ] The `onSubmit` prop now passed to the popup drives this refresh
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8 tests pass
+- [x] Creating a training refreshes both lists with no page reload (AC TTA-04.1)
+- [x] A training created for the active filter's team appears in the filtered list (AC TTA-04.2)
+- [x] A training created for a different team keeps the filter and shows a message naming the target team (AC TTA-04.3)
+- [x] A future-dated training lands under "Next Trainings" (AC TTA-04.4)
+- [x] The `onSubmit` prop now passed to the popup drives this refresh
+- [x] Gate passes: `npm test`
+- [x] Test count: 8 tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -170,12 +170,12 @@ T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `trainingService.getUnassigned()` returns trainings with a null `teamId` **or** a `teamId` matching no team (AC TTA-05.1, and the dangling-reference edge case)
-- [ ] The bucket renders only when it is non-empty (AC TTA-05.2)
-- [ ] Assigning a team persists the change and removes the row from the bucket (AC TTA-05.3)
-- [ ] Assignment reuses the same team `<select>` built in T1 rather than a second control
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 13 tests pass (8 integration + 5 service unit)
+- [x] `trainingService.getUnassigned()` returns trainings with a null `teamId` **or** a `teamId` matching no team (AC TTA-05.1, and the dangling-reference edge case)
+- [x] The bucket renders only when it is non-empty (AC TTA-05.2)
+- [x] Assigning a team persists the change and removes the row from the bucket (AC TTA-05.3)
+- [x] Assignment reuses the same team `<select>` built in T1 rather than a second control
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 13 tests pass (8 integration + 5 service unit)
 
 **Tests**: integration (page) + unit (service) — highest requirement wins
 **Gate**: build
