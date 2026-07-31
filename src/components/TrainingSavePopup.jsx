@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
+import ExerciseFields from "./ExerciseFields";
 
 export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   const [teams, setTeams] = useState([]);
@@ -11,7 +12,6 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     day: "",
     duration: 90,
     exercises: [],
-    exerciseInput: "",
   });
 
   useEffect(() => {
@@ -46,17 +46,14 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddExercise = () => {
-    if (formData.exerciseInput.trim() !== "") {
-      setFormData((prev) => ({
-        ...prev,
-        exercises: [
-          ...prev.exercises,
-          { description: prev.exerciseInput, id: Date.now() },
-        ],
-        exerciseInput: "",
-      }));
-    }
+  const handleAddExercise = (exercise) => {
+    setFormData((prev) => ({
+      ...prev,
+      exercises: [
+        ...prev.exercises,
+        { ...exercise, trainingId: prev.id ?? null },
+      ],
+    }));
   };
 
   const handleRemoveExercise = (id) => {
@@ -152,30 +149,18 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
           </div>
           <div>
             <label className="block text-sm font-medium">Exercises</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                name="exerciseInput"
-                value={formData.exerciseInput}
-                onChange={handleChange}
-                className="flex-1 border px-3 py-2 rounded"
-                placeholder="Exercise description"
-              />
-              <button
-                type="button"
-                onClick={handleAddExercise}
-                className="px-3 py-2 bg-blue-500 text-white rounded"
-              >
-                Add
-              </button>
-            </div>
-            <ul>
+            <ExerciseFields onAdd={handleAddExercise} />
+            <ul className="max-h-48 overflow-y-auto mt-2">
               {formData.exercises.map((ex) => (
                 <li
                   key={ex.id}
                   className="flex justify-between items-center bg-gray-100 rounded px-2 py-1 mb-1"
                 >
-                  <span>{ex.description}</span>
+                  <span className="break-words">
+                    {ex.description} — {ex.duration}min
+                    {ex.numberOfPlayers != null ? ` · ${ex.numberOfPlayers} players` : ""}
+                    {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveExercise(ex.id)}
