@@ -25,6 +25,21 @@ export default function Trainings() {
     useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [createMessage, setCreateMessage] = useState("");
+  const [unassignedTrainings, setUnassignedTrainings] = useState([]);
+
+  const loadUnassigned = async () => {
+    const data = await trainingService.getUnassigned();
+    setUnassignedTrainings(data);
+  };
+
+  async function assignTeam(training, teamId) {
+    const team = teams.find((t) => String(t.id) === teamId);
+    if (!team) return;
+
+    await trainingService.update({ ...training, teamId: team.id });
+    await loadUnassigned();
+    await filterTrainings(selectedTeam?.id ?? null);
+  }
 
   function teamLabel(id) {
     const team = teams.find((t) => t.id === id);
@@ -71,6 +86,7 @@ export default function Trainings() {
     }
 
     loadTeamsAndTrainings();
+    loadUnassigned();
   }, []);
 
   function selectTraining(training) {
@@ -114,6 +130,37 @@ export default function Trainings() {
       </div>
       {createMessage && (
         <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
+      {unassignedTrainings.length > 0 && (
+        <div className="px-4 pb-4 flex-shrink-0">
+          <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
+          <ul>
+            {unassignedTrainings.map((training) => (
+              <li
+                key={training.id}
+                className="flex items-center justify-between gap-2 p-2 border rounded mb-2"
+              >
+                <span>
+                  {training.day.toString()} {training.duration}
+                </span>
+                <select
+                  className="border px-2 py-1 rounded"
+                  value=""
+                  onChange={(e) => assignTeam(training, e.target.value)}
+                >
+                  <option value="" disabled>
+                    Assign to team
+                  </option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.club} {team.name}
+                    </option>
+                  ))}
+                </select>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
