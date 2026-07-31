@@ -600,6 +600,18 @@ test("displays remaining minutes when the total is within the session duration (
   expect(await screen.findByText(/40 minutes remaining/)).toBeInTheDocument();
 });
 
+test("treats an exact match between planned time and session duration as within (0 minutes remaining), not exceeding (AC TFORM-06.3 boundary)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "60" });
+
+  expect(await screen.findByText(/0 minutes remaining/)).toBeInTheDocument();
+  expect(screen.queryByText(/exceeds the session/)).not.toBeInTheDocument();
+});
+
 test("recomputes the total when an exercise is added, edited or removed (AC TFORM-06.4)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const user = userEvent.setup();
