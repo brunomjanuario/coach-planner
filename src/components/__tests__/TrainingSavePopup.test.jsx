@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import TrainingSavePopup from "../TrainingSavePopup";
 import { teamService } from "../../services/teamService";
+import { trainingService } from "../../services/trainingService";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -113,4 +115,96 @@ test("does not default to the first team when teamId is undefined", async () => 
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   expect(screen.getByRole("combobox")).not.toHaveValue("1");
   expect(screen.getByRole("combobox")).toHaveValue("");
+});
+
+async function fillDateAndDuration(user, container) {
+  await user.type(
+    container.querySelector('[name="day"]'),
+    "2027-01-01T10:00"
+  );
+}
+
+test("blocks submission and shows a validation message when no team is selected", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const createSpy = vi.spyOn(trainingService, "create");
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await fillDateAndDuration(user, container);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(
+    await screen.findByText("Please select a team.")
+  ).toBeInTheDocument();
+  expect(onSubmit).not.toHaveBeenCalled();
+  expect(createSpy).not.toHaveBeenCalled();
+});
+
+test("choosing a team clears the validation message", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await fillDateAndDuration(user, container);
+  await user.click(screen.getByRole("button", { name: "Create" }));
+  await screen.findByText("Please select a team.");
+
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+
+  expect(screen.queryByText("Please select a team.")).not.toBeInTheDocument();
+});
+
+test("submits with the correct teamId when a team is chosen (AC TTA-03.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Areias Sub-19");
+  await fillDateAndDuration(user, container);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ teamId: 2 })
+  );
+});
+
+test("invokes the onSubmit prop instead of calling trainingService.create directly (shadowed-callback fix)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const createSpy = vi.spyOn(trainingService, "create");
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+  expect(createSpy).not.toHaveBeenCalled();
+});
+
+test("blocks submission with a clear message when the selected team no longer exists (edge case)", async () => {
+  vi.spyOn(teamService, "getAll")
+    .mockResolvedValueOnce(sampleTeams)
+    .mockResolvedValueOnce([sampleTeams[1]]);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(
+    await screen.findByText(
+      "Selected team no longer exists. Please choose another team."
+    )
+  ).toBeInTheDocument();
+  expect(onSubmit).not.toHaveBeenCalled();
 });
