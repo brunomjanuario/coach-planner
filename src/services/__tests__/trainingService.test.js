@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { trainingService } from "../trainingService";
+import { teamService } from "../teamService";
 import { NotFoundError } from "../../lib/errors";
 
 describe("trainingService", () => {
@@ -119,6 +120,68 @@ describe("trainingService", () => {
 
     const all = await trainingService.getAll();
     expect(all.find((t) => t.id === seedTraining.id)).toBeUndefined();
+  });
+
+  it("getUnassigned returns trainings with a null teamId (AC TTA-05.1)", async () => {
+    const created = await trainingService.create({
+      teamId: null,
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+
+    const unassigned = await trainingService.getUnassigned();
+
+    expect(unassigned.find((t) => t.id === created.id)).toBeTruthy();
+  });
+
+  it("getUnassigned returns trainings whose teamId matches no existing team (dangling-reference edge case)", async () => {
+    const created = await trainingService.create({
+      teamId: "no-such-team",
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+
+    const unassigned = await trainingService.getUnassigned();
+
+    expect(unassigned.find((t) => t.id === created.id)).toBeTruthy();
+  });
+
+  it("getUnassigned does not return a training whose teamId matches an existing team", async () => {
+    const [existingTeam] = await teamService.getAll();
+    const created = await trainingService.create({
+      teamId: existingTeam.id,
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+
+    const unassigned = await trainingService.getUnassigned();
+
+    expect(unassigned.find((t) => t.id === created.id)).toBeUndefined();
+  });
+
+  it("getUnassigned returns an empty array when every training has a valid teamId (AC TTA-05.2)", async () => {
+    const trainings = await trainingService.getAll();
+    const [existingTeam] = await teamService.getAll();
+    for (const training of trainings) {
+      await trainingService.update({ ...training, teamId: existingTeam.id });
+    }
+
+    const unassigned = await trainingService.getUnassigned();
+
+    expect(unassigned).toEqual([]);
+  });
+
+  it("getUnassigned does not call the global fetch", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
+      throw new Error("fetch should not be called");
+    });
+
+    await trainingService.getUnassigned();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("delete does not call the global fetch", async () => {

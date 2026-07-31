@@ -15,6 +15,14 @@ export const trainingService = {
     return getTrainings();
   },
 
+  getUnassigned: async () => {
+    const trainings = getTrainings();
+    const teamIds = new Set(getCollection("teams").map((team) => team.id));
+    return trainings.filter(
+      (training) => training.teamId == null || !teamIds.has(training.teamId)
+    );
+  },
+
   getById: async (id) => {
     const trainings = getTrainings();
     return trainings.find((training) => training.id === id) ?? null;

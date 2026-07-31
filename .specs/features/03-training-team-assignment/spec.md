@@ -15,9 +15,9 @@ is silently trusting that the list selection on the left is the team they meant.
 
 ## Goals
 
-- [ ] A training can never be saved without a team
-- [ ] The team is chosen explicitly and visibly in the form
-- [ ] Trainings already orphaned by this bug are recoverable
+- [x] A training can never be saved without a team
+- [x] The team is chosen explicitly and visibly in the form
+- [x] Trainings already orphaned by this bug are recoverable
 
 ## Out of Scope
 
@@ -113,11 +113,11 @@ created before the fix is not stranded.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TTA-01 | P1: Explicit team selection (control + population) | Tasks | Pending |
-| TTA-02 | P1: Pre-selection behaviour | Tasks | Pending |
-| TTA-03 | P1: Submit validation | Tasks | Pending |
-| TTA-04 | P1: List refresh after create | Tasks | Pending |
-| TTA-05 | P2: Unassigned bucket and reassignment | Tasks | Pending |
+| TTA-01 | P1: Explicit team selection (control + population) | Tasks | Implemented |
+| TTA-02 | P1: Pre-selection behaviour | Tasks | Implemented |
+| TTA-03 | P1: Submit validation | Tasks | Implemented |
+| TTA-04 | P1: List refresh after create | Tasks | Implemented |
+| TTA-05 | P2: Unassigned bucket and reassignment | Tasks | Implemented |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -125,6 +125,6 @@ created before the fix is not stranded.
 
 ## Success Criteria
 
-- [ ] It is impossible to persist a training with a null `teamId` through the UI
-- [ ] A created training is visible without a reload in every filter state
-- [ ] Pre-existing orphaned trainings can be reassigned rather than lost
+- [x] It is impossible to persist a training with a null `teamId` through the UI
+- [x] A created training is visible without a reload in every filter state
+- [x] Pre-existing orphaned trainings can be reassigned rather than lost

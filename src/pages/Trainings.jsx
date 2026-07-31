@@ -24,6 +24,27 @@ export default function Trainings() {
   const [showTrainingDetailsPopup, setShowTrainingDetailsPopup] =
     useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
+  const [createMessage, setCreateMessage] = useState("");
+  const [unassignedTrainings, setUnassignedTrainings] = useState([]);
+
+  const loadUnassigned = async () => {
+    const data = await trainingService.getUnassigned();
+    setUnassignedTrainings(data);
+  };
+
+  async function assignTeam(training, teamId) {
+    const team = teams.find((t) => String(t.id) === teamId);
+    if (!team) return;
+
+    await trainingService.update({ ...training, teamId: team.id });
+    await loadUnassigned();
+    await filterTrainings(selectedTeam?.id ?? null);
+  }
+
+  function teamLabel(id) {
+    const team = teams.find((t) => t.id === id);
+    return team ? `${team.club} ${team.name}` : "an unknown team";
+  }
 
   const filterTrainings = async (teamId) => {
     const data = await trainingService.getAll();
@@ -65,6 +86,7 @@ export default function Trainings() {
     }
 
     loadTeamsAndTrainings();
+    loadUnassigned();
   }, []);
 
   function selectTraining(training) {
@@ -77,11 +99,25 @@ export default function Trainings() {
       <div className="flex justify-between items-center h-20 flex-shrink-0">
         <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-md m-5"
-          onClick={() => setShowAddTrainingPopup(true)}
+          className="bg-blue-500 text-white px-4 py-2 rounded-md m-5 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={teams.length === 0}
+          title={
+            teams.length === 0
+              ? "Add a team on the Teams page before creating a training."
+              : undefined
+          }
+          onClick={() => {
+            setCreateMessage("");
+            setShowAddTrainingPopup(true);
+          }}
         >
           <IconPlus />
         </button>
+        {teams.length === 0 && (
+          <p className="text-sm text-red-500 pr-4">
+            No teams yet. Add one on the Teams page first.
+          </p>
+        )}
         {showAddTrainingPopup && (
           <TrainingSavePopup
             teamId={selectedTeam?.id}
@@ -89,12 +125,54 @@ export default function Trainings() {
               setShowAddTrainingPopup(false);
               filterTrainings(selectedTeam?.id ?? null);
             }}
-            onSubmit={() => {
-              setShowAddTrainingPopup(false);
+            onSubmit={async (training) => {
+              const created = await trainingService.create(training);
+              await filterTrainings(selectedTeam?.id ?? null);
+              if (selectedTeam && created.teamId !== selectedTeam.id) {
+                setCreateMessage(
+                  `Training created for ${teamLabel(created.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`
+                );
+              } else {
+                setCreateMessage("");
+              }
             }}
           />
         )}
       </div>
+      {createMessage && (
+        <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
+      {unassignedTrainings.length > 0 && (
+        <div className="px-4 pb-4 flex-shrink-0">
+          <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
+          <ul>
+            {unassignedTrainings.map((training) => (
+              <li
+                key={training.id}
+                className="flex items-center justify-between gap-2 p-2 border rounded mb-2"
+              >
+                <span>
+                  {training.day.toString()} {training.duration}
+                </span>
+                <select
+                  className="border px-2 py-1 rounded"
+                  value=""
+                  onChange={(e) => assignTeam(training, e.target.value)}
+                >
+                  <option value="" disabled>
+                    Assign to team
+                  </option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.club} {team.name}
+                    </option>
+                  ))}
+                </select>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
           {teams.length === 0 ? (
