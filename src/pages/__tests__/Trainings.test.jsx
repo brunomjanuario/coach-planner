@@ -307,6 +307,23 @@ test("renders an empty-state message for the team filter when there are no teams
   expect(await screen.findByText("No teams yet.")).toBeInTheDocument();
 });
 
+test("disables the create-training button with a message pointing at Teams when there are no teams (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+  const { container } = render(<Trainings />);
+
+  await screen.findByText("No teams yet. Add one on the Teams page first.");
+
+  expect(container.querySelector(".bg-blue-500")).toBeDisabled();
+});
+
+test("keeps the create-training button enabled once teams have loaded", async () => {
+  const { container } = render(<Trainings />);
+
+  await screen.findByText("Amadora Sub-11");
+
+  expect(container.querySelector(".bg-blue-500")).toBeEnabled();
+});
+
 test("creating a training for a different team than the active filter keeps the filter and names the target team (AC TTA-04.3)", async () => {
   const user = userEvent.setup();
   const { container } = render(<Trainings />);

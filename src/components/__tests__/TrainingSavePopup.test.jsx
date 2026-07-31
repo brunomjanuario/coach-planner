@@ -208,3 +208,26 @@ test("blocks submission with a clear message when the selected team no longer ex
   ).toBeInTheDocument();
   expect(onSubmit).not.toHaveBeenCalled();
 });
+
+test("shows an error and does not close when the onSubmit prop rejects", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn().mockRejectedValue(new Error("storage full"));
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit, onClose });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(
+    await screen.findByText("Failed to save the training. Please try again.")
+  ).toBeInTheDocument();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(errorSpy).toHaveBeenCalledWith(
+    "Failed to save training:",
+    expect.any(Error)
+  );
+});

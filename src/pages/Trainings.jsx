@@ -99,7 +99,13 @@ export default function Trainings() {
       <div className="flex justify-between items-center h-20 flex-shrink-0">
         <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-md m-5"
+          className="bg-blue-500 text-white px-4 py-2 rounded-md m-5 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={teams.length === 0}
+          title={
+            teams.length === 0
+              ? "Add a team on the Teams page before creating a training."
+              : undefined
+          }
           onClick={() => {
             setCreateMessage("");
             setShowAddTrainingPopup(true);
@@ -107,6 +113,11 @@ export default function Trainings() {
         >
           <IconPlus />
         </button>
+        {teams.length === 0 && (
+          <p className="text-sm text-red-500 pr-4">
+            No teams yet. Add one on the Teams page first.
+          </p>
+        )}
         {showAddTrainingPopup && (
           <TrainingSavePopup
             teamId={selectedTeam?.id}

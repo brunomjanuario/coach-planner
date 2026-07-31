@@ -81,16 +81,21 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     }
 
     setError("");
-    if (onSubmit) {
-      onSubmit({
-        id: formData.id,
-        teamId: formData.teamId,
-        day: new Date(formData.day),
-        duration: Number(formData.duration),
-        exercises: formData.exercises,
-      });
+    try {
+      if (onSubmit) {
+        await onSubmit({
+          id: formData.id,
+          teamId: formData.teamId,
+          day: new Date(formData.day),
+          duration: Number(formData.duration),
+          exercises: formData.exercises,
+        });
+      }
+      onClose();
+    } catch (err) {
+      console.error("Failed to save training:", err);
+      setError("Failed to save the training. Please try again.");
     }
-    onClose();
   };
 
   return (
