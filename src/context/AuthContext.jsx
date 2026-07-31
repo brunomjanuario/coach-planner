@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-
-const AuthContext = createContext();
+import React, { useState, useEffect } from "react";
+import { AuthContext } from "./AuthContextInstance";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -26,7 +25,7 @@ export function AuthProvider({ children }) {
     return { success: false, message: "Invalid email or password" };
   };
 
-  const signUp = (username, email, password) => {
+  const signUp = (username, email, _password) => {
     // Mock sign up logic (accept any except the demo email)
     if (email === "user@email.com") {
       return { success: false, message: "Email already taken" };
@@ -47,8 +46,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }

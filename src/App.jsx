@@ -9,7 +9,7 @@ import Calendar from "./pages/Calendar";
 import Settings from "./pages/Settings";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/useAuth";
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();

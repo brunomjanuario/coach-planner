@@ -79,7 +79,6 @@ export default function Calendar() {
   };
 
   // Format month/year for header
-  const monthName = today.toLocaleString("default", { month: "long" });
   const displayMonth = new Date(currentYear, currentMonth).toLocaleString(
     "default",
     { month: "long" }
