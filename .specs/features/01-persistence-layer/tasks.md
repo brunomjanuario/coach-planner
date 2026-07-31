@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T1/10 done)
+**Status**: In Progress (T2/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -131,7 +131,7 @@ T8 → T9 → T10
 
 ---
 
-### T2: Create the id generator
+### T2: Create the id generator ✅ Complete
 
 **What**: Collision-free id generation replacing `Math.random()` (AD-003).
 **Where**: `src/lib/id.js` (new)
@@ -142,17 +142,17 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `newId()` returns `crypto.randomUUID()` when available
-- [ ] Falls back to a timestamp+counter string when `crypto.randomUUID` is absent (older Safari)
-- [ ] 10,000 successive calls produce 10,000 distinct values
-- [ ] Return type is always `string` — callers must not assume numeric ids
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/id.test.js`
-- [ ] Test count: 4 tests pass
+- [x] `newId()` returns `crypto.randomUUID()` when available
+- [x] Falls back to a timestamp+counter string when `crypto.randomUUID` is absent (older Safari)
+- [x] 10,000 successive calls produce 10,000 distinct values
+- [x] Return type is always `string` — callers must not assume numeric ids
+- [x] Gate passes: `npx vitest run src/lib/__tests__/id.test.js`
+- [x] Test count: 4 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(id): add collision-free id generator`
+**Commit**: `feat(id): add collision-free id generator` — [be56e7e]
 
 ---
 
