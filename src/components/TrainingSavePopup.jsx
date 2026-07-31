@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { IconArrowUp, IconArrowDown } from "@tabler/icons-react";
 import { teamService } from "../services/teamService";
 import ExerciseFields from "./ExerciseFields";
 
@@ -66,6 +67,20 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
         { ...exercise, trainingId: prev.id ?? null },
       ],
     }));
+  };
+
+  const handleMoveExercise = (id, direction) => {
+    setFormData((prev) => {
+      const index = prev.exercises.findIndex((ex) => ex.id === id);
+      const swapWith = index + direction;
+      if (index === -1 || swapWith < 0 || swapWith >= prev.exercises.length) {
+        return prev;
+      }
+
+      const exercises = [...prev.exercises];
+      [exercises[index], exercises[swapWith]] = [exercises[swapWith], exercises[index]];
+      return { ...prev, exercises };
+    });
   };
 
   const handleRemoveExercise = (id) => {
@@ -169,7 +184,7 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
               onCancelEdit={() => setEditingExerciseId(null)}
             />
             <ul className="max-h-48 overflow-y-auto mt-2">
-              {formData.exercises.map((ex) => (
+              {formData.exercises.map((ex, index) => (
                 <li
                   key={ex.id}
                   className="flex justify-between items-center bg-gray-100 rounded px-2 py-1 mb-1"
@@ -180,6 +195,24 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
                     {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
                   </span>
                   <span className="flex gap-2 ml-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveExercise(ex.id, -1)}
+                      disabled={index === 0}
+                      aria-label="Move up"
+                      className="disabled:opacity-30"
+                    >
+                      <IconArrowUp size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveExercise(ex.id, 1)}
+                      disabled={index === formData.exercises.length - 1}
+                      aria-label="Move down"
+                      className="disabled:opacity-30"
+                    >
+                      <IconArrowDown size={16} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditingExerciseId(ex.id)}
