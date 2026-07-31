@@ -559,6 +559,84 @@ test("move controls are reachable and operable by keyboard", async () => {
   expect(reordered[1]).toHaveTextContent("Third");
 });
 
+test("displays the sum of duration times repetitions across exercises (AC TFORM-06.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20", repetitions: "2" });
+
+  expect(await screen.findByText(/Planned time 40min/)).toBeInTheDocument();
+});
+
+async function typeInto(user, container, name, value) {
+  const input = container.querySelector(`[name="${name}"]`);
+  await user.clear(input);
+  await user.type(input, value);
+}
+
+test("warns and names the overage in minutes when the total exceeds the session duration (AC TFORM-06.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "50", repetitions: "2" });
+
+  expect(
+    await screen.findByText(/exceeds the session by 40 minutes/)
+  ).toBeInTheDocument();
+});
+
+test("displays remaining minutes when the total is within the session duration (AC TFORM-06.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20" });
+
+  expect(await screen.findByText(/40 minutes remaining/)).toBeInTheDocument();
+});
+
+test("recomputes the total when an exercise is added, edited or removed (AC TFORM-06.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20" });
+  expect(await screen.findByText(/Planned time 20min/)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "30");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText(/Planned time 30min/)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Remove" }));
+  expect(screen.queryByText(/Planned time/)).not.toBeInTheDocument();
+});
+
+test("still allows saving when the total exceeds the session duration (AC TFORM-06.5)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "90" });
+  await screen.findByText(/exceeds the session by 30 minutes/);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+});
+
 test("cancelling the popup with values in the editor discards them without a prompt (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const confirmSpy = vi.spyOn(window, "confirm");

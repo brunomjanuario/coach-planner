@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { IconArrowUp, IconArrowDown } from "@tabler/icons-react";
 import { teamService } from "../services/teamService";
 import ExerciseFields from "./ExerciseFields";
+import { totalPlannedMinutes } from "../lib/trainingDuration";
 
 export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   const [teams, setTeams] = useState([]);
@@ -231,6 +232,21 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
                 </li>
               ))}
             </ul>
+            {formData.exercises.length > 0 &&
+              (() => {
+                const total = totalPlannedMinutes(formData.exercises);
+                const sessionDuration = Number(formData.duration);
+                const overage = total - sessionDuration;
+                return overage > 0 ? (
+                  <p className="text-sm text-red-500 mt-2">
+                    Planned time {total}min exceeds the session by {overage} minutes.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Planned time {total}min — {-overage} minutes remaining.
+                  </p>
+                );
+              })()}
           </div>
           <div className="flex justify-end space-x-2">
             <button
