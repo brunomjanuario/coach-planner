@@ -5,6 +5,7 @@ import { IconShieldPlus, IconUsersPlus } from "@tabler/icons-react";
 import TeamPopup from "../components/TeamPopup";
 import PlayerPopup from "../components/PlayerPopup";
 import PlayerCard from "../components/PlayerCard";
+import SelectableListItem from "../components/SelectableListItem";
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
@@ -79,18 +80,21 @@ export default function Teams() {
           )}
         </div>
         <div>
-          <ul>
-            {teams.map((team) => (
-              <li
-                className={`mt-2 p-3 rounded cursor-pointer hover:bg-lightblack ${
-                  selectedTeam?.id === team.id ? "bg-lightblack" : ""
-                }`}
-                onClick={() => selectTeam(team)}
-              >
-                {team.club} {team.name}
-              </li>
-            ))}
-          </ul>
+          {teams.length === 0 ? (
+            <p>No teams yet.</p>
+          ) : (
+            <ul>
+              {teams.map((team) => (
+                <SelectableListItem
+                  key={team.id}
+                  selected={selectedTeam?.id === team.id}
+                  onSelect={() => selectTeam(team)}
+                >
+                  {team.club} {team.name}
+                </SelectableListItem>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -115,18 +119,23 @@ export default function Teams() {
           )}
         </div>
         <div>
-          <ul>
-            {selectedTeam?.players?.map((player) => (
-              <li
-                className={`mt-2 p-3 rounded cursor-pointer hover:bg-lightblack ${
-                  selectedPlayer?.id === player.id ? "bg-lightblack" : ""
-                }`}
-                onClick={() => setSelectedPlayer(player)}
-              >
-                {player.shirtNumber} {player.name}
-              </li>
-            ))}
-          </ul>
+          {selectedTeam === null ? (
+            <p>Select a team to see its players.</p>
+          ) : selectedTeam.players?.length === 0 ? (
+            <p>No players yet.</p>
+          ) : (
+            <ul>
+              {selectedTeam.players.map((player) => (
+                <SelectableListItem
+                  key={player.id}
+                  selected={selectedPlayer?.id === player.id}
+                  onSelect={() => setSelectedPlayer(player)}
+                >
+                  {player.shirtNumber} {player.name}
+                </SelectableListItem>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

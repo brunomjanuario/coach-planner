@@ -160,3 +160,87 @@ test("deleting the selected team clears the selection and removes it from the te
     expect(screen.queryByText("Amadora Sub-11")).not.toBeInTheDocument();
   });
 });
+
+test("renders no React key warnings for the teams and players lists", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await screen.findByText("1 João");
+
+  const keyWarning = errorSpy.mock.calls.find((call) =>
+    String(call[0]).includes('unique "key" prop')
+  );
+  expect(keyWarning).toBeUndefined();
+});
+
+test("renders an empty-state message when there are no teams", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+
+  render(<Teams />);
+
+  expect(await screen.findByText("No teams yet.")).toBeInTheDocument();
+});
+
+test("renders a message asking to select a team when no team is selected", async () => {
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(
+    within(getColumn("Players")).getByText("Select a team to see its players.")
+  ).toBeInTheDocument();
+});
+
+test("renders an empty-state message when the selected team has no players", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue([
+    { id: 999, club: "Empty", name: "Team", season: "24/25", players: [] },
+  ]);
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Empty Team");
+
+  await selectTeamByName(user, "Empty Team");
+
+  expect(
+    within(getColumn("Players")).getByText("No players yet.")
+  ).toBeInTheDocument();
+});
+
+test("selecting a different team clears the previously selected player", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(within(getColumn("Players")).getByText("1 João"));
+  expect(within(getColumn("Edit")).getByText("15")).toBeInTheDocument();
+
+  await selectTeamByName(user, "Areias Sub-19");
+
+  expect(within(getColumn("Edit")).queryByText("15")).not.toBeInTheDocument();
+});
+
+test("marks the selected team row with aria-current", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  expect(
+    within(getColumn("Teams")).getByText("Amadora Sub-11").closest("button")
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("marks the selected player row with aria-current", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  await user.click(within(getColumn("Players")).getByText("1 João"));
+
+  expect(
+    within(getColumn("Players")).getByText("1 João").closest("button")
+  ).toHaveAttribute("aria-current", "true");
+});
