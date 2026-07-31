@@ -477,6 +477,154 @@ test("a training reassigned to the active filter's team appears in its filtered 
   expect(created.teamId).toBeNull();
 });
 
+async function addExerciseInForm(user, form, { description, duration, players, repetitions } = {}) {
+  await user.type(within(form).getByLabelText(/description/i), description ?? "Corrida");
+  await user.type(within(form).getByLabelText(/duration/i), duration ?? "10");
+  if (players != null) {
+    await user.type(within(form).getByLabelText(/number of players/i), players);
+  }
+  if (repetitions != null) {
+    await user.type(within(form).getByLabelText(/repetitions/i), repetitions);
+  }
+  await user.click(within(form).getByRole("button", { name: "Add" }));
+}
+
+test("a training with three fully-populated exercises survives create and reload with every field unchanged (AC TFORM-02.4)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-03-01T10:00");
+  await typeInto(user, form, "duration", "90");
+  await addExerciseInForm(user, form, {
+    description: "Roundtrip Warmup",
+    duration: "10",
+    players: "20",
+    repetitions: "1",
+  });
+  await addExerciseInForm(user, form, {
+    description: "Roundtrip SSG",
+    duration: "20",
+    players: "16",
+    repetitions: "2",
+  });
+  await addExerciseInForm(user, form, {
+    description: "Roundtrip Match",
+    duration: "15",
+    players: "22",
+    repetitions: "3",
+  });
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(async () => {
+    const trainings = await trainingService.getAll();
+    const created = trainings.find((t) =>
+      t.exercises.some((ex) => ex.description === "Roundtrip Warmup")
+    );
+    expect(created).toBeDefined();
+    expect(created.exercises).toHaveLength(3);
+    expect(created.exercises[0]).toMatchObject({
+      description: "Roundtrip Warmup",
+      duration: 10,
+      numberOfPlayers: 20,
+      repetitions: 1,
+      image: "",
+    });
+    expect(created.exercises[1]).toMatchObject({
+      description: "Roundtrip SSG",
+      duration: 20,
+      numberOfPlayers: 16,
+      repetitions: 2,
+      image: "",
+    });
+    expect(created.exercises[2]).toMatchObject({
+      description: "Roundtrip Match",
+      duration: 15,
+      numberOfPlayers: 22,
+      repetitions: 3,
+      image: "",
+    });
+  });
+});
+
+test("null numeric fields survive the round trip as null, not 0 or undefined (AC TFORM-01.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-03-02T10:00");
+  await typeInto(user, form, "duration", "60");
+  await addExerciseInForm(user, form, {
+    description: "Sparse Roundtrip Exercise",
+    duration: "12",
+  });
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(async () => {
+    const trainings = await trainingService.getAll();
+    const created = trainings.find((t) =>
+      t.exercises.some((ex) => ex.description === "Sparse Roundtrip Exercise")
+    );
+    expect(created).toBeDefined();
+    expect(created.exercises[0].numberOfPlayers).toBeNull();
+    expect(created.exercises[0].repetitions).toBeNull();
+  });
+});
+
+test("exercise ids are unique across two exercises added in the same tick (AC TFORM-02.5)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-03-03T10:00");
+  await typeInto(user, form, "duration", "60");
+  await addExerciseInForm(user, form, { description: "Unique Id A", duration: "5" });
+  await addExerciseInForm(user, form, { description: "Unique Id B", duration: "5" });
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(async () => {
+    const trainings = await trainingService.getAll();
+    const created = trainings.find((t) =>
+      t.exercises.some((ex) => ex.description === "Unique Id A")
+    );
+    expect(created).toBeDefined();
+    const [exA, exB] = created.exercises;
+    expect(exA.id).not.toBe(exB.id);
+  });
+});
+
+test("training.day is still a Date after the round trip (regression guard on 01 PERSIST-05)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-03-04T10:00");
+  await typeInto(user, form, "duration", "60");
+  await addExerciseInForm(user, form, { description: "Date Guard Exercise", duration: "5" });
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(async () => {
+    const trainings = await trainingService.getAll();
+    const created = trainings.find((t) =>
+      t.exercises.some((ex) => ex.description === "Date Guard Exercise")
+    );
+    expect(created).toBeDefined();
+    expect(created.day).toBeInstanceOf(Date);
+  });
+});
+
 test("renders no React key warnings for the Unassigned bucket", async () => {
   await trainingService.create({
     teamId: null,
