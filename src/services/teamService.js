@@ -47,28 +47,44 @@ export const teamService = {
   addPlayer: async (teamId, playerData) => {
     const teams = getTeams();
     const team = teams.find((team) => team.id === teamId);
-    team.players.push(playerData);
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${teamId}`);
+    }
+    const newPlayer = { ...playerData, teamId, id: newId() };
+    team.players.push(newPlayer);
     saveTeams(teams);
+    return newPlayer;
   },
 
   updatePlayer: async (playerData) => {
     const teams = getTeams();
     const team = teams.find((team) => team.id === playerData.teamId);
-    const player = team.players.find((player) => player.id === playerData.id);
-    player.age = playerData.age;
-    player.name = playerData.name;
-    player.shirtNumber = playerData.shirtNumber;
-    player.position = playerData.position;
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${playerData.teamId}`);
+    }
+    const playerIndex = team.players.findIndex(
+      (player) => player.id === playerData.id
+    );
+    if (playerIndex === -1) {
+      throw new NotFoundError(`Player not found: ${playerData.id}`);
+    }
+    team.players[playerIndex] = {
+      ...team.players[playerIndex],
+      ...playerData,
+    };
     saveTeams(teams);
+    return team.players[playerIndex];
   },
 
   deletePlayer: async (playerData) => {
     const teams = getTeams();
     const team = teams.find((team) => team.id === playerData.teamId);
-    const newList = team.players.filter(
+    if (!team) {
+      throw new NotFoundError(`Team not found: ${playerData.teamId}`);
+    }
+    team.players = team.players.filter(
       (player) => player.id !== playerData.id
     );
-    team.players = newList;
     saveTeams(teams);
   },
 };

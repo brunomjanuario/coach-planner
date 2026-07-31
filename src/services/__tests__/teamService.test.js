@@ -107,3 +107,95 @@ describe("teamService — team methods", () => {
     expect(all.find((t) => t.id === seedTeam.id)).toBeUndefined();
   });
 });
+
+describe("teamService — player methods", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("addPlayer assigns an id via newId()", async () => {
+    const [team] = await teamService.getAll();
+
+    const added = await teamService.addPlayer(team.id, {
+      name: "New Player",
+      age: 16,
+      shirtNumber: 99,
+      position: "GK",
+    });
+
+    expect(typeof added.id).toBe("string");
+    expect(added.id.length).toBeGreaterThan(0);
+  });
+
+  it("addPlayer persists the new player on the team", async () => {
+    const [team] = await teamService.getAll();
+
+    const added = await teamService.addPlayer(team.id, {
+      name: "New Player",
+      age: 16,
+      shirtNumber: 99,
+      position: "GK",
+    });
+
+    const reread = await teamService.getById(team.id);
+    expect(reread.players.find((p) => p.id === added.id)).toEqual(added);
+  });
+
+  it("addPlayer with an unknown teamId throws NotFoundError instead of a TypeError", async () => {
+    await expect(
+      teamService.addPlayer("no-such-team", { name: "X" })
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("updatePlayer persists changes and preserves goals, assists and concededGoals", async () => {
+    const [team] = await teamService.getAll();
+    const [player] = team.players;
+    expect(player.goals).toBeGreaterThan(0);
+
+    const updated = await teamService.updatePlayer({
+      id: player.id,
+      teamId: team.id,
+      name: "Renamed Player",
+      age: player.age,
+      shirtNumber: player.shirtNumber,
+      position: player.position,
+    });
+
+    expect(updated.name).toBe("Renamed Player");
+    expect(updated.goals).toBe(player.goals);
+    expect(updated.assists).toBe(player.assists);
+    expect(updated.concededGoals).toBe(player.concededGoals);
+  });
+
+  it("deletePlayer persists the removal — it survives a subsequent read", async () => {
+    const [team] = await teamService.getAll();
+    const [player] = team.players;
+
+    await teamService.deletePlayer({ id: player.id, teamId: team.id });
+
+    const reread = await teamService.getById(team.id);
+    expect(reread.players.find((p) => p.id === player.id)).toBeUndefined();
+  });
+
+  it("player ids stay unique across all teams", async () => {
+    const teams = await teamService.getAll();
+    const [teamA, teamB] = teams;
+
+    const playerA = await teamService.addPlayer(teamA.id, { name: "A" });
+    const playerB = await teamService.addPlayer(teamB.id, { name: "B" });
+
+    expect(playerA.id).not.toBe(playerB.id);
+  });
+
+  it("updatePlayer with an unknown teamId throws NotFoundError", async () => {
+    await expect(
+      teamService.updatePlayer({ id: "p1", teamId: "no-such-team", name: "X" })
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("deletePlayer with an unknown teamId throws NotFoundError", async () => {
+    await expect(
+      teamService.deletePlayer({ id: "p1", teamId: "no-such-team" })
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
