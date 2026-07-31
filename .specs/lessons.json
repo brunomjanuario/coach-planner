@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 3,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "surviving_mutant::before relying on a custom test setup aftereach hook cleanup storage clearing verify it is actually load bearing by checking whether the testing library s own built in defaults already provide the same guarantee since a call that only duplicates a library default is unfalsifiable by the suite",
+      "text": "Before relying on a custom test-setup afterEach hook (cleanup, storage clearing), verify it is actually load-bearing by checking whether the testing library's own built-in defaults already provide the same guarantee, since a call that only duplicates a library default is unfalsifiable by the suite.",
+      "signal": "surviving_mutant",
+      "scope": "test-harness",
+      "status": "candidate",
+      "features": [
+        "00-test-harness"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/test/setup.js:5-8 (mutation 1) (test-harness)"
+      ],
+      "created": "2026-07-31T08:17:25Z",
+      "last_seen": "2026-07-31T08:17:25Z"
+    },
+    {
+      "id": "L-002",
+      "key": "surviving_mutant::a config flag whose only effect is on an edge case with no committed test file e g exit code on empty suite cannot be regression tested by the repo s own gate document it as manually verified only instead of assuming future changes to it will be caught",
+      "text": "A config flag whose only effect is on an edge case with no committed test file (e.g. exit-code-on-empty-suite) cannot be regression-tested by the repo's own gate; document it as manually-verified-only instead of assuming future changes to it will be caught.",
+      "signal": "surviving_mutant",
+      "scope": "test-harness",
+      "status": "candidate",
+      "features": [
+        "00-test-harness"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "vite.config.js:11 (mutation 3, AC TEST-01.3) (test-harness)"
+      ],
+      "created": "2026-07-31T08:17:28Z",
+      "last_seen": "2026-07-31T08:17:28Z"
+    }
+  ]
+}
