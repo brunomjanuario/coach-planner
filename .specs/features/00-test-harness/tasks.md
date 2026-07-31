@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/00-test-harness/spec.md`
 **Design**: not required — no architectural decisions
-**Status**: Draft
+**Status**: In Progress (T1/6 done)
 **Batches**: 6 tasks → 1 batch, execute inline (no sub-agents)
 
 > **Bootstrapping note:** this feature builds the gate that every other feature
@@ -64,7 +64,7 @@ T5 → T6
 
 ## Task Breakdown
 
-### T1: Install test dependencies
+### T1: Install test dependencies ✅ Complete
 
 **What**: Add Vitest, RTL, jest-dom, user-event and jsdom as devDependencies.
 **Where**: `package.json`
@@ -75,15 +75,27 @@ T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom` present in `devDependencies`
-- [ ] `npm install` completes with no peer-dependency errors against React 19
-- [ ] `package-lock.json` updated and committed
-- [ ] `npm run build` still succeeds
+- [x] `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom` present in `devDependencies`
+- [x] `npm install` completes with no peer-dependency errors against React 19
+- [x] `package-lock.json` updated and committed
+- [x] `npm run build` still succeeds
 
 **Tests**: none (matrix: build config → none)
 **Gate**: build
 
-**Commit**: `chore(test): add vitest and testing-library dependencies`
+**Commit**: `chore(test): add vitest and testing-library dependencies` — [1db25c0]
+
+> **SPEC_DEVIATION**: `vitest@4.1.10` (latest at plan time) crashes npm 10.9.2's
+> arborist (`Cannot read properties of null (reading 'edgesOut')`) via its
+> optional peer chain to `@vitest/browser` → `webdriverio` → `@vitest/ui`.
+> Installed `vitest@3.2.7` instead — stable, no version was pinned by AD-001,
+> installs cleanly. Also pinned `jsdom@27.0.1` over the latest 30.x, whose
+> engines range excludes this machine's Node v23.11.0. Confirmed with the user.
+>
+> `npm audit` reports 7 pre-existing high-severity findings (a `brace-expansion`
+> DoS via eslint's dependency tree, and a `react-router` CSRF-bypass advisory via
+> `react-router-dom`) — both predate this task and are out of scope. Flagged as a
+> separate follow-up task per user confirmation.
 
 ---
 

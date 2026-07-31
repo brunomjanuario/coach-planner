@@ -107,7 +107,7 @@ a future failure is unambiguously caused by my change.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TEST-01 | P1: Runnable test suite | Tasks | Pending |
+| TEST-01 | P1: Runnable test suite | Tasks | Implementing (T1 done: deps installed) |
 | TEST-02 | P1: Runnable test suite (exit codes) | Tasks | Pending |
 | TEST-03 | P1: Component rendering | Tasks | Pending |
 | TEST-04 | P1: Component rendering (isolation) | Tasks | Pending |
