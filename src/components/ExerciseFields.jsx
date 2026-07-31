@@ -37,8 +37,20 @@ function validate(form) {
   return errors;
 }
 
-export default function ExerciseFields({ onAdd }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+function toFormValues(exercise) {
+  if (!exercise) return EMPTY_FORM;
+  return {
+    description: exercise.description ?? "",
+    duration: exercise.duration != null ? String(exercise.duration) : "",
+    numberOfPlayers:
+      exercise.numberOfPlayers != null ? String(exercise.numberOfPlayers) : "",
+    repetitions: exercise.repetitions != null ? String(exercise.repetitions) : "",
+  };
+}
+
+export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
+  const isEditing = exercise != null;
+  const [form, setForm] = useState(() => toFormValues(exercise));
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
@@ -57,14 +69,15 @@ export default function ExerciseFields({ onAdd }) {
     }
 
     onAdd({
-      id: newId(),
+      ...exercise,
+      id: exercise ? exercise.id : newId(),
       description: form.description.trim(),
       duration: Number(form.duration),
       numberOfPlayers:
         form.numberOfPlayers.trim() === "" ? null : Number(form.numberOfPlayers),
       repetitions:
         form.repetitions.trim() === "" ? null : Number(form.repetitions),
-      image: "",
+      image: exercise ? exercise.image : "",
     });
 
     setForm(EMPTY_FORM);
@@ -136,13 +149,22 @@ export default function ExerciseFields({ onAdd }) {
           <p className="text-sm text-red-500">{errors.repetitions}</p>
         )}
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="px-3 py-2 bg-gray-300 text-white rounded"
+          >
+            Cancel
+          </button>
+        )}
         <button
           type="button"
           onClick={handleSubmit}
           className="px-3 py-2 bg-blue-500 text-white rounded"
         >
-          Add
+          {isEditing ? "Save" : "Add"}
         </button>
       </div>
     </div>

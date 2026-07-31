@@ -13,6 +13,7 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     duration: 90,
     exercises: [],
   });
+  const [editingExerciseId, setEditingExerciseId] = useState(null);
 
   useEffect(() => {
     async function loadTeams() {
@@ -47,6 +48,17 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   };
 
   const handleAddExercise = (exercise) => {
+    if (editingExerciseId != null) {
+      setFormData((prev) => ({
+        ...prev,
+        exercises: prev.exercises.map((ex) =>
+          ex.id === editingExerciseId ? { ...ex, ...exercise } : ex
+        ),
+      }));
+      setEditingExerciseId(null);
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       exercises: [
@@ -57,6 +69,7 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   };
 
   const handleRemoveExercise = (id) => {
+    if (editingExerciseId === id) setEditingExerciseId(null);
     setFormData((prev) => ({
       ...prev,
       exercises: prev.exercises.filter((ex) => ex.id !== id),
@@ -149,7 +162,12 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
           </div>
           <div>
             <label className="block text-sm font-medium">Exercises</label>
-            <ExerciseFields onAdd={handleAddExercise} />
+            <ExerciseFields
+              key={editingExerciseId ?? "new"}
+              exercise={formData.exercises.find((ex) => ex.id === editingExerciseId) ?? null}
+              onAdd={handleAddExercise}
+              onCancelEdit={() => setEditingExerciseId(null)}
+            />
             <ul className="max-h-48 overflow-y-auto mt-2">
               {formData.exercises.map((ex) => (
                 <li
@@ -161,13 +179,22 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
                     {ex.numberOfPlayers != null ? ` · ${ex.numberOfPlayers} players` : ""}
                     {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExercise(ex.id)}
-                    className="text-red-500 ml-2"
-                  >
-                    Remove
-                  </button>
+                  <span className="flex gap-2 ml-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setEditingExerciseId(ex.id)}
+                      className="text-blue-500"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExercise(ex.id)}
+                      className="text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>

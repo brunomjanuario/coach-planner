@@ -343,6 +343,96 @@ test("20+ exercises scroll within the popup without pushing the action buttons o
   expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
 });
 
+test("an exercise's edit control loads its values into the editor (AC TFORM-04.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.getByLabelText(/description/i)).toHaveValue("SSG");
+  expect(screen.getByLabelText(/duration/i)).toHaveValue(20);
+  expect(screen.getByLabelText(/number of players/i)).toHaveValue(8);
+  expect(screen.getByLabelText(/repetitions/i)).toHaveValue(3);
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+});
+
+test("saving an edit updates the exercise in place, preserving id and list position (AC TFORM-04.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "First", duration: "10" });
+  await addExercise(user, { description: "Second", duration: "20" });
+  const items = screen.getAllByRole("listitem");
+
+  await user.click(within(items[0]).getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "15");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const updatedItems = screen.getAllByRole("listitem");
+  expect(updatedItems).toHaveLength(2);
+  expect(updatedItems[0]).toHaveTextContent("First");
+  expect(updatedItems[0]).toHaveTextContent("15min");
+  expect(updatedItems[1]).toHaveTextContent("Second");
+});
+
+test("the editor's action label switches between Add and Save by mode", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+
+  await addExercise(user, { description: "SSG", duration: "20" });
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+});
+
+test("cancelling an edit restores the original values and leaves the list unchanged (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "99");
+  await user.click(screen.getAllByRole("button", { name: "Cancel" })[0]);
+
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toHaveTextContent("20min");
+  expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+});
+
+test("validation from ExerciseFields applies identically in edit mode", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "0");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText(/duration must be a positive number/i)
+  ).toBeInTheDocument();
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toHaveTextContent("20min");
+});
+
 test("cancelling the popup with values in the editor discards them without a prompt (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const confirmSpy = vi.spyOn(window, "confirm");
