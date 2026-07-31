@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T3/10 done)
+**Status**: In Progress (T4/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -195,7 +195,7 @@ T8 → T9 → T10
 
 ---
 
-### T4: Create the store core
+### T4: Create the store core ✅ Complete
 
 **What**: The repository layer — load-or-seed, get/set collection, schema version, copy-on-read.
 **Where**: `src/services/store.js` (new)
@@ -206,21 +206,21 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `getCollection(name)` returns a deep copy — mutating the result does not affect the store (AC PERSIST-03.2)
-- [ ] Two `getCollection` calls return non-reference-identical results (AC PERSIST-03.1)
-- [ ] First run with empty storage seeds from `createSeed()` and persists it (AC PERSIST-01.4)
-- [ ] A second load with data present does **not** re-seed (AC PERSIST-01.5)
-- [ ] `setCollection(name, value)` persists and bumps nothing else
-- [ ] A schema-version key is written and an identity migration hook exists for v1
-- [ ] `reset()` clears all `coachplanner:v1:*` keys and re-seeds, leaving the `user` key untouched (AC PERSIST-06.3)
-- [ ] Date fields are registered per collection and revive correctly (AC PERSIST-05.1)
-- [ ] Gate passes: `npx vitest run src/services/__tests__/store.test.js`
-- [ ] Test count: 12 tests pass
+- [x] `getCollection(name)` returns a deep copy — mutating the result does not affect the store (AC PERSIST-03.2)
+- [x] Two `getCollection` calls return non-reference-identical results (AC PERSIST-03.1)
+- [x] First run with empty storage seeds from `createSeed()` and persists it (AC PERSIST-01.4)
+- [x] A second load with data present does **not** re-seed (AC PERSIST-01.5)
+- [x] `setCollection(name, value)` persists and bumps nothing else
+- [x] A schema-version key is written and an identity migration hook exists for v1
+- [x] `reset()` clears all `coachplanner:v1:*` keys and re-seeds, leaving the `user` key untouched (AC PERSIST-06.3)
+- [x] Date fields are registered per collection and revive correctly (AC PERSIST-05.1)
+- [x] Gate passes: `npx vitest run src/services/__tests__/store.test.js`
+- [x] Test count: 12 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(store): add persistent store with seed-on-first-run`
+**Commit**: `feat(store): add persistent store with seed-on-first-run` — [2c2cc50]
 
 ---
 

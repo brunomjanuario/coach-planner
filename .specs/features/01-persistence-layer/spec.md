@@ -144,12 +144,12 @@ a predictable fixture.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Pending |
-| PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Implementing (T3 done: createSeed() factory; consumed by T4) |
-| PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Pending |
+| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Implementing (T4 done: store seeds and persists; service-level create/update/delete land in T5-T7) |
+| PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Implementing (T3, T4 done: createSeed() factory + store's schema-version-gated seeding) |
+| PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Implementing (T4 done: store.getCollection copy semantics) |
 | PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending |
 | PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1 done: storage adapter revives Date fields, handles malformed dates) |
-| PERSIST-06 | P2: Reset to demo data | Tasks | Pending |
+| PERSIST-06 | P2: Reset to demo data | Tasks | Implementing (T4 done: store.reset(); Settings UI lands in T10) |
 | PERSIST-07 | Edge cases: storage failure, corruption, quota | Tasks | Implementing (T1 done: quota/corruption/unavailability handling) |
 | PERSIST-08 | Id generation without collisions (AD-003) | Tasks | Implementing (T2 done: newId() generator) |
 
