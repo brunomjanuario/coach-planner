@@ -24,6 +24,12 @@ export default function Trainings() {
   const [showTrainingDetailsPopup, setShowTrainingDetailsPopup] =
     useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
+  const [createMessage, setCreateMessage] = useState("");
+
+  function teamLabel(id) {
+    const team = teams.find((t) => t.id === id);
+    return team ? `${team.club} ${team.name}` : "an unknown team";
+  }
 
   const filterTrainings = async (teamId) => {
     const data = await trainingService.getAll();
@@ -78,7 +84,10 @@ export default function Trainings() {
         <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
         <button
           className="bg-blue-500 text-white px-4 py-2 rounded-md m-5"
-          onClick={() => setShowAddTrainingPopup(true)}
+          onClick={() => {
+            setCreateMessage("");
+            setShowAddTrainingPopup(true);
+          }}
         >
           <IconPlus />
         </button>
@@ -89,12 +98,23 @@ export default function Trainings() {
               setShowAddTrainingPopup(false);
               filterTrainings(selectedTeam?.id ?? null);
             }}
-            onSubmit={() => {
-              setShowAddTrainingPopup(false);
+            onSubmit={async (training) => {
+              const created = await trainingService.create(training);
+              await filterTrainings(selectedTeam?.id ?? null);
+              if (selectedTeam && created.teamId !== selectedTeam.id) {
+                setCreateMessage(
+                  `Training created for ${teamLabel(created.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`
+                );
+              } else {
+                setCreateMessage("");
+              }
             }}
           />
         )}
       </div>
+      {createMessage && (
+        <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
           {teams.length === 0 ? (
