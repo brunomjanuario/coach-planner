@@ -144,14 +144,14 @@ a predictable fixture.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Implementing (T4-T6 done: store + teamService team & player methods; training methods land in T7) |
+| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Implementing (T4-T7 done: store + teamService + trainingService CRUD, all service-layer work complete; T8-T10 wire UI refresh + reset UI) |
 | PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Implementing (T3, T4 done: createSeed() factory + store's schema-version-gated seeding) |
-| PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Implementing (T4-T6 done: store + teamService-level copy semantics, team & player methods) |
-| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending |
-| PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1 done: storage adapter revives Date fields, handles malformed dates) |
-| PERSIST-06 | P2: Reset to demo data | Tasks | Implementing (T4 done: store.reset(); Settings UI lands in T10) |
+| PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Implementing (T4-T7 done: store + teamService + trainingService copy semantics; UI-level refresh wiring is T8/T9) |
+| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending — T8/T9 (Batch 2) |
+| PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1, T7 done: storage adapter date revival; trainingService round-trip + future-bucket regression test) |
+| PERSIST-06 | P2: Reset to demo data | Tasks | Implementing (T4 done: store.reset(); Settings UI lands in T10, Batch 2) |
 | PERSIST-07 | Edge cases: storage failure, corruption, quota | Tasks | Implementing (T1 done: quota/corruption/unavailability handling) |
-| PERSIST-08 | Id generation without collisions (AD-003) | Tasks | Implementing (T2, T5, T6 done: newId() generator; used by teamService.create and addPlayer, globally unique across teams) |
+| PERSIST-08 | Id generation without collisions (AD-003) | Tasks | Implementing (T2, T5, T6, T7 done: newId() generator used by teamService and trainingService create paths, globally unique) |
 
 **Coverage:** 8 total, 8 mapped to tasks, 0 unmapped
 

@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T6/10 done)
+**Status**: In Progress (T7/10 done — Batch 1 (Phases 1-3) complete; Batch 2 (Phase 4, T8-T10) remaining)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -156,7 +156,7 @@ T8 → T9 → T10
 
 ---
 
-### T3: Convert mock data into an explicit seed module ⚠️ Partial (see deviation)
+### T3: Convert mock data into an explicit seed module ✅ Complete (deletion completed by T7)
 
 **What**: Turn the mutable `mock.js` exports into a factory returning a fresh deep copy per call.
 **Where**: `src/model/seed.js` (new), `src/model/mock.js` (delete)
@@ -171,7 +171,7 @@ T8 → T9 → T10
 - [x] Two calls return non-reference-identical data (this is what stops seed corruption)
 - [x] The `Positions` map is **exported** (it is currently private) — `04-training-form` and player forms need it
 - [x] Seed records keep their existing ids so `docs/` examples stay accurate
-- [x] `src/model/mock.js` is deleted and no import of it remains anywhere — **deferred to T7** (see deviation note)
+- [x] `src/model/mock.js` is deleted and no import of it remains anywhere — deferred to and completed by T7 (see deviation note)
 - [x] Gate passes: `npm run lint && npm run build && npm test`
 
 **Tests**: none (matrix: seed data → none) — exercised through T4's tests
@@ -286,10 +286,10 @@ T8 → T9 → T10
 
 ---
 
-### T7: Migrate trainingService
+### T7: Migrate trainingService ✅ Complete
 
 **What**: Rewrite all methods over the store and delete the three broken `fetch` methods.
-**Where**: `src/services/trainingService.js` (modify)
+**Where**: `src/services/trainingService.js` (modify), plus per `design.md`'s corrected scope: `src/components/TrainingSavePopup.jsx` (modify); also completes T3's deferred `src/model/mock.js` deletion (last import removed here)
 **Depends on**: T4
 **Reuses**: `src/services/store.js`, `src/lib/id.js`
 **Requirement**: PERSIST-01, PERSIST-03, PERSIST-05
@@ -297,19 +297,25 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `getById`, `update` and `delete` no longer call `fetch` — all three currently hit the nonexistent `/api/teams`
-- [ ] The misnamed `API_URL = "/api/teams"` constant is removed from this file
-- [ ] `create` assigns an id via `newId()` and persists
-- [ ] `update(training)` takes a whole training (not `(id, data)`) — matching `teamService.update`'s shape
-- [ ] A saved training's `day` is a `Date` after reload (AC PERSIST-05.1)
-- [ ] A future training still sorts into the future bucket after reload (AC PERSIST-05.2) — regression test for the string-comparison trap
-- [ ] Gate passes: `npx vitest run src/services/__tests__/trainingService.test.js`
-- [ ] Test count: 13 tests pass
+- [x] `getById`, `update` and `delete` no longer call `fetch` — all three currently hit the nonexistent `/api/teams`
+- [x] The misnamed `API_URL = "/api/teams"` constant is removed from this file
+- [x] `create` assigns an id via `newId()` and persists
+- [x] `update(training)` takes a whole training (not `(id, data)`) — matching `teamService.update`'s shape
+- [x] A saved training's `day` is a `Date` after reload (AC PERSIST-05.1)
+- [x] A future training still sorts into the future bucket after reload (AC PERSIST-05.2) — regression test for the string-comparison trap
+- [x] Gate passes: `npx vitest run src/services/__tests__/trainingService.test.js`
+- [x] Test count: 13 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `refactor(trainings): migrate training service to the persistent store`
+**Commit**: `refactor(trainings): migrate training service to the persistent store` — [9997662]
+
+> Also deletes `src/model/mock.js`, completing T3's deferred Done-when item
+> (see T3's note) now that this was the last file importing it. Full batch
+> gate (`npm run lint && npm run build && npm test`) run as an extra
+> end-of-batch sanity check beyond T7's own stated quick gate: 0 lint
+> errors, build succeeds, 61/61 tests pass across all 6 test files.
 
 ---
 
