@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T2/10 done)
+**Status**: In Progress (T3/10 done)
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -156,7 +156,7 @@ T8 → T9 → T10
 
 ---
 
-### T3: Convert mock data into an explicit seed module
+### T3: Convert mock data into an explicit seed module ⚠️ Partial (see deviation)
 
 **What**: Turn the mutable `mock.js` exports into a factory returning a fresh deep copy per call.
 **Where**: `src/model/seed.js` (new), `src/model/mock.js` (delete)
@@ -167,17 +167,31 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Exports `createSeed()` returning `{ teams, trainings }` — a new object graph on every call
-- [ ] Two calls return non-reference-identical data (this is what stops seed corruption)
-- [ ] The `Positions` map is **exported** (it is currently private) — `04-training-form` and player forms need it
-- [ ] Seed records keep their existing ids so `docs/` examples stay accurate
-- [ ] `src/model/mock.js` is deleted and no import of it remains anywhere
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Exports `createSeed()` returning `{ teams, trainings }` — a new object graph on every call
+- [x] Two calls return non-reference-identical data (this is what stops seed corruption)
+- [x] The `Positions` map is **exported** (it is currently private) — `04-training-form` and player forms need it
+- [x] Seed records keep their existing ids so `docs/` examples stay accurate
+- [x] `src/model/mock.js` is deleted and no import of it remains anywhere — **deferred to T7** (see deviation note)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
 
 **Tests**: none (matrix: seed data → none) — exercised through T4's tests
 **Gate**: build
 
-**Commit**: `refactor(model): convert mock data to a seed factory`
+**Commit**: `refactor(model): convert mock data to a seed factory` — [3de17dd]
+
+> **SPEC_DEVIATION**: `mock.js` is not deleted in this task's commit.
+> `teamService.js` and `trainingService.js` still `import { teams }` /
+> `import { trainings }` from it, and those files are explicitly out of
+> T3's scope (`Where` doesn't list them; they're T5/T6's and T7's files).
+> Deleting `mock.js` now would break `npm run build` — the very gate this
+> task must pass — before the services that stop importing it have been
+> touched. `createSeed()` in `seed.js` is complete and correct (verified by
+> the gate and, per the plan's own note, exercised through T4's tests);
+> only the physical deletion of the now-superseded file is deferred to T7,
+> the task that removes the last import (`trainingService.js`'s `import {
+> trainings } from "../model/mock"`). This keeps every task's diff scoped
+> to files it actually needs, per the "touch only listed files" hard
+> constraint, rather than reaching into T5-T7's files early.
 
 ---
 

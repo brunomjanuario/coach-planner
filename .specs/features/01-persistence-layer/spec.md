@@ -145,7 +145,7 @@ a predictable fixture.
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
 | PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Pending |
-| PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Pending |
+| PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Implementing (T3 done: createSeed() factory; consumed by T4) |
 | PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Pending |
 | PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending |
 | PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1 done: storage adapter revives Date fields, handles malformed dates) |
