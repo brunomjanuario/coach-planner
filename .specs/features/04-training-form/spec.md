@@ -161,13 +161,13 @@ that the data I entered is actually useful.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TFORM-01 | P1: Full exercise fields (inputs + storage) | Tasks | Pending |
-| TFORM-02 | P1: Full exercise fields (round trip, ids) | Tasks | Pending |
-| TFORM-03 | P1: Field validation | Tasks | Pending |
-| TFORM-04 | P2: Edit an added exercise | Tasks | Pending |
-| TFORM-05 | P2: Reorder exercises | Tasks | Pending |
-| TFORM-06 | P2: Session fit indicator | Tasks | Pending |
-| TFORM-07 | P2: Full detail view | Tasks | Pending |
+| TFORM-01 | P1: Full exercise fields (inputs + storage) | Tasks | ✅ Verified |
+| TFORM-02 | P1: Full exercise fields (round trip, ids) | Tasks | ✅ Verified |
+| TFORM-03 | P1: Field validation | Tasks | ✅ Verified |
+| TFORM-04 | P2: Edit an added exercise | Tasks | ✅ Verified |
+| TFORM-05 | P2: Reorder exercises | Tasks | ✅ Verified |
+| TFORM-06 | P2: Session fit indicator | Tasks | ✅ Verified |
+| TFORM-07 | P2: Full detail view | Tasks | ✅ Verified |
 
 **Coverage:** 7 total, 7 mapped to tasks, 0 unmapped
 

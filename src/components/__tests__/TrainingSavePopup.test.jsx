@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TrainingSavePopup from "../TrainingSavePopup";
 import { teamService } from "../../services/teamService";
@@ -230,4 +230,437 @@ test("shows an error and does not close when the onSubmit prop rejects", async (
     "Failed to save training:",
     expect.any(Error)
   );
+});
+
+async function addExercise(user, { description, duration, players, repetitions } = {}) {
+  await user.type(screen.getByLabelText(/description/i), description ?? "SSG");
+  await user.type(screen.getByLabelText(/duration/i), duration ?? "20");
+  if (players != null) {
+    await user.type(screen.getByLabelText(/number of players/i), players);
+  }
+  if (repetitions != null) {
+    await user.type(screen.getByLabelText(/repetitions/i), repetitions);
+  }
+  await user.click(screen.getByRole("button", { name: "Add" }));
+}
+
+test("renders an added exercise's duration, players and repetitions in the list, not just description", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toHaveTextContent("20min");
+  expect(item).toHaveTextContent("8 players");
+  expect(item).toHaveTextContent("x3");
+});
+
+test("the saved training carries all four exercise fields (AC TFORM-01.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      exercises: [
+        expect.objectContaining({
+          description: "SSG",
+          duration: 20,
+          numberOfPlayers: 8,
+          repetitions: 3,
+          image: "",
+        }),
+      ],
+    })
+  );
+});
+
+test("stamps trainingId on each added exercise so created records match the seeded shape", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await addExercise(user);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  const [[submitted]] = onSubmit.mock.calls;
+  expect(submitted.exercises[0]).toHaveProperty("trainingId");
+});
+
+test("a saved training reloaded from the store returns every exercise field unchanged (AC TFORM-02.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: (t) => trainingService.create(t) });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await addExercise(user, { description: "Custom SSG Drill", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(async () => {
+    const trainings = await trainingService.getAll();
+    const found = trainings.find((t) =>
+      t.exercises.some((ex) => ex.description === "Custom SSG Drill")
+    );
+    expect(found).toBeDefined();
+    expect(found.exercises[0]).toMatchObject({
+      description: "Custom SSG Drill",
+      duration: 20,
+      numberOfPlayers: 8,
+      repetitions: 3,
+      image: "",
+    });
+  });
+});
+
+test("20+ exercises scroll within the popup without pushing the action buttons off-screen (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  for (let i = 0; i < 21; i++) {
+    await addExercise(user, { description: `Ex${i}`, duration: "5" });
+  }
+
+  const list = container.querySelector("ul.overflow-y-auto");
+  expect(list).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+});
+
+test("an exercise's edit control loads its values into the editor (AC TFORM-04.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.getByLabelText(/description/i)).toHaveValue("SSG");
+  expect(screen.getByLabelText(/duration/i)).toHaveValue(20);
+  expect(screen.getByLabelText(/number of players/i)).toHaveValue(8);
+  expect(screen.getByLabelText(/repetitions/i)).toHaveValue(3);
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+});
+
+test("saving an edit updates the exercise in place, preserving id and list position (AC TFORM-04.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "First", duration: "10" });
+  await addExercise(user, { description: "Second", duration: "20" });
+  const items = screen.getAllByRole("listitem");
+
+  await user.click(within(items[0]).getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "15");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const updatedItems = screen.getAllByRole("listitem");
+  expect(updatedItems).toHaveLength(2);
+  expect(updatedItems[0]).toHaveTextContent("First");
+  expect(updatedItems[0]).toHaveTextContent("15min");
+  expect(updatedItems[1]).toHaveTextContent("Second");
+});
+
+test("the editor's action label switches between Add and Save by mode", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+
+  await addExercise(user, { description: "SSG", duration: "20" });
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+});
+
+test("cancelling an edit restores the original values and leaves the list unchanged (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20", players: "8", repetitions: "3" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "99");
+  await user.click(screen.getAllByRole("button", { name: "Cancel" })[0]);
+
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toHaveTextContent("20min");
+  expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
+});
+
+test("validation from ExerciseFields applies identically in edit mode", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "0");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText(/duration must be a positive number/i)
+  ).toBeInTheDocument();
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toHaveTextContent("20min");
+});
+
+async function addThreeExercises(user) {
+  await addExercise(user, { description: "First", duration: "10", players: "5", repetitions: "1" });
+  await addExercise(user, { description: "Second", duration: "20", players: "6", repetitions: "2" });
+  await addExercise(user, { description: "Third", duration: "30", players: "7", repetitions: "3" });
+}
+
+test("move-up swaps an exercise with the one above (AC TFORM-05.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  await user.click(within(items[2]).getByRole("button", { name: "Move up" }));
+
+  const reordered = screen.getAllByRole("listitem");
+  expect(reordered[0]).toHaveTextContent("First");
+  expect(reordered[1]).toHaveTextContent("Third");
+  expect(reordered[2]).toHaveTextContent("Second");
+});
+
+test("move-down swaps an exercise with the one below", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  await user.click(within(items[0]).getByRole("button", { name: "Move down" }));
+
+  const reordered = screen.getAllByRole("listitem");
+  expect(reordered[0]).toHaveTextContent("Second");
+  expect(reordered[1]).toHaveTextContent("First");
+  expect(reordered[2]).toHaveTextContent("Third");
+});
+
+test("move-up is disabled on the first exercise, no wrap-around (AC TFORM-05.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  const moveUpFirst = within(items[0]).getByRole("button", { name: "Move up" });
+  expect(moveUpFirst).toBeDisabled();
+
+  await user.click(moveUpFirst);
+
+  const unchanged = screen.getAllByRole("listitem");
+  expect(unchanged[0]).toHaveTextContent("First");
+});
+
+test("move-down is disabled on the last exercise (AC TFORM-05.5)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  const moveDownLast = within(items[2]).getByRole("button", { name: "Move down" });
+  expect(moveDownLast).toBeDisabled();
+
+  await user.click(moveDownLast);
+
+  const unchanged = screen.getAllByRole("listitem");
+  expect(unchanged[2]).toHaveTextContent("Third");
+});
+
+test("reordering preserves every exercise's field values and id", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  await user.click(within(items[1]).getByRole("button", { name: "Move up" }));
+
+  const reordered = screen.getAllByRole("listitem");
+  expect(reordered[0]).toHaveTextContent("Second — 20min · 6 players · x2");
+  expect(reordered[1]).toHaveTextContent("First — 10min · 5 players · x1");
+});
+
+test("the saved training persists the displayed order", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await addThreeExercises(user);
+  const items = screen.getAllByRole("listitem");
+  await user.click(within(items[2]).getByRole("button", { name: "Move up" }));
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  const [[submitted]] = onSubmit.mock.calls;
+  expect(submitted.exercises.map((ex) => ex.description)).toEqual([
+    "First",
+    "Third",
+    "Second",
+  ]);
+});
+
+test("move controls are reachable and operable by keyboard", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addThreeExercises(user);
+
+  const items = screen.getAllByRole("listitem");
+  const moveUpButton = within(items[2]).getByRole("button", { name: "Move up" });
+  moveUpButton.focus();
+  expect(moveUpButton).toHaveFocus();
+  await user.keyboard("{Enter}");
+
+  const reordered = screen.getAllByRole("listitem");
+  expect(reordered[1]).toHaveTextContent("Third");
+});
+
+test("displays the sum of duration times repetitions across exercises (AC TFORM-06.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20", repetitions: "2" });
+
+  expect(await screen.findByText(/Planned time 40min/)).toBeInTheDocument();
+});
+
+async function typeInto(user, container, name, value) {
+  const input = container.querySelector(`[name="${name}"]`);
+  await user.clear(input);
+  await user.type(input, value);
+}
+
+test("warns and names the overage in minutes when the total exceeds the session duration (AC TFORM-06.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "50", repetitions: "2" });
+
+  expect(
+    await screen.findByText(/exceeds the session by 40 minutes/)
+  ).toBeInTheDocument();
+});
+
+test("displays remaining minutes when the total is within the session duration (AC TFORM-06.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20" });
+
+  expect(await screen.findByText(/40 minutes remaining/)).toBeInTheDocument();
+});
+
+test("treats an exact match between planned time and session duration as within (0 minutes remaining), not exceeding (AC TFORM-06.3 boundary)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "60" });
+
+  expect(await screen.findByText(/0 minutes remaining/)).toBeInTheDocument();
+  expect(screen.queryByText(/exceeds the session/)).not.toBeInTheDocument();
+});
+
+test("recomputes the total when an exercise is added, edited or removed (AC TFORM-06.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "20" });
+  expect(await screen.findByText(/Planned time 20min/)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  const durationInput = screen.getByLabelText(/duration/i);
+  await user.clear(durationInput);
+  await user.type(durationInput, "30");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText(/Planned time 30min/)).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Remove" }));
+  expect(screen.queryByText(/Planned time/)).not.toBeInTheDocument();
+});
+
+test("still allows saving when the total exceeds the session duration (AC TFORM-06.5)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await fillDateAndDuration(user, container);
+  await typeInto(user, container, "duration", "60");
+  await addExercise(user, { description: "SSG", duration: "90" });
+  await screen.findByText(/exceeds the session by 30 minutes/);
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+});
+
+test("cancelling the popup with values in the editor discards them without a prompt (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const confirmSpy = vi.spyOn(window, "confirm");
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn(), onClose });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.type(screen.getByLabelText(/description/i), "Unsaved exercise");
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(confirmSpy).not.toHaveBeenCalled();
 });

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { IconArrowUp, IconArrowDown } from "@tabler/icons-react";
 import { teamService } from "../services/teamService";
+import ExerciseFields from "./ExerciseFields";
+import { totalPlannedMinutes } from "../lib/trainingDuration";
 
 export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   const [teams, setTeams] = useState([]);
@@ -11,8 +14,8 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     day: "",
     duration: 90,
     exercises: [],
-    exerciseInput: "",
   });
+  const [editingExerciseId, setEditingExerciseId] = useState(null);
 
   useEffect(() => {
     async function loadTeams() {
@@ -46,20 +49,43 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddExercise = () => {
-    if (formData.exerciseInput.trim() !== "") {
+  const handleAddExercise = (exercise) => {
+    if (editingExerciseId != null) {
       setFormData((prev) => ({
         ...prev,
-        exercises: [
-          ...prev.exercises,
-          { description: prev.exerciseInput, id: Date.now() },
-        ],
-        exerciseInput: "",
+        exercises: prev.exercises.map((ex) =>
+          ex.id === editingExerciseId ? { ...ex, ...exercise } : ex
+        ),
       }));
+      setEditingExerciseId(null);
+      return;
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      exercises: [
+        ...prev.exercises,
+        { ...exercise, trainingId: prev.id ?? null },
+      ],
+    }));
+  };
+
+  const handleMoveExercise = (id, direction) => {
+    setFormData((prev) => {
+      const index = prev.exercises.findIndex((ex) => ex.id === id);
+      const swapWith = index + direction;
+      if (index === -1 || swapWith < 0 || swapWith >= prev.exercises.length) {
+        return prev;
+      }
+
+      const exercises = [...prev.exercises];
+      [exercises[index], exercises[swapWith]] = [exercises[swapWith], exercises[index]];
+      return { ...prev, exercises };
+    });
   };
 
   const handleRemoveExercise = (id) => {
+    if (editingExerciseId === id) setEditingExerciseId(null);
     setFormData((prev) => ({
       ...prev,
       exercises: prev.exercises.filter((ex) => ex.id !== id),
@@ -152,40 +178,75 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
           </div>
           <div>
             <label className="block text-sm font-medium">Exercises</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                name="exerciseInput"
-                value={formData.exerciseInput}
-                onChange={handleChange}
-                className="flex-1 border px-3 py-2 rounded"
-                placeholder="Exercise description"
-              />
-              <button
-                type="button"
-                onClick={handleAddExercise}
-                className="px-3 py-2 bg-blue-500 text-white rounded"
-              >
-                Add
-              </button>
-            </div>
-            <ul>
-              {formData.exercises.map((ex) => (
+            <ExerciseFields
+              key={editingExerciseId ?? "new"}
+              exercise={formData.exercises.find((ex) => ex.id === editingExerciseId) ?? null}
+              onAdd={handleAddExercise}
+              onCancelEdit={() => setEditingExerciseId(null)}
+            />
+            <ul className="max-h-48 overflow-y-auto mt-2">
+              {formData.exercises.map((ex, index) => (
                 <li
                   key={ex.id}
                   className="flex justify-between items-center bg-gray-100 rounded px-2 py-1 mb-1"
                 >
-                  <span>{ex.description}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExercise(ex.id)}
-                    className="text-red-500 ml-2"
-                  >
-                    Remove
-                  </button>
+                  <span className="break-words">
+                    {ex.description} — {ex.duration}min
+                    {ex.numberOfPlayers != null ? ` · ${ex.numberOfPlayers} players` : ""}
+                    {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
+                  </span>
+                  <span className="flex gap-2 ml-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveExercise(ex.id, -1)}
+                      disabled={index === 0}
+                      aria-label="Move up"
+                      className="disabled:opacity-30"
+                    >
+                      <IconArrowUp size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveExercise(ex.id, 1)}
+                      disabled={index === formData.exercises.length - 1}
+                      aria-label="Move down"
+                      className="disabled:opacity-30"
+                    >
+                      <IconArrowDown size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingExerciseId(ex.id)}
+                      className="text-blue-500"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExercise(ex.id)}
+                      className="text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
+            {formData.exercises.length > 0 &&
+              (() => {
+                const total = totalPlannedMinutes(formData.exercises);
+                const sessionDuration = Number(formData.duration);
+                const overage = total - sessionDuration;
+                return overage > 0 ? (
+                  <p className="text-sm text-red-500 mt-2">
+                    Planned time {total}min exceeds the session by {overage} minutes.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Planned time {total}min — {-overage} minutes remaining.
+                  </p>
+                );
+              })()}
           </div>
           <div className="flex justify-end space-x-2">
             <button

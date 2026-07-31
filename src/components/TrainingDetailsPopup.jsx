@@ -1,4 +1,5 @@
 import React from "react";
+import { totalPlannedMinutes } from "../lib/trainingDuration";
 
 export default function TrainingDetailsPopup({ training, onClose, onEdit }) {
   if (!training) return null;
@@ -31,15 +32,24 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit }) {
                 training.exercises.map((ex) => (
                   <li
                     key={ex.id}
-                    className="bg-gray-100 rounded px-2 py-1 mb-1"
+                    className="bg-gray-100 rounded px-2 py-1 mb-1 break-words"
                   >
-                    {ex.description}
+                    {ex.description} — {ex.duration != null ? ex.duration : "—"}min
+                    {" · "}
+                    {ex.numberOfPlayers != null ? ex.numberOfPlayers : "—"} players
+                    {" · x"}
+                    {ex.repetitions != null ? ex.repetitions : "—"}
                   </li>
                 ))
               ) : (
                 <li className="text-gray-500">No exercises</li>
               )}
             </ul>
+            {training.exercises && training.exercises.length > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Total planned time: {totalPlannedMinutes(training.exercises)}min
+              </p>
+            )}
           </div>
           <div className="flex justify-end space-x-2 mt-4">
             <button
