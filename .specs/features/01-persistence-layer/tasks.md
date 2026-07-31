@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/01-persistence-layer/spec.md`
 **Design**: ✅ Complete — see `design.md`
-**Status**: In Progress (T7/10 done — Batch 1 (Phases 1-3) complete; Batch 2 (Phase 4, T8-T10) remaining)
+**Status**: Implementation Complete (10/10 done) — pending Verifier
 **Batches**: 10 tasks → 2 batches (Phases 1–3 = 7 tasks, Phase 4 = 3 tasks). Sub-agent offer applies.
 
 ---
@@ -400,7 +400,7 @@ T8 → T9 → T10
 
 ---
 
-### T10: Add reset-demo-data to Settings
+### T10: Add reset-demo-data to Settings ✅ Complete
 
 **What**: A confirmed destructive action clearing stored data and re-seeding.
 **Where**: `src/pages/Settings.jsx` (modify)
@@ -411,19 +411,27 @@ T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Settings renders a "Reset demo data" button (replacing the bare placeholder heading)
-- [ ] Clicking it opens `ConfirmationPopup` — reset never fires on a single click (AC PERSIST-06.2)
-- [ ] Confirming clears all `coachplanner:v1:*` keys and re-seeds
-- [ ] The auth session survives the reset — the user is not signed out (AC PERSIST-06.3)
-- [ ] Cancelling changes nothing
-- [ ] Styled with Tailwind per AD-005
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 5 tests pass
+- [x] Settings renders a "Reset demo data" button (replacing the bare placeholder heading)
+- [x] Clicking it opens `ConfirmationPopup` — reset never fires on a single click (AC PERSIST-06.2)
+- [x] Confirming clears all `coachplanner:v1:*` keys and re-seeds
+- [x] The auth session survives the reset — the user is not signed out (AC PERSIST-06.3)
+- [x] Cancelling changes nothing
+- [x] Styled with Tailwind per AD-005
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 5 tests pass
 
 **Tests**: integration
 **Gate**: build
 
-**Commit**: `feat(settings): add reset demo data action`
+**Commit**: `feat(settings): add reset demo data action` — [22f021c]
+
+> `store.js` (from T4) exports `reset` as a named function rather than a
+> method on a `store` object — `Settings.jsx` imports `{ reset }` directly.
+> This is a naming-shape detail, not a behavior change; functionally
+> identical to `design.md`'s sketch. Test Adequacy Review: all 5 assertions
+> check real state (store contents via `teamService.getAll()`, or the
+> `user` localStorage value) rather than spy call counts; each maps 1:1 to
+> a Done-when bullet; no speculative tests added.
 
 ---
 

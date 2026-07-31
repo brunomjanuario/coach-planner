@@ -144,14 +144,14 @@ a predictable fixture.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Tasks | Implementing (T4-T7 done: store + teamService + trainingService CRUD, all service-layer work complete; T8-T10 wire UI refresh + reset UI) |
-| PERSIST-02 | P1: Durable data (seed on first run only) | Tasks | Implementing (T3, T4 done: createSeed() factory + store's schema-version-gated seeding) |
-| PERSIST-03 | P1: Correct re-render (copy semantics) | Tasks | Implementing (T4-T7 done: store + teamService + trainingService copy semantics; UI-level refresh wiring is T8/T9) |
-| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Tasks | Pending — T8/T9 (Batch 2) |
-| PERSIST-05 | P1: Date fidelity | Tasks | Implementing (T1, T7 done: storage adapter date revival; trainingService round-trip + future-bucket regression test) |
-| PERSIST-06 | P2: Reset to demo data | Tasks | Implementing (T4 done: store.reset(); Settings UI lands in T10, Batch 2) |
-| PERSIST-07 | Edge cases: storage failure, corruption, quota | Tasks | Implementing (T1 done: quota/corruption/unavailability handling) |
-| PERSIST-08 | Id generation without collisions (AD-003) | Tasks | Implementing (T2, T5, T6, T7 done: newId() generator used by teamService and trainingService create paths, globally unique) |
+| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Implementing | Implemented — pending Verifier (T4-T7 store + service CRUD; T8-T10 UI refresh + reset UI) |
+| PERSIST-02 | P1: Durable data (seed on first run only) | Implementing | Implemented — pending Verifier (T3, T4: createSeed() + schema-version-gated seeding) |
+| PERSIST-03 | P1: Correct re-render (copy semantics) | Implementing | Implemented — pending Verifier (T4-T7 store/service copy semantics) |
+| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Implementing | Implemented — pending Verifier (T8: Teams/TeamCard/PlayerCard onUpdated; T9: Trainings create refresh + filter preservation) |
+| PERSIST-05 | P1: Date fidelity | Implementing | Implemented — pending Verifier (T1, T7: storage adapter date revival; trainingService round-trip + future-bucket regression test) |
+| PERSIST-06 | P2: Reset to demo data | Implementing | Implemented — pending Verifier (T4: store.reset(); T10: Settings UI + confirmation) |
+| PERSIST-07 | Edge cases: storage failure, corruption, quota | Implementing | Implemented — pending Verifier (T1: quota/corruption/unavailability handling) |
+| PERSIST-08 | Id generation without collisions (AD-003) | Implementing | Implemented — pending Verifier (T2, T5-T7: newId() on all create paths; zero Math.random() remains, confirmed by grep) |
 
 **Coverage:** 8 total, 8 mapped to tasks, 0 unmapped
 
