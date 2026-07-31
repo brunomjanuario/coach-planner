@@ -1,40 +1,48 @@
-const API_URL = "/api/teams";
-import { trainings } from "../model/mock";
+import { getCollection, setCollection } from "./store";
+import { newId } from "../lib/id";
+import { NotFoundError } from "../lib/errors";
 
-let trainingsData = trainings;
+function getTrainings() {
+  return getCollection("trainings");
+}
+
+function saveTrainings(trainings) {
+  setCollection("trainings", trainings);
+}
 
 export const trainingService = {
   getAll: async () => {
-    return trainingsData;
+    return getTrainings();
   },
 
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/${id}`);
-    if (!res.ok) throw new Error("Failed to fetch team");
-    return res.json();
+    const trainings = getTrainings();
+    return trainings.find((training) => training.id === id) ?? null;
   },
 
   create: async (trainingData) => {
-    trainingsData.push(trainingData);
+    const trainings = getTrainings();
+    const newTraining = { ...trainingData, id: newId() };
+    trainings.push(newTraining);
+    saveTrainings(trainings);
+    return newTraining;
   },
 
-  update: async (id, teamData) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(teamData),
-    });
-    if (!res.ok) throw new Error("Failed to update team");
-    return res.json();
+  update: async (trainingData) => {
+    const trainings = getTrainings();
+    const index = trainings.findIndex(
+      (training) => training.id === trainingData.id
+    );
+    if (index === -1) {
+      throw new NotFoundError(`Training not found: ${trainingData.id}`);
+    }
+    trainings[index] = { ...trainings[index], ...trainingData };
+    saveTrainings(trainings);
+    return trainings[index];
   },
 
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete team");
-    return true;
+    const trainings = getTrainings().filter((training) => training.id !== id);
+    saveTrainings(trainings);
   },
 };
