@@ -197,8 +197,89 @@ test("canceling the create-training popup does not add a training and preserves 
   });
   expect(within(getFutureList()).queryAllByRole("listitem")).toHaveLength(0);
   expect(
-    within(getTeamsColumn(container))
-      .getByText("Amadora Sub-11")
-      .className.includes("bg-lightblack")
-  ).toBe(true);
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("renders no React key warnings for the team filter and training lists", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const keyWarning = errorSpy.mock.calls.find((call) =>
+    String(call[0]).includes('unique "key" prop')
+  );
+  expect(keyWarning).toBeUndefined();
+});
+
+test("renders an empty-state message for Next Trainings when there are none", async () => {
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(await screen.findByText("No upcoming trainings.")).toBeInTheDocument();
+});
+
+test("renders an empty-state message for Past Trainings when the filtered team has none", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  expect(
+    await screen.findByText("No past trainings.")
+  ).toBeInTheDocument();
+});
+
+test("marks the selected team row with aria-current", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("clicking the selected team again clears aria-current from its row", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).not.toHaveAttribute("aria-current");
+});
+
+test("creating a future training removes the Next Trainings empty-state message", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await screen.findByText("No upcoming trainings.");
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await typeInto(user, form, "day", "2027-01-01T10:00");
+  await typeInto(user, form, "duration", "61");
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(() => {
+    expect(screen.queryByText("No upcoming trainings.")).not.toBeInTheDocument();
+  });
 });
