@@ -144,22 +144,22 @@ a predictable fixture.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Implementing | Implemented — pending Verifier (T4-T7 store + service CRUD; T8-T10 UI refresh + reset UI) |
-| PERSIST-02 | P1: Durable data (seed on first run only) | Implementing | Implemented — pending Verifier (T3, T4: createSeed() + schema-version-gated seeding) |
-| PERSIST-03 | P1: Correct re-render (copy semantics) | Implementing | Implemented — pending Verifier (T4-T7 store/service copy semantics) |
-| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Implementing | Implemented — pending Verifier (T8: Teams/TeamCard/PlayerCard onUpdated; T9: Trainings create refresh + filter preservation) |
-| PERSIST-05 | P1: Date fidelity | Implementing | Implemented — pending Verifier (T1, T7: storage adapter date revival; trainingService round-trip + future-bucket regression test) |
-| PERSIST-06 | P2: Reset to demo data | Implementing | Implemented — pending Verifier (T4: store.reset(); T10: Settings UI + confirmation) |
-| PERSIST-07 | Edge cases: storage failure, corruption, quota | Implementing | Implemented — pending Verifier (T1: quota/corruption/unavailability handling) |
-| PERSIST-08 | Id generation without collisions (AD-003) | Implementing | Implemented — pending Verifier (T2, T5-T7: newId() on all create paths; zero Math.random() remains, confirmed by grep) |
+| PERSIST-01 | P1: Durable data (create/update/delete survive reload) | Verified | ✅ Verified — `teamService.test.js:58-108`, `trainingService.test.js:44-122` |
+| PERSIST-02 | P1: Durable data (seed on first run only) | Verified | ✅ Verified — `store.test.js:6-23` |
+| PERSIST-03 | P1: Correct re-render (copy semantics) | Verified | ✅ Verified — `store.test.js:31-46` + independently re-derived live by the Verifier (see validation.md) |
+| PERSIST-04 | P1: Correct re-render (UI refresh after mutation) | Verified | ✅ Verified — `Teams.test.jsx:86-148`, `Trainings.test.jsx:117-178` |
+| PERSIST-05 | P1: Date fidelity | Verified | ✅ Verified — `trainingService.test.js:59-83`, `storage.test.js:21-50` + independently re-derived live |
+| PERSIST-06 | P2: Reset to demo data | Verified | ✅ Verified — `store.test.js:67-92`, `Settings.test.jsx:9-80` |
+| PERSIST-07 | Edge cases: storage failure, corruption, quota | Verified | ✅ Verified — `storage.test.js:32-103`; quota mock shape independently confirmed against jsdom's real thrown error |
+| PERSIST-08 | Id generation without collisions (AD-003) | Verified | ✅ Verified — `id.test.js` (4/4); zero `Math.random()` remains, re-confirmed by grep |
 
-**Coverage:** 8 total, 8 mapped to tasks, 0 unmapped
+**Coverage:** 8 total, 8 mapped to tasks, 0 unmapped. All 8 independently verified — see `.specs/features/01-persistence-layer/validation.md` for the full evidence report (15/15 story ACs, 4/4 discrimination-sensor mutations killed, 83/83 tests passing).
 
 ---
 
 ## Success Criteria
 
-- [ ] A full create → reload → verify cycle passes for teams, players and trainings
-- [ ] No service method returns an object reachable from the store
-- [ ] The four broken `fetch` methods are gone from the services
-- [ ] Zero `Math.random()` id generation remains in the codebase
+- [x] A full create → reload → verify cycle passes for teams, players and trainings
+- [x] No service method returns an object reachable from the store
+- [x] The four broken `fetch` methods are gone from the services
+- [x] Zero `Math.random()` id generation remains in the codebase
