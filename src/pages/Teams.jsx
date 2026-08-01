@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import TeamCard from "../components/TeamCard";
 import { teamService } from "../services/teamService";
+import { gameService } from "../services/gameService";
+import { cardService } from "../services/cardService";
+import { cardTotals, suspensionStatus } from "../lib/playerCards";
 import { IconShieldPlus, IconUsersPlus } from "@tabler/icons-react";
 import TeamPopup from "../components/TeamPopup";
 import PlayerPopup from "../components/PlayerPopup";
@@ -13,6 +16,39 @@ export default function Teams() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [showPlayerPopup, setShowPlayerPopup] = useState(false);
+  const [suspendedPlayerIds, setSuspendedPlayerIds] = useState(new Set());
+
+  useEffect(() => {
+    async function loadSuspensions() {
+      if (!selectedTeam) {
+        setSuspendedPlayerIds(new Set());
+        return;
+      }
+
+      try {
+        const games = await gameService.getAll(selectedTeam.id);
+        const teamGameIds = new Set(games.map((game) => game.id));
+        const statuses = await Promise.all(
+          selectedTeam.players.map(async (player) => {
+            const cards = await cardService.getByPlayer(player.id);
+            const totals = cardTotals(cards, player.id, teamGameIds);
+            return { id: player.id, status: suspensionStatus(totals) };
+          })
+        );
+        setSuspendedPlayerIds(
+          new Set(
+            statuses
+              .filter((entry) => entry.status === "suspended")
+              .map((entry) => entry.id)
+          )
+        );
+      } catch (err) {
+        console.error("Failed to load suspensions:", err);
+      }
+    }
+
+    loadSuspensions();
+  }, [selectedTeam]);
 
   const loadTeams = async () => {
     try {
@@ -132,6 +168,11 @@ export default function Teams() {
                   onSelect={() => setSelectedPlayer(player)}
                 >
                   {player.shirtNumber} {player.name}
+                  {suspendedPlayerIds.has(player.id) && (
+                    <span className="ml-2 text-red-500 font-semibold">
+                      Suspended
+                    </span>
+                  )}
                 </SelectableListItem>
               ))}
             </ul>

@@ -2,6 +2,7 @@ import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError } from "../lib/errors";
 import { hasResult } from "../lib/gameResult";
+import { cardService } from "./cardService";
 
 function getGames() {
   return getCollection("games");
@@ -62,6 +63,7 @@ export const gameService = {
   delete: async (id) => {
     const games = getGames().filter((game) => game.id !== id);
     saveGames(games);
+    await cardService.removeByGame(id);
   },
 
   recordResult: async (id, { us, them }) => {

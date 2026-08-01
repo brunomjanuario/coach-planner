@@ -19,26 +19,32 @@ const scheduledGame = {
 
 const playedGame = { ...scheduledGame, usScore: 2, themScore: 1 };
 
-function renderPopup(props = {}) {
-  return render(<GameResultPopup onClose={() => {}} {...props} />);
+// GameCardsSection loads its squad asynchronously as soon as it mounts;
+// awaiting it here keeps every test's state updates inside `act()`.
+async function renderPopup(props = {}) {
+  const result = render(<GameResultPopup onClose={() => {}} {...props} />);
+  if (props.game) {
+    await screen.findByText("Cards");
+  }
+  return result;
 }
 
-test("renders nothing when no game is passed", () => {
-  const { container } = renderPopup({ game: null });
+test("renders nothing when no game is passed", async () => {
+  const { container } = await renderPopup({ game: null });
 
   expect(container).toBeEmptyDOMElement();
 });
 
-test("renders 'Record Result' heading for a scheduled game", () => {
-  renderPopup({ game: scheduledGame });
+test("renders 'Record Result' heading for a scheduled game", async () => {
+  await renderPopup({ game: scheduledGame });
 
   expect(
     screen.getByRole("heading", { name: "Record Result" })
   ).toBeInTheDocument();
 });
 
-test("renders 'Edit Result' heading and pre-fills the scores for an already-played game (AC GAME-06.4)", () => {
-  renderPopup({ game: playedGame });
+test("renders 'Edit Result' heading and pre-fills the scores for an already-played game (AC GAME-06.4)", async () => {
+  await renderPopup({ game: playedGame });
 
   expect(
     screen.getByRole("heading", { name: "Edit Result" })
@@ -51,7 +57,7 @@ test("entering a valid result calls onSubmit with numeric scores and closes (AC 
   const onSubmit = vi.fn();
   const onClose = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: scheduledGame, onSubmit, onClose });
+  await renderPopup({ game: scheduledGame, onSubmit, onClose });
 
   await user.type(screen.getByLabelText("Us"), "3");
   await user.type(screen.getByLabelText("Benfica"), "1");
@@ -64,7 +70,7 @@ test("entering a valid result calls onSubmit with numeric scores and closes (AC 
 test("recording a 0-0 result is accepted and submitted (null-vs-zero edge case)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: scheduledGame, onSubmit });
+  await renderPopup({ game: scheduledGame, onSubmit });
 
   await user.type(screen.getByLabelText("Us"), "0");
   await user.type(screen.getByLabelText("Benfica"), "0");
@@ -76,7 +82,7 @@ test("recording a 0-0 result is accepted and submitted (null-vs-zero edge case)"
 test("blocks submission with a message when a score is negative (AC GAME-06.2)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: scheduledGame, onSubmit });
+  await renderPopup({ game: scheduledGame, onSubmit });
 
   await user.type(screen.getByLabelText("Us"), "-1");
   await user.type(screen.getByLabelText("Benfica"), "2");
@@ -93,7 +99,7 @@ test("blocks submission with a message when a score is negative (AC GAME-06.2)",
 test("blocks submission with a message when a score is non-numeric (AC GAME-06.2)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: scheduledGame, onSubmit });
+  await renderPopup({ game: scheduledGame, onSubmit });
 
   await user.type(screen.getByLabelText("Us"), "abc");
   await user.type(screen.getByLabelText("Benfica"), "1");
@@ -110,7 +116,7 @@ test("blocks submission with a message when a score is non-numeric (AC GAME-06.2
 test("blocks submission with a message when a score is left empty (AC GAME-06.2)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: scheduledGame, onSubmit });
+  await renderPopup({ game: scheduledGame, onSubmit });
 
   await user.type(screen.getByLabelText("Us"), "2");
   await user.click(screen.getByRole("button", { name: "Save" }));
@@ -123,8 +129,8 @@ test("blocks submission with a message when a score is left empty (AC GAME-06.2)
   expect(onSubmit).not.toHaveBeenCalled();
 });
 
-test("does not render a 'Clear Result' button for a scheduled game with no result yet", () => {
-  renderPopup({ game: scheduledGame });
+test("does not render a 'Clear Result' button for a scheduled game with no result yet", async () => {
+  await renderPopup({ game: scheduledGame });
 
   expect(
     screen.queryByRole("button", { name: "Clear Result" })
@@ -135,7 +141,7 @@ test("clearing a result calls onClear and closes the popup (AC GAME-06.5)", asyn
   const onClear = vi.fn();
   const onClose = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: playedGame, onClear, onClose });
+  await renderPopup({ game: playedGame, onClear, onClose });
 
   await user.click(screen.getByRole("button", { name: "Clear Result" }));
 
@@ -146,7 +152,7 @@ test("clearing a result calls onClear and closes the popup (AC GAME-06.5)", asyn
 test("editing an existing result submits the new values in place (AC GAME-06.4)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: playedGame, onSubmit });
+  await renderPopup({ game: playedGame, onSubmit });
 
   const usInput = screen.getByLabelText("Us");
   await user.clear(usInput);
@@ -161,7 +167,7 @@ test("cancelling calls onClose without calling onSubmit or onClear", async () =>
   const onClear = vi.fn();
   const onClose = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: playedGame, onSubmit, onClear, onClose });
+  await renderPopup({ game: playedGame, onSubmit, onClear, onClose });
 
   await user.click(screen.getByRole("button", { name: "Cancel" }));
 
@@ -170,8 +176,8 @@ test("cancelling calls onClose without calling onSubmit or onClear", async () =>
   expect(onClear).not.toHaveBeenCalled();
 });
 
-test("does not render a 'Delete Game' button when onDelete is not provided", () => {
-  renderPopup({ game: playedGame });
+test("does not render a 'Delete Game' button when onDelete is not provided", async () => {
+  await renderPopup({ game: playedGame });
 
   expect(
     screen.queryByRole("button", { name: "Delete Game" })
@@ -182,7 +188,7 @@ test("deleting a game asks for confirmation, then calls onDelete and closes (edg
   const onDelete = vi.fn();
   const onClose = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: playedGame, onDelete, onClose });
+  await renderPopup({ game: playedGame, onDelete, onClose });
 
   await user.click(screen.getByRole("button", { name: "Delete Game" }));
   expect(onDelete).not.toHaveBeenCalled();
@@ -195,7 +201,7 @@ test("deleting a game asks for confirmation, then calls onDelete and closes (edg
 test("cancelling the delete confirmation does not call onDelete", async () => {
   const onDelete = vi.fn();
   const user = userEvent.setup();
-  renderPopup({ game: playedGame, onDelete });
+  await renderPopup({ game: playedGame, onDelete });
 
   await user.click(screen.getByRole("button", { name: "Delete Game" }));
   const cancelButtons = screen.getAllByRole("button", { name: "Cancel" });

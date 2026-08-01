@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { hasResult } from "../lib/gameResult";
 import ConfirmationPopup from "./ConfirmationPopup";
+import GameCardsSection from "./GameCardsSection";
 
 function isValidScore(value) {
   if (value.trim() === "") return false;
@@ -143,6 +144,7 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDe
             </div>
           )}
         </form>
+        <GameCardsSection game={game} />
       </div>
       {showDeleteConfirm && (
         <ConfirmationPopup
