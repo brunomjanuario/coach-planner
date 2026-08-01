@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 6,
+  "next_id": 7,
   "lessons": [
     {
       "id": "L-001",
@@ -94,6 +94,24 @@
       ],
       "created": "2026-07-31T15:39:39Z",
       "last_seen": "2026-07-31T15:39:39Z"
+    },
+    {
+      "id": "L-006",
+      "key": "surviving_mutant::when a service sanitizes a dangling foreign key like field before deriving computed values add a direct test asserting the sanitized field s computed output for the dangling reference case not just for the null valid cases",
+      "text": "When a service sanitizes a dangling/foreign-key-like field before deriving computed values, add a direct test asserting the sanitized-field's computed output for the dangling-reference case, not just for the null/valid cases.",
+      "signal": "surviving_mutant",
+      "scope": "services",
+      "status": "candidate",
+      "features": [
+        "05-training-number"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/services/trainingService.js:30-33 mutant 2 (services)"
+      ],
+      "created": "2026-08-01T08:33:48Z",
+      "last_seen": "2026-08-01T08:33:48Z"
     }
   ]
 }
