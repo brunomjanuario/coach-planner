@@ -5,7 +5,7 @@ import ConfirmationPopup from "./ConfirmationPopup";
 import { teamService } from "../services/teamService";
 import { cardService } from "../services/cardService";
 import { gameService } from "../services/gameService";
-import { cardTotals } from "../lib/playerCards";
+import { cardTotals, suspensionStatus, SUSPENSION_THRESHOLD } from "../lib/playerCards";
 
 export default function PlayerCard({ player, onClose, onUpdated }) {
   const [showEditPlayerPopup, setShowEditPlayerPopup] = useState(false);
@@ -28,6 +28,8 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
 
     loadCards();
   }, [player.id, player.teamId]);
+
+  const status = suspensionStatus(cardCounts);
 
   const deletePlayer = () => {
     teamService.deletePlayer(player);
@@ -103,6 +105,17 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
         <h3>Red Cards</h3>
         <p>{cardCounts.red}</p>
       </div>
+      {status === "approaching" && (
+        <p role="alert" className="mb-3 text-sm font-semibold text-amber-500">
+          Approaching suspension — {SUSPENSION_THRESHOLD - cardCounts.yellow}{" "}
+          yellow card away from a ban
+        </p>
+      )}
+      {status === "suspended" && (
+        <p role="alert" className="mb-3 text-sm font-semibold text-red-600">
+          Suspended — expect a 1-game ban
+        </p>
+      )}
     </div>
   );
 }

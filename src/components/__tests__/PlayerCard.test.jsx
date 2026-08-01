@@ -3,6 +3,7 @@ import PlayerCard from "../PlayerCard";
 import { teamService } from "../../services/teamService";
 import { cardService } from "../../services/cardService";
 import { gameService } from "../../services/gameService";
+import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -109,6 +110,64 @@ test("cards stay attached to the games they occurred in after a player moves tea
   expect(stillAttached.find((c) => c.id === card.id)).toMatchObject({
     gameId: gameForOldTeam.id,
   });
+});
+
+async function bookYellows(player, game, count) {
+  for (let i = 0; i < count; i++) {
+    await cardService.record({ playerId: player.id, gameId: game.id, type: "yellow" });
+  }
+}
+
+test("renders a distinct amber warning naming how many yellows remain at one below the threshold (AC CARD-05.1)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameForTeam(player.teamId);
+  await bookYellows(player, game, SUSPENSION_THRESHOLD - 1);
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  const warning = await screen.findByRole("alert");
+  expect(warning).toHaveTextContent("1 yellow card away from a ban");
+  expect(warning.className).toMatch(/amber/);
+});
+
+test("renders a distinct red warning at the suspension threshold (AC CARD-05.2)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameForTeam(player.teamId);
+  await bookYellows(player, game, SUSPENSION_THRESHOLD);
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  const warning = await screen.findByRole("alert");
+  expect(warning).toHaveTextContent("Suspended");
+  expect(warning.className).toMatch(/red/);
+});
+
+test("a red card triggers the suspended warning regardless of yellow count (AC CARD-05.3)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameForTeam(player.teamId);
+  await cardService.record({ playerId: player.id, gameId: game.id, type: "red" });
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  const warning = await screen.findByRole("alert");
+  expect(warning).toHaveTextContent("Suspended");
+});
+
+test("renders no warning at all below the warning band (AC CARD-05.4)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameForTeam(player.teamId);
+  await bookYellows(player, game, SUSPENSION_THRESHOLD - 2);
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  await waitFor(() => {
+    expect(statValue("Yellow Cards")).toHaveTextContent(String(SUSPENSION_THRESHOLD - 2));
+  });
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 test("logs an error and still renders when loading cards fails", async () => {
