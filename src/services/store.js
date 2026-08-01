@@ -8,6 +8,7 @@ const DATE_FIELDS = {
   trainings: ["day"],
   games: ["date"],
   standings: [],
+  cards: [],
 };
 const COLLECTION_NAMES = Object.keys(DATE_FIELDS);
 
