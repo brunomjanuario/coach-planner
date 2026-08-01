@@ -97,11 +97,11 @@ the duration so that I can scan the list.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TNUM-01 | P1: Sequential numbering (ordering + ties) | Tasks | Pending |
-| TNUM-02 | P1: Renumbering on insert and delete | Tasks | Pending |
-| TNUM-03 | P1: Unassigned and empty handling | Tasks | Pending |
-| TNUM-04 | P1: Readable training rows | Tasks | Pending |
-| TNUM-05 | P1: Number in the details popup | Tasks | Pending |
+| TNUM-01 | P1: Sequential numbering (ordering + ties) | Tasks | ✅ Verified |
+| TNUM-02 | P1: Renumbering on insert and delete | Tasks | ✅ Verified |
+| TNUM-03 | P1: Unassigned and empty handling | Tasks | ✅ Verified |
+| TNUM-04 | P1: Readable training rows | Tasks | ✅ Verified |
+| TNUM-05 | P1: Number in the details popup | Tasks | ✅ Verified |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -109,6 +109,6 @@ the duration so that I can scan the list.
 
 ## Success Criteria
 
-- [ ] No UUID appears anywhere in the trainings UI
-- [ ] Inserting a training earlier in the calendar renumbers the rest correctly
-- [ ] Filtering to future trainings does not restart the numbering
+- [x] No UUID appears anywhere in the trainings UI
+- [x] Inserting a training earlier in the calendar renumbers the rest correctly
+- [x] Filtering to future trainings does not restart the numbering

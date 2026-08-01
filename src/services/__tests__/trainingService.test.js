@@ -194,4 +194,115 @@ describe("trainingService", () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it("getAllNumbered returns every training with its number populated (AC TNUM-01.1)", async () => {
+    const numbered = await trainingService.getAllNumbered();
+
+    expect(numbered.length).toBeGreaterThan(0);
+    for (const training of numbered) {
+      expect(typeof training.number === "number" || training.number === null).toBe(
+        true
+      );
+    }
+    const [seedTeam] = await teamService.getAll();
+    const teamTrainings = numbered
+      .filter((t) => t.teamId === seedTeam.id)
+      .sort((a, b) => a.day - b.day);
+    expect(teamTrainings.map((t) => t.number)).toEqual([1, 2]);
+  });
+
+  it("assigns number: null to a training whose teamId matches no existing team (dangling-reference edge case, AC TNUM-01.5)", async () => {
+    const created = await trainingService.create({
+      teamId: "no-such-team",
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+
+    const numbered = await trainingService.getAllNumbered();
+
+    expect(numbered.find((t) => t.id === created.id).number).toBeNull();
+  });
+
+  it("keeps team-wide numbers when filtered to a single team's future-only view (edge case, the main trap)", async () => {
+    const [seedTeam] = await teamService.getAll();
+    const future = await trainingService.create({
+      teamId: seedTeam.id,
+      day: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      duration: 60,
+      exercises: [],
+    });
+
+    const numbered = await trainingService.getAllNumbered(seedTeam.id);
+    const created = numbered.find((t) => t.id === future.id);
+
+    expect(created.number).toBe(3);
+  });
+
+  it("getAllNumbered(teamId) filters to one team while preserving that team's numbering", async () => {
+    const [teamA, teamB] = await teamService.getAll();
+
+    const numbered = await trainingService.getAllNumbered(teamB.id);
+
+    expect(numbered.every((t) => t.teamId === teamB.id)).toBe(true);
+    expect(numbered).toEqual([]);
+
+    const created = await trainingService.create({
+      teamId: teamB.id,
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+    const numberedAfter = await trainingService.getAllNumbered(teamB.id);
+    expect(numberedAfter.find((t) => t.id === created.id).number).toBe(1);
+    expect(teamA.id).not.toBe(teamB.id);
+  });
+
+  it("numbers 100+ trainings correctly in a single call", async () => {
+    const [seedTeam] = await teamService.getAll();
+    for (let i = 0; i < 100; i++) {
+      await trainingService.create({
+        teamId: seedTeam.id,
+        day: new Date(2030, 0, i + 1),
+        duration: 30,
+        exercises: [],
+      });
+    }
+
+    const numbered = await trainingService.getAllNumbered(seedTeam.id);
+    const numbers = numbered.map((t) => t.number).sort((a, b) => a - b);
+
+    expect(numbers).toEqual(Array.from({ length: 102 }, (_, i) => i + 1));
+  });
+
+  it("a training reassigned from team A to team B takes a number from B's sequence (edge case)", async () => {
+    const [teamA, teamB] = await teamService.getAll();
+    const [seedTraining] = (await trainingService.getAll()).filter(
+      (t) => t.teamId === teamA.id
+    );
+
+    await trainingService.update({ ...seedTraining, teamId: teamB.id });
+
+    const numbered = await trainingService.getAllNumbered(teamB.id);
+    expect(numbered.find((t) => t.id === seedTraining.id).number).toBe(1);
+  });
+
+  it("getAllNumbered returns copies, not references into the store (AD-004)", async () => {
+    const first = await trainingService.getAllNumbered();
+    const second = await trainingService.getAllNumbered();
+
+    expect(first).not.toBe(second);
+    expect(first[0]).not.toBe(second[0]);
+    expect(first).toEqual(second);
+  });
+
+  it("getAllNumbered does not call the global fetch", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
+      throw new Error("fetch should not be called");
+    });
+
+    await trainingService.getAllNumbered();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

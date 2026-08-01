@@ -44,6 +44,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/index.css:6 (T1 Done-when: WCAG AA 4.5:1) (theme)
 - last seen: 2026-07-31T15:39:39Z
 
+### L-006 — When a service sanitizes a dangling/foreign-key-like field before deriving computed values, add a direct test asserting the sanitized-field's computed output for the dangling-reference case, not just for the null/valid cases.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `services` · harmful: 0
+- features: 05-training-number
+- evidence: src/services/trainingService.js:30-33 mutant 2 (services)
+- last seen: 2026-08-01T08:33:48Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

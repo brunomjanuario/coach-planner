@@ -69,6 +69,25 @@ test("does not render a total planned time when there are no exercises", () => {
   expect(screen.queryByText(/Total planned time/)).not.toBeInTheDocument();
 });
 
+test("renders 'Training #N' in the heading when a number is present (AC TNUM-05.1)", () => {
+  const training = { ...baseTraining, number: 7, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  expect(screen.getByRole("heading", { name: "Training #7" })).toBeInTheDocument();
+});
+
+test("falls back to 'Training Details' when number is null, never rendering 'Training #null'", () => {
+  const training = { ...baseTraining, number: null, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  expect(
+    screen.getByRole("heading", { name: "Training Details" })
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Training #null/)).not.toBeInTheDocument();
+});
+
 test("renders a sparse and a fully-populated exercise together without layout shift (edge case)", () => {
   const training = {
     ...baseTraining,
