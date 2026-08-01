@@ -735,3 +735,20 @@ test("future-only and past-only filtered views keep team-wide numbers instead of
   const futureRow = await within(getFutureList()).findByText(/54 min/);
   expect(futureRow.textContent).toContain(`Training #${expectedNumber}`);
 });
+
+test("the number shown in the details popup matches the number on the row that opened it (edge case)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  const rowNumber = row.textContent.match(/Training #(\d+|—)/)[1];
+  await user.click(row);
+
+  expect(
+    await screen.findByRole("heading", { name: `Training #${rowNumber}` })
+  ).toBeInTheDocument();
+});
