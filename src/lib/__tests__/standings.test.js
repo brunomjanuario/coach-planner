@@ -206,6 +206,17 @@ describe("sortStandings", () => {
     expect(sorted.map((r) => r.name)).toEqual(["B", "C", "A"]);
   });
 
+  it("prioritizes points over goal difference when the two signals conflict (AC GAME-07.3)", () => {
+    const rows = [
+      { name: "A", points: 4, goalDifference: 5, goalsFor: 0 },
+      { name: "B", points: 5, goalDifference: -2, goalsFor: 0 },
+    ];
+
+    const sorted = sortStandings(rows);
+
+    expect(sorted.map((r) => r.name)).toEqual(["B", "A"]);
+  });
+
   it("breaks a points tie by goal difference descending (AC GAME-07.3)", () => {
     const rows = [
       { name: "A", points: 5, goalDifference: 1, goalsFor: 0 },
