@@ -1,4 +1,4 @@
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, within, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TrainingSavePopup from "../TrainingSavePopup";
 import { teamService } from "../../services/teamService";
@@ -663,4 +663,139 @@ test("cancelling the popup with values in the editor discards them without a pro
 
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(confirmSpy).not.toHaveBeenCalled();
+});
+
+const sampleTraining = {
+  id: "train-1",
+  teamId: 2,
+  day: new Date(2027, 5, 15, 14, 30),
+  duration: 60,
+  exercises: [
+    { id: "ex-1", trainingId: "train-1", description: "Rondo", duration: 15, numberOfPlayers: 8, repetitions: 2, image: "" },
+  ],
+};
+
+test("passing a training prop pre-fills team, date, duration and exercises (AC TEDIT-01.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  const { container } = renderPopup({ training: sampleTraining });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByRole("combobox")).toHaveValue("2");
+  expect(container.querySelector('[name="day"]')).toHaveValue("2027-06-15T14:30");
+  expect(container.querySelector('[name="duration"]')).toHaveValue(60);
+  expect(screen.getByText(/Rondo/)).toBeInTheDocument();
+});
+
+test("the heading reads 'Edit Training' and the action button 'Save' in edit mode (AC TEDIT-01.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup({ training: sampleTraining });
+
+  expect(
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Create" })).not.toBeInTheDocument();
+});
+
+test("create mode still renders the 'Create Training' heading and 'Create' button", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+
+  renderPopup();
+
+  expect(
+    await screen.findByRole("heading", { name: "Create Training" })
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+});
+
+test("submitting in edit mode calls trainingService.update, never create (AC TEDIT-01.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const updateSpy = vi.spyOn(trainingService, "update").mockResolvedValue({});
+  const createSpy = vi.spyOn(trainingService, "create");
+  const user = userEvent.setup();
+  renderPopup({
+    training: sampleTraining,
+    onSubmit: (t) => trainingService.update(t),
+  });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(updateSpy).toHaveBeenCalledTimes(1);
+  expect(createSpy).not.toHaveBeenCalled();
+});
+
+test("the training's id is preserved through the edit (AC TEDIT-01.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ training: sampleTraining, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "train-1" })
+  );
+});
+
+test("cancelling an edit calls onClose without calling trainingService.update (AC TEDIT-01.5)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const updateSpy = vi.spyOn(trainingService, "update");
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ training: sampleTraining, onSubmit: vi.fn(), onClose });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(updateSpy).not.toHaveBeenCalled();
+});
+
+test("submitting an edit without touching the date stores the same instant (AC TEDIT-03.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ training: sampleTraining, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const [[submitted]] = onSubmit.mock.calls;
+  expect(submitted.day.getTime()).toBe(sampleTraining.day.getTime());
+});
+
+test("an invalid date blocks the save with a message (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ training: sampleTraining, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const dayInput = container.querySelector('[name="day"]');
+  fireEvent.change(dayInput, { target: { value: "" } });
+
+  fireEvent.submit(container.querySelector("form"));
+
+  expect(
+    await screen.findByText("Please enter a valid date and time.")
+  ).toBeInTheDocument();
+  expect(onSubmit).not.toHaveBeenCalled();
+});
+
+test("removing all exercises during an edit saves an empty exercise list rather than blocking (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ training: sampleTraining, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.click(screen.getByRole("button", { name: "Remove" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ exercises: [] })
+  );
 });

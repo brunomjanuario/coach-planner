@@ -3,18 +3,21 @@ import { IconArrowUp, IconArrowDown } from "@tabler/icons-react";
 import { teamService } from "../services/teamService";
 import ExerciseFields from "./ExerciseFields";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
+import { toInputValue, fromInputValue } from "../lib/datetime";
 
-export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
+export default function TrainingSavePopup({ training, teamId, onClose, onSubmit }) {
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
-    id: undefined,
-    teamId: null,
-    day: "",
-    duration: 90,
-    exercises: [],
-  });
+  const [formData, setFormData] = useState(() => ({
+    id: training?.id,
+    teamId: training?.teamId ?? null,
+    day: training
+      ? toInputValue(training.day instanceof Date ? training.day : new Date(training.day))
+      : "",
+    duration: training?.duration ?? 90,
+    exercises: training?.exercises ?? [],
+  }));
   const [editingExerciseId, setEditingExerciseId] = useState(null);
 
   useEffect(() => {
@@ -22,7 +25,11 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
       try {
         const data = await teamService.getAll();
         setTeams(data);
-        if (teamId != null && data.some((team) => team.id === teamId)) {
+        if (
+          training == null &&
+          teamId != null &&
+          data.some((team) => team.id === teamId)
+        ) {
           setFormData((prev) => ({ ...prev, teamId }));
         }
       } catch (err) {
@@ -106,13 +113,19 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
       return;
     }
 
+    const day = fromInputValue(formData.day);
+    if (!day || isNaN(day.getTime())) {
+      setError("Please enter a valid date and time.");
+      return;
+    }
+
     setError("");
     try {
       if (onSubmit) {
         await onSubmit({
           id: formData.id,
           teamId: formData.teamId,
-          day: new Date(formData.day),
+          day,
           duration: Number(formData.duration),
           exercises: formData.exercises,
         });
@@ -127,7 +140,9 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">Create Training</h2>
+        <h2 className="text-xl mb-4 font-bold">
+          {training ? "Edit Training" : "Create Training"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium">Team</label>
@@ -260,7 +275,7 @@ export default function TrainingSavePopup({ teamId, onClose, onSubmit }) {
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded"
             >
-              Create
+              {training ? "Save" : "Create"}
             </button>
           </div>
         </form>
