@@ -771,7 +771,6 @@ test("submitting an edit without touching the date stores the same instant (AC T
 test("an invalid date blocks the save with a message (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const onSubmit = vi.fn();
-  const user = userEvent.setup();
   const { container } = renderPopup({ training: sampleTraining, onSubmit });
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   const dayInput = container.querySelector('[name="day"]');

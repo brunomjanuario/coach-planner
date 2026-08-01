@@ -253,6 +253,7 @@ export default function Trainings() {
               training={selectedTraining}
               onClose={() => setShowTrainingDetailsPopup(false)}
               onEdit={() => {
+                setCreateMessage("");
                 setShowTrainingDetailsPopup(false);
                 setShowEditTrainingPopup(true);
               }}
@@ -268,8 +269,15 @@ export default function Trainings() {
               training={selectedTraining}
               onClose={() => setShowEditTrainingPopup(false)}
               onSubmit={async (training) => {
-                await trainingService.update(training);
+                const updated = await trainingService.update(training);
                 await filterTrainings(selectedTeam?.id ?? null);
+                if (selectedTeam && updated.teamId !== selectedTeam.id) {
+                  setCreateMessage(
+                    `Training moved to ${teamLabel(updated.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`
+                  );
+                } else {
+                  setCreateMessage("");
+                }
               }}
             />
           )}

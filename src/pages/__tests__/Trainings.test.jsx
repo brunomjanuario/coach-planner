@@ -890,3 +890,121 @@ test("reopening the details popup after an edit shows the updated values (edge c
     await screen.findByText((_, el) => el?.textContent === "77")
   ).toBeInTheDocument();
 });
+
+test("editing refreshes both training lists without a page reload (AC TEDIT-06.1)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "duration", "81");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getByText(/81 min/)).toBeInTheDocument();
+  });
+  expect(screen.queryByRole("heading", { name: "Edit Training" })).not.toBeInTheDocument();
+});
+
+test("an edit that moves a training from past to future jumps it to Next Trainings (AC TEDIT-06.2)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "day", "2030-01-01T10:00");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+  expect(within(getFutureList()).getAllByRole("listitem")).toHaveLength(1);
+});
+
+test("an edit that changes a training's team re-applies the active filter, removing it from the filtered list (AC TEDIT-06.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await selectTeamInForm(user, form, "Areias Sub-19");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+});
+
+test("editing a training out of the active team filter keeps the filter and reports where it went (edge case, same as AC TTA-04.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await selectTeamInForm(user, form, "Areias Sub-19");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText(/Training moved to Areias Sub-19/)
+  ).toBeInTheDocument();
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("editing a training deleted in another tab fails with a clear message and does not re-create it (edge case)", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  const beforeCount = (await trainingService.getAll()).length;
+  vi.spyOn(trainingService, "update").mockRejectedValueOnce(
+    new Error("Training not found")
+  );
+
+  await user.click(within(form).getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText("Failed to save the training. Please try again.")
+  ).toBeInTheDocument();
+  const afterCount = (await trainingService.getAll()).length;
+  expect(afterCount).toBe(beforeCount);
+  expect(errorSpy).toHaveBeenCalledWith("Failed to save training:", expect.any(Error));
+});

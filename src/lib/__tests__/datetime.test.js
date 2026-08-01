@@ -1,3 +1,4 @@
+/* global process */
 import { toInputValue, fromInputValue } from "../datetime";
 
 const originalTZ = process.env.TZ;
