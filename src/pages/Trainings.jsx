@@ -6,13 +6,34 @@ import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
 import SelectableListItem from "../components/SelectableListItem";
 
+function isValidDay(day) {
+  const date = day instanceof Date ? day : new Date(day);
+  return !isNaN(date.getTime());
+}
+
+/** A training is "future" only when its `day` is valid and not yet past; an invalid `day` falls to Past so it still renders (AC TNUM-04.3). */
+function isFuture(training) {
+  return isValidDay(training.day) && training.day >= new Date();
+}
+
 /** Splits trainings into future/past buckets by comparing `day` to now. */
 function splitTrainings(trainings) {
-  const now = new Date();
   return {
-    future: trainings.filter((t) => t.day >= now),
-    past: trainings.filter((t) => t.day < now),
+    future: trainings.filter(isFuture),
+    past: trainings.filter((t) => !isFuture(t)),
   };
+}
+
+/** Locale-formats a training's day, falling back to "Invalid date" (AC TNUM-04.3). */
+function formatDay(day) {
+  const date = day instanceof Date ? day : new Date(day);
+  return isNaN(date.getTime()) ? "Invalid date" : date.toLocaleString();
+}
+
+/** Readable row label: `Training #N`, formatted date/time, duration in minutes. */
+function trainingRowLabel(training) {
+  const number = training.number ?? "—";
+  return `Training #${number} · ${formatDay(training.day)} · ${training.duration} min`;
 }
 
 export default function Trainings() {
@@ -47,10 +68,9 @@ export default function Trainings() {
   }
 
   const filterTrainings = async (teamId) => {
-    const data = await trainingService.getAll();
-    const filtered = teamId ? data.filter((t) => t.teamId === teamId) : data;
+    const data = await trainingService.getAllNumbered(teamId);
 
-    const { future, past } = splitTrainings(filtered);
+    const { future, past } = splitTrainings(data);
     setFutureTrainings(future);
     setPastTrainings(past);
   };
@@ -76,7 +96,7 @@ export default function Trainings() {
       }
 
       try {
-        const data = await trainingService.getAll();
+        const data = await trainingService.getAllNumbered();
         const { future, past } = splitTrainings(data);
         setFutureTrainings(future);
         setPastTrainings(past);
@@ -151,9 +171,7 @@ export default function Trainings() {
                 key={training.id}
                 className="flex items-center justify-between gap-2 p-2 border rounded mb-2"
               >
-                <span>
-                  {training.day.toString()} {training.duration}
-                </span>
+                <span>{trainingRowLabel(training)}</span>
                 <select
                   className="border px-2 py-1 rounded"
                   value=""
@@ -204,8 +222,7 @@ export default function Trainings() {
                     className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
                     onClick={() => selectTraining(training)}
                   >
-                    {training.id} {training.day.toString()}{" "}
-                    {training.duration}
+                    {trainingRowLabel(training)}
                   </li>
                 ))}
               </ul>
@@ -224,8 +241,7 @@ export default function Trainings() {
                     className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
                     onClick={() => selectTraining(training)}
                   >
-                    {training.id} {training.day.toString()}{" "}
-                    {training.duration}
+                    {trainingRowLabel(training)}
                   </li>
                 ))}
               </ul>

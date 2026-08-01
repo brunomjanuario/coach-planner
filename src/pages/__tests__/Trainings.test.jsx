@@ -141,7 +141,7 @@ test("creating a training with a future date refreshes the Next Trainings list w
   await waitFor(() => {
     expect(within(getFutureList()).getAllByRole("listitem")).toHaveLength(1);
   });
-  expect(within(getFutureList()).getByText(/61$/)).toBeInTheDocument();
+  expect(within(getFutureList()).getByText(/61 min/)).toBeInTheDocument();
 });
 
 test("creating a training with a past date immediately places it under Past Trainings", async () => {
@@ -392,7 +392,7 @@ test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.
   render(<Trainings />);
 
   await screen.findByText("Unassigned");
-  expect(within(getUnassignedList()).getByText(/45$/)).toBeInTheDocument();
+  expect(within(getUnassignedList()).getByText(/45 min/)).toBeInTheDocument();
 });
 
 test("renders a training with a dangling teamId in the Unassigned bucket (edge case)", async () => {
@@ -406,7 +406,7 @@ test("renders a training with a dangling teamId in the Unassigned bucket (edge c
   render(<Trainings />);
 
   await screen.findByText("Unassigned");
-  expect(within(getUnassignedList()).getByText(/46$/)).toBeInTheDocument();
+  expect(within(getUnassignedList()).getByText(/46 min/)).toBeInTheDocument();
 });
 
 test("the Unassigned bucket's assign control lists teams formatted as club + name", async () => {
@@ -439,7 +439,7 @@ test("assigning a team to an unassigned training persists it and removes it from
   const user = userEvent.setup();
   render(<Trainings />);
   await screen.findByText("Unassigned");
-  const row = within(getUnassignedList()).getByText(/48$/).closest("li");
+  const row = within(getUnassignedList()).getByText(/48 min/).closest("li");
 
   await user.selectOptions(
     within(row).getByRole("combobox"),
@@ -465,14 +465,14 @@ test("a training reassigned to the active filter's team appears in its filtered 
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
 
-  const row = within(getUnassignedList()).getByText(/49$/).closest("li");
+  const row = within(getUnassignedList()).getByText(/49 min/).closest("li");
   await user.selectOptions(
     within(row).getByRole("combobox"),
     "Amadora Sub-11"
   );
 
   await waitFor(() => {
-    expect(within(getFutureList()).getByText(/49$/)).toBeInTheDocument();
+    expect(within(getFutureList()).getByText(/49 min/)).toBeInTheDocument();
   });
   expect(created.teamId).toBeNull();
 });
@@ -641,4 +641,97 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
     String(call[0]).includes('unique "key" prop')
   );
   expect(keyWarning).toBeUndefined();
+});
+
+test("renders a row with Training #N, a locale-formatted date and the duration in minutes (AC TNUM-04.1)", async () => {
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  expect(row.textContent).toMatch(/^Training #\d+ · .+ · \d+ min$/);
+});
+
+test("no row renders a raw UUID id (AC TNUM-04.2)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 51,
+    exercises: [],
+  });
+
+  render(<Trainings />);
+  await screen.findByText("Unassigned");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  expect(getPastList().textContent).not.toMatch(uuidPattern);
+  expect(getUnassignedList().textContent).not.toMatch(uuidPattern);
+});
+
+test("no row renders a Date.toString() form — the string 'GMT' is absent", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 52,
+    exercises: [],
+  });
+
+  render(<Trainings />);
+  await screen.findByText("Unassigned");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  expect(getPastList().textContent).not.toMatch("GMT");
+  expect(getUnassignedList().textContent).not.toMatch("GMT");
+});
+
+test("renders 'Invalid date' rather than crashing when a training's day is invalid (AC TNUM-04.3)", async () => {
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
+    { id: "bad-day", teamId: 1, number: 3, day: new Date("not-a-date"), duration: 33 },
+  ]);
+
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(await screen.findByText(/Invalid date/)).toBeInTheDocument();
+});
+
+test("renders '—' for the number of an unassigned training (AC TNUM-01.5)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 53,
+    exercises: [],
+  });
+
+  render(<Trainings />);
+  await screen.findByText("Unassigned");
+
+  const row = within(getUnassignedList()).getByText(/53 min/).closest("li");
+  expect(row).toHaveTextContent("Training #—");
+});
+
+test("future-only and past-only filtered views keep team-wide numbers instead of restarting at 1 (edge case)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  const future = await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    duration: 54,
+    exercises: [],
+  });
+  const numbered = await trainingService.getAllNumbered(seedTeam.id);
+  const expectedNumber = numbered.find((t) => t.id === future.id).number;
+  expect(expectedNumber).toBe(3);
+
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+
+  const futureRow = await within(getFutureList()).findByText(/54 min/);
+  expect(futureRow.textContent).toContain(`Training #${expectedNumber}`);
 });
