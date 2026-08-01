@@ -44,6 +44,7 @@ export default function Trainings() {
   const [showAddTrainingPopup, setShowAddTrainingPopup] = useState(false);
   const [showTrainingDetailsPopup, setShowTrainingDetailsPopup] =
     useState(false);
+  const [showEditTrainingPopup, setShowEditTrainingPopup] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [createMessage, setCreateMessage] = useState("");
   const [unassignedTrainings, setUnassignedTrainings] = useState([]);
@@ -251,6 +252,20 @@ export default function Trainings() {
             <TrainingDetailsPopup
               training={selectedTraining}
               onClose={() => setShowTrainingDetailsPopup(false)}
+              onEdit={() => {
+                setShowTrainingDetailsPopup(false);
+                setShowEditTrainingPopup(true);
+              }}
+            />
+          )}
+          {showEditTrainingPopup && (
+            <TrainingSavePopup
+              training={selectedTraining}
+              onClose={() => setShowEditTrainingPopup(false)}
+              onSubmit={async (training) => {
+                await trainingService.update(training);
+                await filterTrainings(selectedTeam?.id ?? null);
+              }}
             />
           )}
         </div>

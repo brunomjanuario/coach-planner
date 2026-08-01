@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import Trainings from "../Trainings";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
+import { toInputValue } from "../../lib/datetime";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -750,5 +751,77 @@ test("the number shown in the details popup matches the number on the row that o
 
   expect(
     await screen.findByRole("heading", { name: `Training #${rowNumber}` })
+  ).toBeInTheDocument();
+});
+
+test("clicking Edit in the details popup closes the details popup and opens the form in edit mode for that training (AC TEDIT-04.1)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await screen.findByRole("button", { name: "Edit" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).toBeInTheDocument();
+});
+
+test("the edit form receives the same training the details popup was showing, by id not index", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const rows = within(getPastList()).getAllByRole("listitem");
+  const targetRow = rows[1];
+  await user.click(targetRow);
+  const detailsHeading = await screen.findByRole("heading", { name: /Training #/ });
+  const trainingNumber = detailsHeading.textContent.match(/Training #(\d+|—)/)[1];
+  const allTrainings = await trainingService.getAllNumbered();
+  const targetTraining = allTrainings.find(
+    (t) => String(t.number) === trainingNumber
+  );
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  const form = (
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).closest("div").querySelector("form");
+  expect(form.querySelector('[name="day"]')).toHaveValue(
+    toInputValue(targetTraining.day)
+  );
+});
+
+test("reopening the details popup after an edit shows the updated values (edge case)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "duration", "77");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(async () => {
+    expect(within(getPastList()).getByText(/77 min/)).toBeInTheDocument();
+  });
+  await user.click(within(getPastList()).getByText(/77 min/));
+
+  expect(
+    await screen.findByText((_, el) => el?.textContent === "77")
   ).toBeInTheDocument();
 });
