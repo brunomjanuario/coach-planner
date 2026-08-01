@@ -17,31 +17,28 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 ## Design Notes
 
-Open architectural questions to settle in the Design phase, before T1. These are
-the questions, not the answers.
+**Resolved in `design.md` (approved) — see that file for full rationale:**
 
-1. **Result representation.** A nested `result: { us, them } | null` or two
-   nullable top-level fields? Nested makes "has a result" a single null check —
-   which matters, because AC GAME-06 hinges on `0–0` being a result and `null`
-   not being one. Flat fields are easier to render but make that check two
-   comparisons that are easy to get wrong.
-2. **Where the outcome lives.** Derived on read (`win`/`draw`/`loss` computed
-   from scores) or stored on the record? Derived cannot drift; stored is cheaper
-   to sort by. AC GAME-06.3 requires derivation — confirm nothing else needs it
-   persisted.
-3. **Standings storage.** Rival rows are user data and must persist; our row is
-   computed. Decide whether they live in one `standings` collection with a flag,
-   or whether rivals are their own collection merged at render time.
-4. **Opponent identity.** Free text per AD-008's neighbouring assumption. Confirm
-   whether a rival standings row and a game opponent should be linked by name
-   (enabling cross-checks) or stay independent (simpler, allows typos to diverge).
-5. **Competition field.** Free text, or an enum seeded with League / Cup /
-   Friendly? This determines whether `11-dashboard` can group by competition
-   without a normalization pass.
-6. **Shared list-page shape.** `pages/Trainings.jsx` already implements
-   filter-list + two-bucket-lists. Decide whether Games reuses an extracted
-   layout component or duplicates the structure. Duplication is the current
-   default and `02-select-team-color` already extracted the row.
+1. **Result representation**: two flat nullable fields, `usScore` / `themScore`
+   (user-confirmed over a nested `result` object, for simpler form binding).
+   This reintroduces the null-vs-zero risk the spec warns about, so a new
+   `src/lib/gameResult.js` centralizes the check: `hasResult(game)` and
+   `deriveOutcome(game)`. **Every task below that checks "has a result" or
+   computes win/draw/loss MUST call these — never inline-compare
+   `usScore`/`themScore`.**
+2. **Outcome storage**: derived on read via `deriveOutcome()`, never persisted
+   (AC GAME-06.3).
+3. **Standings storage**: a dedicated `standings` collection holding **rival
+   rows only** (user-confirmed). Our row is always computed from `games` via
+   `computeOurRow()` — never written to the store, no flag, no sync step.
+4. **Opponent identity**: independent free text on both `Game.opponent` and
+   the rival row's `name` — no linkage. The only required cross-check is a
+   rival name duplicating **our own team's** label, not the opponent field.
+5. **Competition field**: free text, no enum.
+6. **Shared list-page shape**: duplicate the filter + two-bucket JSX structure
+   from `Trainings.jsx` into `Games.jsx` rather than extracting a shared
+   layout component (consistent with existing precedent and "no abstraction
+   for a second use case").
 
 ---
 
@@ -107,8 +104,8 @@ T7 → T8 → T9 → T10
 - [ ] `createSeed()` returns a `games` array alongside `teams` and `trainings`
 - [ ] The seed contains at least one scheduled and one played game so every later task has a fixture to work with
 - [ ] `games[].date` is registered as a date field so it revives as a `Date` (regression guard on `01` PERSIST-05)
-- [ ] A game record carries `id`, `teamId`, `opponent`, `date`, `isHome`, `competition`, `result`
-- [ ] A scheduled game's `result` is `null`; a played game's holds both scores
+- [ ] A game record carries `id`, `teamId`, `opponent`, `date`, `isHome`, `competition`, `usScore`, `themScore`
+- [ ] A scheduled game has `usScore: null, themScore: null`; a played game holds both as numbers
 - [ ] The seed's played game round-trips through the store with its scores intact
 - [ ] Gate passes: `npm run lint && npm run build && npm test`
 
@@ -119,10 +116,10 @@ T7 → T8 → T9 → T10
 
 ---
 
-### T2: Create the game service
+### T2: Create the null-vs-zero guard and the game service
 
-**What**: CRUD over the `games` collection, including result recording.
-**Where**: `src/services/gameService.js` (new)
+**What**: A pure `hasResult`/`deriveOutcome` helper, then CRUD over the `games` collection built on top of it.
+**Where**: `src/lib/gameResult.js` (new), `src/services/gameService.js` (new)
 **Depends on**: T1
 **Reuses**: `src/services/store.js`, `src/lib/id.js`; the method shape of `trainingService` after `01` T7
 **Requirement**: GAME-02, GAME-06
@@ -130,23 +127,24 @@ T7 → T8 → T9 → T10
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
+- [ ] `hasResult(game)` returns `true` iff **both** `usScore` and `themScore` are not `null`/`undefined`; `0`–`0` → `true` (edge case: the null-vs-zero trap)
+- [ ] `deriveOutcome(game)` returns `null` when `hasResult(game)` is `false`, otherwise `"win"`/`"draw"`/`"loss"` from comparing the two scores (AC GAME-06.3)
 - [ ] `getAll()` and `getAll(teamId)` return copies (AD-004)
-- [ ] `create(game)` assigns `newId()` and persists with `result: null` (AC GAME-01.4, GAME-01.5)
+- [ ] `create(game)` assigns `newId()` and persists with `usScore: null, themScore: null` (AC GAME-01.4, GAME-01.5)
 - [ ] `update(game)` persists; unknown id throws `NotFoundError`
 - [ ] `delete(id)` persists the removal
 - [ ] `recordResult(id, { us, them })` persists both scores
-- [ ] `clearResult(id)` sets `result` back to `null` (AC GAME-06.5)
-- [ ] `getScheduled()` / `getPlayed()` split on **result presence, not date** (AC GAME-04.1) — a postponed fixture stays scheduled
-- [ ] A `0`–`0` result is classified as played, not scheduled (edge case: the null-vs-zero trap)
+- [ ] `clearResult(id)` sets `usScore` and `themScore` back to `null` (AC GAME-06.5)
+- [ ] `getScheduled()` / `getPlayed()` split via `hasResult()`, not date (AC GAME-04.1) — a postponed fixture stays scheduled
 - [ ] Games whose `teamId` matches no team are returned by `getUnassigned()` (edge case)
 - [ ] Ties on date are ordered deterministically (edge case)
-- [ ] Gate passes: `npx vitest run src/services/__tests__/gameService.test.js`
-- [ ] Test count: 18 tests pass
+- [ ] Gate passes: `npx vitest run src/lib/__tests__/gameResult.test.js src/services/__tests__/gameService.test.js`
+- [ ] Test count: 8 (gameResult) + 18 (gameService) tests pass
 
 **Tests**: unit
 **Gate**: quick
 
-**Commit**: `feat(games): add game service with result recording`
+**Commit**: `feat(games): add null-vs-zero guard and game service`
 
 ---
 
