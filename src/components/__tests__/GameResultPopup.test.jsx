@@ -169,3 +169,40 @@ test("cancelling calls onClose without calling onSubmit or onClear", async () =>
   expect(onSubmit).not.toHaveBeenCalled();
   expect(onClear).not.toHaveBeenCalled();
 });
+
+test("does not render a 'Delete Game' button when onDelete is not provided", () => {
+  renderPopup({ game: playedGame });
+
+  expect(
+    screen.queryByRole("button", { name: "Delete Game" })
+  ).not.toBeInTheDocument();
+});
+
+test("deleting a game asks for confirmation, then calls onDelete and closes (edge case: deleting a played game)", async () => {
+  const onDelete = vi.fn();
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ game: playedGame, onDelete, onClose });
+
+  await user.click(screen.getByRole("button", { name: "Delete Game" }));
+  expect(onDelete).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(onDelete).toHaveBeenCalledTimes(1);
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("cancelling the delete confirmation does not call onDelete", async () => {
+  const onDelete = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ game: playedGame, onDelete });
+
+  await user.click(screen.getByRole("button", { name: "Delete Game" }));
+  const cancelButtons = screen.getAllByRole("button", { name: "Cancel" });
+  await user.click(cancelButtons[cancelButtons.length - 1]);
+
+  expect(onDelete).not.toHaveBeenCalled();
+  expect(
+    screen.queryByText("Delete the game against Benfica?")
+  ).not.toBeInTheDocument();
+});

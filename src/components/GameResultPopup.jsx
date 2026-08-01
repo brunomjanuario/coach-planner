@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { hasResult } from "../lib/gameResult";
+import ConfirmationPopup from "./ConfirmationPopup";
 
 function isValidScore(value) {
   if (value.trim() === "") return false;
@@ -7,7 +8,7 @@ function isValidScore(value) {
   return Number.isInteger(n) && n >= 0;
 }
 
-export default function GameResultPopup({ game, onClose, onSubmit, onClear }) {
+export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDelete }) {
   const [usScore, setUsScore] = useState(
     game?.usScore != null ? String(game.usScore) : ""
   );
@@ -15,6 +16,7 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear }) {
     game?.themScore != null ? String(game.themScore) : ""
   );
   const [error, setError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!game) return null;
 
@@ -46,6 +48,18 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear }) {
     } catch (err) {
       console.error("Failed to clear the result:", err);
       setError("Failed to clear the result. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setShowDeleteConfirm(false);
+    setError("");
+    try {
+      if (onDelete) await onDelete();
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete the game:", err);
+      setError("Failed to delete the game. Please try again.");
     }
   };
 
@@ -117,8 +131,26 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear }) {
               Save
             </button>
           </div>
+          {onDelete && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 bg-red-800 text-white rounded"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete Game
+              </button>
+            </div>
+          )}
         </form>
       </div>
+      {showDeleteConfirm && (
+        <ConfirmationPopup
+          message={`Delete the game against ${game.opponent}?`}
+          onSubmit={handleDelete}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

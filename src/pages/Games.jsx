@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { gameService } from "../services/gameService";
+import { standingsService } from "../services/standingsService";
+import { computeOurRow, toStandingsRow, sortStandings } from "../lib/standings";
 import { IconPlus } from "@tabler/icons-react";
 import GameSavePopup from "../components/GameSavePopup";
 import GameResultPopup from "../components/GameResultPopup";
 import GameRow from "../components/GameRow";
 import SelectableListItem from "../components/SelectableListItem";
+import LeagueTable from "../components/LeagueTable";
+import RivalRowPopup from "../components/RivalRowPopup";
 
 export default function Games() {
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -17,6 +21,8 @@ export default function Games() {
   const [unassignedGames, setUnassignedGames] = useState([]);
   const [showResultPopup, setShowResultPopup] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
+  const [standingsRows, setStandingsRows] = useState([]);
+  const [showRivalRowPopup, setShowRivalRowPopup] = useState(false);
 
   const loadUnassigned = async () => {
     const data = await gameService.getUnassigned();
@@ -46,6 +52,29 @@ export default function Games() {
     setPlayedGames(played);
   };
 
+  /**
+   * Recomputes the league table for `teamId`: our row is always derived
+   * from that team's games (AC GAME-07.5), rival rows come from
+   * standingsService, both normalized and sorted together (design.md).
+   * With no team selected there is no "our row" to anchor the table on, so
+   * it renders nothing (the page shows an instruction instead).
+   */
+  const recomputeStandings = async (teamId) => {
+    if (teamId == null) {
+      setStandingsRows([]);
+      return;
+    }
+
+    const [teamGames, rivalRows] = await Promise.all([
+      gameService.getAll(teamId),
+      standingsService.getAll(),
+    ]);
+    const ourRow = computeOurRow(teamGames, teamLabel(teamId));
+    setStandingsRows(
+      sortStandings([ourRow, ...rivalRows.map(toStandingsRow)])
+    );
+  };
+
   function selectGame(game) {
     setSelectedGame(game);
     setShowResultPopup(true);
@@ -55,11 +84,13 @@ export default function Games() {
     if (team === selectedTeam) {
       setSelectedTeam(null);
       await filterGames(null);
+      await recomputeStandings(null);
       return;
     }
 
     setSelectedTeam(team);
     await filterGames(team.id);
+    await recomputeStandings(team.id);
   }
 
   useEffect(() => {
@@ -116,6 +147,7 @@ export default function Games() {
             onSubmit={async (game) => {
               const created = await gameService.create(game);
               await filterGames(selectedTeam?.id ?? null);
+              await recomputeStandings(selectedTeam?.id ?? null);
               if (selectedTeam && created.teamId !== selectedTeam.id) {
                 setCreateMessage(
                   `Game created for ${teamLabel(created.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`
@@ -210,12 +242,47 @@ export default function Games() {
               onSubmit={async ({ us, them }) => {
                 await gameService.recordResult(selectedGame.id, { us, them });
                 await filterGames(selectedTeam?.id ?? null);
+                await recomputeStandings(selectedTeam?.id ?? null);
               }}
               onClear={async () => {
                 await gameService.clearResult(selectedGame.id);
                 await filterGames(selectedTeam?.id ?? null);
+                await recomputeStandings(selectedTeam?.id ?? null);
+              }}
+              onDelete={async () => {
+                await gameService.delete(selectedGame.id);
+                await filterGames(selectedTeam?.id ?? null);
+                await loadUnassigned();
+                await recomputeStandings(selectedTeam?.id ?? null);
               }}
             />
+          )}
+
+          <h2 className="text-lg font-semibold">League Table</h2>
+          {selectedTeam ? (
+            <div className="flex-1 flex flex-col gap-2 min-h-0">
+              <div className="flex justify-end">
+                <button
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                  onClick={() => setShowRivalRowPopup(true)}
+                >
+                  Add Rival Row
+                </button>
+              </div>
+              <LeagueTable rows={standingsRows} />
+              {showRivalRowPopup && (
+                <RivalRowPopup
+                  ourTeamName={teamLabel(selectedTeam.id)}
+                  onClose={() => setShowRivalRowPopup(false)}
+                  onSubmit={async (row) => {
+                    await standingsService.create(row);
+                    await recomputeStandings(selectedTeam?.id ?? null);
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            <p className="p-3">Select a team to see its league table.</p>
           )}
         </div>
       </div>
