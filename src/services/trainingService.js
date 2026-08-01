@@ -1,6 +1,7 @@
 import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError } from "../lib/errors";
+import { numberTrainings } from "../lib/trainingNumber";
 
 function getTrainings() {
   return getCollection("trainings");
@@ -21,6 +22,24 @@ export const trainingService = {
     return trainings.filter(
       (training) => training.teamId == null || !teamIds.has(training.teamId)
     );
+  },
+
+  getAllNumbered: async (teamId) => {
+    const trainings = getTrainings();
+    const teamIds = new Set(getCollection("teams").map((team) => team.id));
+    const forNumbering = trainings.map((training) => ({
+      ...training,
+      teamId: teamIds.has(training.teamId) ? training.teamId : null,
+    }));
+
+    const numbered = numberTrainings(forNumbering).map((numbered, index) => ({
+      ...trainings[index],
+      number: numbered.number,
+    }));
+
+    return teamId
+      ? numbered.filter((training) => training.teamId === teamId)
+      : numbered;
   },
 
   getById: async (id) => {
