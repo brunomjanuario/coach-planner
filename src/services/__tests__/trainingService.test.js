@@ -211,6 +211,19 @@ describe("trainingService", () => {
     expect(teamTrainings.map((t) => t.number)).toEqual([1, 2]);
   });
 
+  it("assigns number: null to a training whose teamId matches no existing team (dangling-reference edge case, AC TNUM-01.5)", async () => {
+    const created = await trainingService.create({
+      teamId: "no-such-team",
+      day: new Date("2030-01-01T10:00:00Z"),
+      duration: 60,
+      exercises: [],
+    });
+
+    const numbered = await trainingService.getAllNumbered();
+
+    expect(numbered.find((t) => t.id === created.id).number).toBeNull();
+  });
+
   it("keeps team-wide numbers when filtered to a single team's future-only view (edge case, the main trap)", async () => {
     const [seedTeam] = await teamService.getAll();
     const future = await trainingService.create({
