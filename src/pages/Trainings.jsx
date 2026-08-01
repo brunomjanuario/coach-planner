@@ -44,6 +44,7 @@ export default function Trainings() {
   const [showAddTrainingPopup, setShowAddTrainingPopup] = useState(false);
   const [showTrainingDetailsPopup, setShowTrainingDetailsPopup] =
     useState(false);
+  const [showEditTrainingPopup, setShowEditTrainingPopup] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [createMessage, setCreateMessage] = useState("");
   const [unassignedTrainings, setUnassignedTrainings] = useState([]);
@@ -251,6 +252,33 @@ export default function Trainings() {
             <TrainingDetailsPopup
               training={selectedTraining}
               onClose={() => setShowTrainingDetailsPopup(false)}
+              onEdit={() => {
+                setCreateMessage("");
+                setShowTrainingDetailsPopup(false);
+                setShowEditTrainingPopup(true);
+              }}
+              onDelete={async (training) => {
+                await trainingService.delete(training.id);
+                await filterTrainings(selectedTeam?.id ?? null);
+                await loadUnassigned();
+              }}
+            />
+          )}
+          {showEditTrainingPopup && (
+            <TrainingSavePopup
+              training={selectedTraining}
+              onClose={() => setShowEditTrainingPopup(false)}
+              onSubmit={async (training) => {
+                const updated = await trainingService.update(training);
+                await filterTrainings(selectedTeam?.id ?? null);
+                if (selectedTeam && updated.teamId !== selectedTeam.id) {
+                  setCreateMessage(
+                    `Training moved to ${teamLabel(updated.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`
+                  );
+                } else {
+                  setCreateMessage("");
+                }
+              }}
             />
           )}
         </div>

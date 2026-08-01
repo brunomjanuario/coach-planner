@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import TrainingDetailsPopup from "../TrainingDetailsPopup";
 
 const baseTraining = {
@@ -86,6 +87,77 @@ test("falls back to 'Training Details' when number is null, never rendering 'Tra
     screen.getByRole("heading", { name: "Training Details" })
   ).toBeInTheDocument();
   expect(screen.queryByText(/Training #null/)).not.toBeInTheDocument();
+});
+
+test("renders a Delete control beside Edit and Close", () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+});
+
+test("clicking Delete opens a confirmation dialog naming the training by its number (AC TEDIT-05.1)", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+
+  expect(screen.getByText("Delete Training #4?")).toBeInTheDocument();
+});
+
+test("trainingService.delete-equivalent onDelete is not called until confirmation", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const onDelete = vi.fn();
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={onDelete} />);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+
+  expect(onDelete).not.toHaveBeenCalled();
+});
+
+test("confirming delete calls onDelete and closes both popups (AC TEDIT-05.2)", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const onDelete = vi.fn().mockResolvedValue();
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={onClose} onEdit={() => {}} onDelete={onDelete} />);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(onDelete).toHaveBeenCalledWith(training);
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText("Delete Training #4?")).not.toBeInTheDocument();
+});
+
+test("cancelling the delete confirmation leaves the training in place (AC TEDIT-05.3)", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const onDelete = vi.fn();
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={onClose} onEdit={() => {}} onDelete={onDelete} />);
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(onDelete).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.queryByText("Delete Training #4?")).not.toBeInTheDocument();
+});
+
+test("falls back to naming 'this training' in the confirmation when number is null", async () => {
+  const training = { ...baseTraining, number: null, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+
+  expect(screen.getByText("Delete this training?")).toBeInTheDocument();
 });
 
 test("renders a sparse and a fully-populated exercise together without layout shift (edge case)", () => {

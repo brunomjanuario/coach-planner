@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import Trainings from "../Trainings";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
+import { toInputValue } from "../../lib/datetime";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -751,4 +752,259 @@ test("the number shown in the details popup matches the number on the row that o
   expect(
     await screen.findByRole("heading", { name: `Training #${rowNumber}` })
   ).toBeInTheDocument();
+});
+
+test("clicking Edit in the details popup closes the details popup and opens the form in edit mode for that training (AC TEDIT-04.1)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await screen.findByRole("button", { name: "Edit" });
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).toBeInTheDocument();
+});
+
+test("the edit form receives the same training the details popup was showing, by id not index", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const rows = within(getPastList()).getAllByRole("listitem");
+  const targetRow = rows[1];
+  await user.click(targetRow);
+  const detailsHeading = await screen.findByRole("heading", { name: /Training #/ });
+  const trainingNumber = detailsHeading.textContent.match(/Training #(\d+|—)/)[1];
+  const allTrainings = await trainingService.getAllNumbered();
+  const targetTraining = allTrainings.find(
+    (t) => String(t.number) === trainingNumber
+  );
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+
+  const form = (
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).closest("div").querySelector("form");
+  expect(form.querySelector('[name="day"]')).toHaveValue(
+    toInputValue(targetTraining.day)
+  );
+});
+
+test("deleting a training removes it and renumbers the remaining team trainings contiguously (AC TEDIT-05.4, AC TEDIT-05.5)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date("2025-01-01T10:00:00Z"),
+    duration: 55,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  const rows = within(getPastList()).getAllByRole("listitem");
+  await user.click(rows[0]);
+  await screen.findByRole("button", { name: "Delete" });
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const remainingTrainings = await trainingService.getAllNumbered(seedTeam.id);
+  expect(remainingTrainings.map((t) => t.number).sort()).toEqual([1, 2]);
+  const allTrainings = await trainingService.getAll();
+  expect(allTrainings).toHaveLength(2);
+});
+
+test("deleting a training closes both the details popup and the confirmation dialog", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByRole("button", { name: "Submit" })).not.toBeInTheDocument();
+});
+
+test("cancelling a delete leaves the training list unchanged", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+});
+
+test("reopening the details popup after an edit shows the updated values (edge case)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "duration", "77");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(async () => {
+    expect(within(getPastList()).getByText(/77 min/)).toBeInTheDocument();
+  });
+  await user.click(within(getPastList()).getByText(/77 min/));
+
+  expect(
+    await screen.findByText((_, el) => el?.textContent === "77")
+  ).toBeInTheDocument();
+});
+
+test("editing refreshes both training lists without a page reload (AC TEDIT-06.1)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "duration", "81");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getByText(/81 min/)).toBeInTheDocument();
+  });
+  expect(screen.queryByRole("heading", { name: "Edit Training" })).not.toBeInTheDocument();
+});
+
+test("an edit that moves a training from past to future jumps it to Next Trainings (AC TEDIT-06.2)", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "day", "2030-01-01T10:00");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+  expect(within(getFutureList()).getAllByRole("listitem")).toHaveLength(1);
+});
+
+test("an edit that changes a training's team re-applies the active filter, removing it from the filtered list (AC TEDIT-06.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await selectTeamInForm(user, form, "Areias Sub-19");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+});
+
+test("editing a training out of the active team filter keeps the filter and reports where it went (edge case, same as AC TTA-04.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await selectTeamInForm(user, form, "Areias Sub-19");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText(/Training moved to Areias Sub-19/)
+  ).toBeInTheDocument();
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).toHaveAttribute("aria-current", "true");
+});
+
+test("editing a training deleted in another tab fails with a clear message and does not re-create it (edge case)", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  const beforeCount = (await trainingService.getAll()).length;
+  vi.spyOn(trainingService, "update").mockRejectedValueOnce(
+    new Error("Training not found")
+  );
+
+  await user.click(within(form).getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText("Failed to save the training. Please try again.")
+  ).toBeInTheDocument();
+  const afterCount = (await trainingService.getAll()).length;
+  expect(afterCount).toBe(beforeCount);
+  expect(errorSpy).toHaveBeenCalledWith("Failed to save training:", expect.any(Error));
 });

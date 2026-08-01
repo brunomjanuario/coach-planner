@@ -1,8 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
+import ConfirmationPopup from "./ConfirmationPopup";
 
-export default function TrainingDetailsPopup({ training, onClose, onEdit }) {
+export default function TrainingDetailsPopup({ training, onClose, onEdit, onDelete }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   if (!training) return null;
+
+  const trainingLabel =
+    typeof training.number === "number"
+      ? `Training #${training.number}`
+      : "this training";
+
+  const handleDelete = async () => {
+    setShowDeleteConfirm(false);
+    if (onDelete) await onDelete(training);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
@@ -70,9 +84,23 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit }) {
             >
               Edit
             </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-red-600 text-white rounded"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>
+      {showDeleteConfirm && (
+        <ConfirmationPopup
+          message={`Delete ${trainingLabel}?`}
+          onSubmit={handleDelete}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }
