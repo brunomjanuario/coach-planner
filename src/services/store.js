@@ -3,7 +3,7 @@ import { createSeed } from "../model/seed";
 
 const SCHEMA_KEY = "schemaVersion";
 const SCHEMA_VERSION = 1;
-const DATE_FIELDS = { teams: [], trainings: ["day"] };
+const DATE_FIELDS = { teams: [], trainings: ["day"], games: ["date"] };
 const COLLECTION_NAMES = Object.keys(DATE_FIELDS);
 
 // Migration registry: keyed by the version a stored payload migrates *to*.

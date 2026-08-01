@@ -204,5 +204,27 @@ export function createSeed() {
         ],
       },
     ],
+    games: [
+      {
+        id: 1,
+        teamId: 1,
+        opponent: "Benfica",
+        date: new Date("2030-01-01T15:00:00Z"),
+        isHome: true,
+        competition: "District League",
+        usScore: null,
+        themScore: null,
+      },
+      {
+        id: 2,
+        teamId: 1,
+        opponent: "Sporting",
+        date: new Date("2023-05-01T15:00:00Z"),
+        isHome: false,
+        competition: "District League",
+        usScore: 2,
+        themScore: 1,
+      },
+    ],
   };
 }
