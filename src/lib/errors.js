@@ -5,3 +5,11 @@ export class NotFoundError extends Error {
     this.name = "NotFoundError";
   }
 }
+
+/** Typed error for a record that fails validation (e.g. a rival row whose won+drawn+lost don't sum to played, or a negative figure). */
+export class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}

@@ -226,5 +226,6 @@ export function createSeed() {
         themScore: 1,
       },
     ],
+    standings: [],
   };
 }
