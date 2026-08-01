@@ -3,6 +3,7 @@ import { teamService } from "../services/teamService";
 import { gameService } from "../services/gameService";
 import { IconPlus } from "@tabler/icons-react";
 import GameSavePopup from "../components/GameSavePopup";
+import GameResultPopup from "../components/GameResultPopup";
 import GameRow from "../components/GameRow";
 import SelectableListItem from "../components/SelectableListItem";
 
@@ -14,6 +15,8 @@ export default function Games() {
   const [showAddGamePopup, setShowAddGamePopup] = useState(false);
   const [createMessage, setCreateMessage] = useState("");
   const [unassignedGames, setUnassignedGames] = useState([]);
+  const [showResultPopup, setShowResultPopup] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
 
   const loadUnassigned = async () => {
     const data = await gameService.getUnassigned();
@@ -42,6 +45,11 @@ export default function Games() {
     setUpcomingGames(scheduled);
     setPlayedGames(played);
   };
+
+  function selectGame(game) {
+    setSelectedGame(game);
+    setShowResultPopup(true);
+  }
 
   async function selectTeam(team) {
     if (team === selectedTeam) {
@@ -72,7 +80,6 @@ export default function Games() {
 
     loadTeamsAndGames();
     loadUnassigned();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -178,7 +185,7 @@ export default function Games() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {upcomingGames.map((game) => (
-                  <GameRow key={game.id} game={game} />
+                  <GameRow key={game.id} game={game} onSelect={selectGame} />
                 ))}
               </ul>
             )}
@@ -191,11 +198,25 @@ export default function Games() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {playedGames.map((game) => (
-                  <GameRow key={game.id} game={game} />
+                  <GameRow key={game.id} game={game} onSelect={selectGame} />
                 ))}
               </ul>
             )}
           </div>
+          {showResultPopup && (
+            <GameResultPopup
+              game={selectedGame}
+              onClose={() => setShowResultPopup(false)}
+              onSubmit={async ({ us, them }) => {
+                await gameService.recordResult(selectedGame.id, { us, them });
+                await filterGames(selectedTeam?.id ?? null);
+              }}
+              onClear={async () => {
+                await gameService.clearResult(selectedGame.id);
+                await filterGames(selectedTeam?.id ?? null);
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

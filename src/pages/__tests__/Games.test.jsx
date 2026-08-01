@@ -280,3 +280,103 @@ test("assigning a team to an unassigned game persists it and removes it from the
     expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
   });
 });
+
+test("clicking an upcoming game row opens the result-entry popup", async () => {
+  const user = userEvent.setup();
+  render(<Games />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  await user.click(within(getUpcomingList()).getByText(/Benfica/));
+
+  expect(
+    await screen.findByRole("heading", { name: "Record Result" })
+  ).toBeInTheDocument();
+});
+
+test("entering a result moves the game from Upcoming to Played (AC GAME-06.1)", async () => {
+  const user = userEvent.setup();
+  render(<Games />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+  await user.click(within(getUpcomingList()).getByText(/Benfica/));
+  await screen.findByRole("heading", { name: "Record Result" });
+
+  await user.type(screen.getByLabelText("Us"), "4");
+  await user.type(screen.getByLabelText("Benfica"), "1");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getUpcomingList()).queryAllByRole("listitem")).toHaveLength(0);
+  });
+  expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(2);
+  const benficaRow = within(getPlayedList()).getByText(/Benfica/).closest("li");
+  expect(within(benficaRow).getByText("4–1")).toBeInTheDocument();
+});
+
+test("recording a 0-0 result moves the game to Played, not leaving it Upcoming (null-vs-zero edge case)", async () => {
+  const user = userEvent.setup();
+  render(<Games />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+  await user.click(within(getUpcomingList()).getByText(/Benfica/));
+  await screen.findByRole("heading", { name: "Record Result" });
+
+  await user.type(screen.getByLabelText("Us"), "0");
+  await user.type(screen.getByLabelText("Benfica"), "0");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getUpcomingList()).queryAllByRole("listitem")).toHaveLength(0);
+  });
+  expect(within(getPlayedList()).getByText("0–0")).toBeInTheDocument();
+});
+
+test("clicking a played game row opens the popup pre-filled and edits the result in place (AC GAME-06.4)", async () => {
+  const user = userEvent.setup();
+  render(<Games />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  await user.click(within(getPlayedList()).getByText(/Sporting/));
+  await screen.findByRole("heading", { name: "Edit Result" });
+  expect(screen.getByLabelText("Us")).toHaveValue("2");
+  const themInput = screen.getByLabelText("Sporting");
+  await user.clear(themInput);
+  await user.type(themInput, "3");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(within(getPlayedList()).getByText("2–3")).toBeInTheDocument();
+  });
+  const sportingRow = within(getPlayedList())
+    .getByText(/Sporting/)
+    .closest("li");
+  expect(within(sportingRow).getByText("loss")).toBeInTheDocument();
+});
+
+test("clearing a result returns the game to Upcoming (AC GAME-06.5)", async () => {
+  const user = userEvent.setup();
+  render(<Games />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  await user.click(within(getPlayedList()).getByText(/Sporting/));
+  await screen.findByRole("button", { name: "Clear Result" });
+  await user.click(screen.getByRole("button", { name: "Clear Result" }));
+
+  await waitFor(() => {
+    expect(within(getPlayedList()).queryAllByRole("listitem")).toHaveLength(0);
+  });
+  expect(within(getUpcomingList()).getByText(/Sporting/)).toBeInTheDocument();
+});
