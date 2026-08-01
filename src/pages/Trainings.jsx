@@ -256,6 +256,11 @@ export default function Trainings() {
                 setShowTrainingDetailsPopup(false);
                 setShowEditTrainingPopup(true);
               }}
+              onDelete={async (training) => {
+                await trainingService.delete(training.id);
+                await filterTrainings(selectedTeam?.id ?? null);
+                await loadUnassigned();
+              }}
             />
           )}
           {showEditTrainingPopup && (

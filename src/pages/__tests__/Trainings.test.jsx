@@ -801,6 +801,71 @@ test("the edit form receives the same training the details popup was showing, by
   );
 });
 
+test("deleting a training removes it and renumbers the remaining team trainings contiguously (AC TEDIT-05.4, AC TEDIT-05.5)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date("2025-01-01T10:00:00Z"),
+    duration: 55,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  const rows = within(getPastList()).getAllByRole("listitem");
+  await user.click(rows[0]);
+  await screen.findByRole("button", { name: "Delete" });
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const remainingTrainings = await trainingService.getAllNumbered(seedTeam.id);
+  expect(remainingTrainings.map((t) => t.number).sort()).toEqual([1, 2]);
+  const allTrainings = await trainingService.getAll();
+  expect(allTrainings).toHaveLength(2);
+});
+
+test("deleting a training closes both the details popup and the confirmation dialog", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+  expect(screen.queryByRole("button", { name: "Submit" })).not.toBeInTheDocument();
+});
+
+test("cancelling a delete leaves the training list unchanged", async () => {
+  const user = userEvent.setup();
+  render(<Trainings />);
+  await screen.findByText("Amadora Sub-11");
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(row);
+  await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+});
+
 test("reopening the details popup after an edit shows the updated values (edge case)", async () => {
   const user = userEvent.setup();
   render(<Trainings />);
