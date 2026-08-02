@@ -3,6 +3,7 @@ import { newId } from "../lib/id";
 import { NotFoundError } from "../lib/errors";
 import { hasResult } from "../lib/gameResult";
 import { cardService } from "./cardService";
+import { ratingService } from "./ratingService";
 
 function getGames() {
   return getCollection("games");
@@ -64,6 +65,7 @@ export const gameService = {
     const games = getGames().filter((game) => game.id !== id);
     saveGames(games);
     await cardService.removeByGame(id);
+    await ratingService.removeByEvent("game", id);
   },
 
   recordResult: async (id, { us, them }) => {
