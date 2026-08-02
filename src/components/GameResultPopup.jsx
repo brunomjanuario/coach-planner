@@ -2,6 +2,7 @@ import { useState } from "react";
 import { hasResult } from "../lib/gameResult";
 import ConfirmationPopup from "./ConfirmationPopup";
 import GameCardsSection from "./GameCardsSection";
+import SquadRatingPopup from "./SquadRatingPopup";
 
 function isValidScore(value) {
   if (value.trim() === "") return false;
@@ -18,6 +19,7 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDe
   );
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
 
   if (!game) return null;
 
@@ -131,6 +133,13 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDe
             >
               Save
             </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={() => setShowRatingPopup(true)}
+            >
+              Rate squad
+            </button>
           </div>
           {onDelete && (
             <div className="flex justify-end">
@@ -151,6 +160,14 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDe
           message={`Delete the game against ${game.opponent}?`}
           onSubmit={handleDelete}
           onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
+      {showRatingPopup && (
+        <SquadRatingPopup
+          eventType="game"
+          eventId={game.id}
+          teamId={game.teamId}
+          onClose={() => setShowRatingPopup(false)}
         />
       )}
     </div>

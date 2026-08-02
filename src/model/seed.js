@@ -230,5 +230,6 @@ export function createSeed() {
     cards: [
       { id: 1, playerId: 1, gameId: 2, type: "yellow" },
     ],
+    ratings: [],
   };
 }

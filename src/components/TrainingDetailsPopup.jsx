@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
 import ConfirmationPopup from "./ConfirmationPopup";
+import SquadRatingPopup from "./SquadRatingPopup";
 
 export default function TrainingDetailsPopup({ training, onClose, onEdit, onDelete }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
 
   if (!training) return null;
 
@@ -91,6 +93,13 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
             >
               Delete
             </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={() => setShowRatingPopup(true)}
+            >
+              Rate squad
+            </button>
           </div>
         </div>
       </div>
@@ -99,6 +108,14 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
           message={`Delete ${trainingLabel}?`}
           onSubmit={handleDelete}
           onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
+      {showRatingPopup && (
+        <SquadRatingPopup
+          eventType="training"
+          eventId={training.id}
+          teamId={training.teamId}
+          onClose={() => setShowRatingPopup(false)}
         />
       )}
     </div>

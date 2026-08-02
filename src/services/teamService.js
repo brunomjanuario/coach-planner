@@ -2,6 +2,7 @@ import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError } from "../lib/errors";
 import { cardService } from "./cardService";
+import { ratingService } from "./ratingService";
 
 function getTeams() {
   return getCollection("teams");
@@ -88,5 +89,6 @@ export const teamService = {
     );
     saveTeams(teams);
     await cardService.removeByPlayer(playerData.id);
+    await ratingService.removeByPlayer(playerData.id);
   },
 };

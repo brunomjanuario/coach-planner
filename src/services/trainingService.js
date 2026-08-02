@@ -2,6 +2,7 @@ import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError } from "../lib/errors";
 import { numberTrainings } from "../lib/trainingNumber";
+import { ratingService } from "./ratingService";
 
 function getTrainings() {
   return getCollection("trainings");
@@ -71,5 +72,6 @@ export const trainingService = {
   delete: async (id) => {
     const trainings = getTrainings().filter((training) => training.id !== id);
     saveTrainings(trainings);
+    await ratingService.removeByEvent("training", id);
   },
 };
