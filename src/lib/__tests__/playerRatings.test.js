@@ -166,6 +166,21 @@ describe("rankSquad", () => {
     expect(ranked.at(-1).average).toBeNull();
   });
 
+  it("places a genuinely zero-average player above an unrated player, not tied with them (AC RATE-09.3)", () => {
+    const players = [{ id: "p1" }, { id: "p2" }, { id: "p3" }];
+    const ratingsByPlayer = new Map([
+      ["p1", []],
+      ["p2", [rating("p2", "training", "e1", 0), rating("p2", "training", "e2", 0)]],
+      ["p3", [rating("p3", "training", "e3", 7)]],
+    ]);
+
+    const ranked = rankSquad(players, ratingsByPlayer);
+
+    expect(ranked.map((r) => r.player.id)).toEqual(["p3", "p2", "p1"]);
+    expect(ranked[1].average).toBe(0);
+    expect(ranked.at(-1).average).toBeNull();
+  });
+
   it("orders equal averages deterministically (AC RATE-09.2)", () => {
     const players = [{ id: "pB" }, { id: "pA" }];
     const ratingsByPlayer = new Map([
