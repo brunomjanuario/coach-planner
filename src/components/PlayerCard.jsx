@@ -5,12 +5,20 @@ import ConfirmationPopup from "./ConfirmationPopup";
 import { teamService } from "../services/teamService";
 import { cardService } from "../services/cardService";
 import { gameService } from "../services/gameService";
+import { trainingService } from "../services/trainingService";
+import { ratingService } from "../services/ratingService";
 import { cardTotals, suspensionStatus, SUSPENSION_THRESHOLD } from "../lib/playerCards";
+import { average, form } from "../lib/playerRatings";
 
 export default function PlayerCard({ player, onClose, onUpdated }) {
   const [showEditPlayerPopup, setShowEditPlayerPopup] = useState(false);
   const [toDeletePlayer, setToDeletePlayer] = useState(false);
   const [cardCounts, setCardCounts] = useState({ yellow: 0, red: 0 });
+  const [ratingStats, setRatingStats] = useState({
+    average: null,
+    form: null,
+    formCount: 0,
+  });
 
   useEffect(() => {
     async function loadCards() {
@@ -27,6 +35,36 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
     }
 
     loadCards();
+  }, [player.id, player.teamId]);
+
+  useEffect(() => {
+    async function loadRatings() {
+      try {
+        const [ratings, trainings, games] = await Promise.all([
+          ratingService.getByPlayer(player.id),
+          trainingService.getAll(),
+          gameService.getAll(player.teamId),
+        ]);
+        const events = [
+          ...trainings.map((training) => ({
+            id: training.id,
+            type: "training",
+            date: training.day,
+          })),
+          ...games.map((game) => ({ id: game.id, type: "game", date: game.date })),
+        ];
+        const recentForm = form(ratings, events);
+        setRatingStats({
+          average: average(ratings),
+          form: recentForm.value,
+          formCount: recentForm.count,
+        });
+      } catch (err) {
+        console.error("Failed to load ratings:", err);
+      }
+    }
+
+    loadRatings();
   }, [player.id, player.teamId]);
 
   const status = suspensionStatus(cardCounts);
@@ -104,6 +142,18 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
       <div className="mb-3">
         <h3>Red Cards</h3>
         <p>{cardCounts.red}</p>
+      </div>
+      <div className="mb-3">
+        <h3>Average Rating</h3>
+        <p>{ratingStats.average != null ? ratingStats.average.toFixed(1) : "—"}</p>
+      </div>
+      <div className="mb-3">
+        <h3>Form</h3>
+        <p>
+          {ratingStats.form != null
+            ? `${ratingStats.form.toFixed(1)} (${ratingStats.formCount})`
+            : "—"}
+        </p>
       </div>
       {status === "approaching" && (
         <p role="alert" className="mb-3 text-sm font-semibold text-amber-500">
