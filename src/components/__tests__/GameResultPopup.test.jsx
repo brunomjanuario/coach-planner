@@ -527,7 +527,7 @@ test("opening 'Rate squad' does not clear score values already entered in the re
 
 test("the squad rating view opened from a game scopes ratings to that game's team, not another team's players", async () => {
   const teams = await teamService.getAll();
-  const [teamA, teamB] = teams.filter((t) => t.players.length > 0);
+  const [teamA] = teams.filter((t) => t.players.length > 0);
   const user = userEvent.setup();
   await renderPopup({ game: { ...scheduledGame, teamId: teamA.id } });
 
