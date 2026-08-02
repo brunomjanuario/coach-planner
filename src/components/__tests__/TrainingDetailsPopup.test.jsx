@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TrainingDetailsPopup from "../TrainingDetailsPopup";
+import { teamService } from "../../services/teamService";
+import { ratingService } from "../../services/ratingService";
 
 const baseTraining = {
   id: 1,
@@ -8,6 +10,10 @@ const baseTraining = {
   day: new Date("2027-01-01T10:00:00Z"),
   duration: 90,
 };
+
+function playerLabel(player) {
+  return `#${player.shirtNumber} ${player.name}`;
+}
 
 test("renders each exercise's duration, players and repetitions alongside its description (AC TFORM-07.1)", () => {
   const training = {
@@ -174,4 +180,136 @@ test("renders a sparse and a fully-populated exercise together without layout sh
   const sparseItem = screen.getByText(/Sparse/).closest("li");
   const fullItem = screen.getByText(/Full/).closest("li");
   expect(sparseItem.className).toBe(fullItem.className);
+});
+
+test("renders a 'Rate squad' action alongside Close, Edit and Delete (AC RATE-02.1)", () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  expect(screen.getByRole("button", { name: "Rate squad" })).toBeInTheDocument();
+});
+
+test("clicking 'Rate squad' opens the squad rating view listing this training's team (AC RATE-02.1)", async () => {
+  const [team] = await teamService.getAll();
+  const training = { ...baseTraining, teamId: team.id, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Rate squad" }));
+
+  for (const player of team.players) {
+    expect(
+      await screen.findByLabelText(`Rate ${playerLabel(player)}`)
+    ).toBeInTheDocument();
+  }
+});
+
+test("ratings entered from the training's squad rating view persist against that specific training and survive a reload (AC RATE-02.3)", async () => {
+  const [team] = await teamService.getAll();
+  const training = { ...baseTraining, teamId: team.id, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+  await user.click(screen.getByRole("button", { name: "Rate squad" }));
+
+  await user.type(
+    await screen.findByLabelText(`Rate ${playerLabel(team.players[0])}`),
+    "8"
+  );
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(async () => {
+    const ratings = await ratingService.getByEvent("training", training.id);
+    expect(ratings).toHaveLength(1);
+  });
+  const ratings = await ratingService.getByEvent("training", training.id);
+  expect(ratings[0]).toMatchObject({
+    playerId: team.players[0].id,
+    eventType: "training",
+    eventId: training.id,
+    value: 8,
+  });
+});
+
+test("reopening 'Rate squad' pre-fills previously entered ratings (AC RATE-02.5)", async () => {
+  const [team] = await teamService.getAll();
+  const training = { ...baseTraining, teamId: team.id, number: 4, exercises: [] };
+  await ratingService.setRating({
+    playerId: team.players[0].id,
+    eventType: "training",
+    eventId: training.id,
+    value: 6,
+  });
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Rate squad" }));
+
+  expect(
+    await screen.findByLabelText(`Rate ${playerLabel(team.players[0])}`)
+  ).toHaveValue(6);
+});
+
+test("cancelling the squad rating view persists no ratings against the training", async () => {
+  const [team] = await teamService.getAll();
+  const training = { ...baseTraining, teamId: team.id, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+  await user.click(screen.getByRole("button", { name: "Rate squad" }));
+  await user.type(
+    await screen.findByLabelText(`Rate ${playerLabel(team.players[0])}`),
+    "5"
+  );
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(await ratingService.getByEvent("training", training.id)).toHaveLength(0);
+});
+
+test("closing the squad rating view returns to the training details view", async () => {
+  const [team] = await teamService.getAll();
+  const training = { ...baseTraining, teamId: team.id, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+  await user.click(screen.getByRole("button", { name: "Rate squad" }));
+  await screen.findByLabelText(`Rate ${playerLabel(team.players[0])}`);
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(screen.queryByLabelText(`Rate ${playerLabel(team.players[0])}`)).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+});
+
+test("the existing Close action still works alongside the new rating action (regression guard on 06)", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={onClose} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Close" }));
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("the existing Edit and Delete actions still work alongside the new rating action (regression guard on 06)", async () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const onEdit = vi.fn();
+  const onDelete = vi.fn().mockResolvedValue();
+  const onClose = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <TrainingDetailsPopup
+      training={training}
+      onClose={onClose}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  );
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  expect(onEdit).toHaveBeenCalledTimes(1);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+  expect(onDelete).toHaveBeenCalledWith(training);
 });
