@@ -9,6 +9,7 @@ import TeamPopup from "../components/TeamPopup";
 import PlayerPopup from "../components/PlayerPopup";
 import PlayerCard from "../components/PlayerCard";
 import SelectableListItem from "../components/SelectableListItem";
+import SquadRanking from "../components/SquadRanking";
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
@@ -178,6 +179,7 @@ export default function Teams() {
             </ul>
           )}
         </div>
+        {selectedTeam !== null && <SquadRanking team={selectedTeam} />}
       </div>
 
       <div className="flex-1 p-4 text-center">

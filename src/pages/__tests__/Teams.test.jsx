@@ -4,6 +4,7 @@ import Teams from "../Teams";
 import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
 import { cardService } from "../../services/cardService";
+import { ratingService } from "../../services/ratingService";
 import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
 
 afterEach(() => {
@@ -310,6 +311,101 @@ test("does not mark an approaching (not yet suspended) player as Suspended", asy
 
   const row = (await within(getColumn("Players")).findByText(`${player.shirtNumber} ${player.name}`)).closest("button");
   expect(within(row).queryByText("Suspended")).not.toBeInTheDocument();
+});
+
+test("no Squad Ranking is shown before a team is selected", async () => {
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(screen.queryByRole("heading", { name: "Squad Ranking" })).not.toBeInTheDocument();
+});
+
+test("selecting a team shows its Squad Ranking ordered by average, highest first (AC RATE-09.1)", async () => {
+  const [team] = await teamService.getAll();
+  const [p1, p2] = team.players;
+  const game = await gameService.create({
+    teamId: team.id,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 3 });
+  await ratingService.setRating({ playerId: p2.id, eventType: "game", eventId: game.id, value: 9 });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  const ranking = getColumn("Players").querySelector("ol");
+  await waitFor(() => {
+    expect(within(ranking).getAllByRole("listitem")[0]).toHaveTextContent(`#${p2.shirtNumber}`);
+  });
+});
+
+test("a selected team with no rated players shows the Squad Ranking empty state", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  expect(await within(getColumn("Players")).findByText("No rated players yet.")).toBeInTheDocument();
+});
+
+test("switching to a different team recomputes the Squad Ranking for the newly selected team", async () => {
+  const teams = await teamService.getAll();
+  const [teamA] = teams;
+  const gameA = await gameService.create({
+    teamId: teamA.id,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await ratingService.setRating({
+    playerId: teamA.players[0].id,
+    eventType: "game",
+    eventId: gameA.id,
+    value: 6,
+  });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await within(getColumn("Players")).findByText("6.0");
+
+  await selectTeamByName(user, "Areias Sub-19");
+
+  expect(
+    await within(getColumn("Players")).findByText("No rated players yet.")
+  ).toBeInTheDocument();
+});
+
+test("the Training/Game toggle in Squad Ranking recomputes the order within the Teams page", async () => {
+  const [team] = await teamService.getAll();
+  const [p1, p2] = team.players;
+  const game = await gameService.create({
+    teamId: team.id,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 9 });
+  await ratingService.setRating({ playerId: p2.id, eventType: "game", eventId: game.id, value: 2 });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await within(getColumn("Players")).findByText(`#${p1.shirtNumber}`, { exact: false });
+
+  await user.click(within(getColumn("Players")).getByRole("button", { name: "Training" }));
+
+  expect(
+    await within(getColumn("Players")).findByText("No rated players yet.")
+  ).toBeInTheDocument();
 });
 
 test("logs an error and does not crash when loading suspensions fails", async () => {
