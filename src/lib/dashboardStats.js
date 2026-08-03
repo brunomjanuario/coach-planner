@@ -46,27 +46,31 @@ export function counts({ teams = [], trainings = [], games = [] }, teamId) {
 }
 
 /**
- * Ranks pre-scored entries `{ id, name, value, rank }` highest-`rank` first,
- * ties broken by name for determinism (AC DASH-05.4). Whole rank-tiers are
- * accumulated until the count reaches `n` (a tie can push the list past `n`),
- * then the rendered list is hard-capped at MAX_LEADER_ENTRIES with the
- * remainder reported as `overflow` (edge case: 20+ tied). By default entries
- * with a non-positive `rank` are excluded — the "never show a zero-value
- * leader" rule — but `excludeNonPositive: false` opts out for metrics where 0
- * is a real value (ratings' null-vs-zero trap).
+ * Ranks pre-scored entries `{ id, name, value, score }` highest-`score`
+ * first, ties broken by name for determinism (AC DASH-05.4). Whole
+ * score-tiers are accumulated until the count reaches `n` (a tie can push
+ * the list past `n`), then the rendered list is hard-capped at
+ * MAX_LEADER_ENTRIES with the remainder reported as `overflow` (edge case:
+ * 20+ tied). Each output entry carries a 1-based `rank` (standard
+ * competition ranking — tied entries share a rank, the next tier's rank
+ * skips ahead by the tie count) so a component never has to re-derive ties
+ * from an opaque `value` shape. By default entries with a non-positive
+ * `score` are excluded — the "never show a zero-value leader" rule — but
+ * `excludeNonPositive: false` opts out for metrics where 0 is a real value
+ * (ratings' null-vs-zero trap).
  */
 function rankEntries(entries, n, { excludeNonPositive = true } = {}) {
-  const filtered = excludeNonPositive ? entries.filter((e) => e.rank > 0) : entries;
+  const filtered = excludeNonPositive ? entries.filter((e) => e.score > 0) : entries;
 
   const sorted = [...filtered].sort((a, b) => {
-    if (b.rank !== a.rank) return b.rank - a.rank;
+    if (b.score !== a.score) return b.score - a.score;
     return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
   });
 
   const tiers = [];
   for (const entry of sorted) {
     const lastTier = tiers[tiers.length - 1];
-    if (lastTier && lastTier[0].rank === entry.rank) {
+    if (lastTier && lastTier[0].score === entry.score) {
       lastTier.push(entry);
     } else {
       tiers.push([entry]);
@@ -74,18 +78,19 @@ function rankEntries(entries, n, { excludeNonPositive = true } = {}) {
   }
 
   const picked = [];
+  let rank = 1;
   for (const tier of tiers) {
     if (picked.length >= n) break;
-    picked.push(...tier);
+    for (const entry of tier) {
+      picked.push({ id: entry.id, name: entry.name, value: entry.value, rank });
+    }
+    rank += tier.length;
   }
 
   const overflow = Math.max(0, picked.length - MAX_LEADER_ENTRIES);
   const capped = picked.slice(0, MAX_LEADER_ENTRIES);
 
-  return {
-    entries: capped.map(({ id, name, value }) => ({ id, name, value })),
-    overflow,
-  };
+  return { entries: capped, overflow };
 }
 
 /** Top `n` players by goals, zero-goal players excluded (AC DASH-05.1, DASH-05.6). */
@@ -94,7 +99,7 @@ export function topScorers(players = [], n) {
     id: p.id,
     name: p.name,
     value: p.goals ?? 0,
-    rank: p.goals ?? 0,
+    score: p.goals ?? 0,
   }));
   return rankEntries(entries, n);
 }
@@ -103,7 +108,7 @@ export function topScorers(players = [], n) {
 export function topCarded(players = [], cards = [], n) {
   const entries = players.map((p) => {
     const totals = cardTotals(cards, p.id);
-    return { id: p.id, name: p.name, value: totals, rank: totals.yellow + totals.red };
+    return { id: p.id, name: p.name, value: totals, score: totals.yellow + totals.red };
   });
   return rankEntries(entries, n);
 }
@@ -117,7 +122,7 @@ export function topCarded(players = [], cards = [], n) {
 export function topTeamGames(teams = [], games = [], n) {
   const entries = teams.map((t) => {
     const played = games.filter((g) => g.teamId === t.id && hasResult(g)).length;
-    return { id: t.id, name: `${t.club} ${t.name}`, value: played, rank: played };
+    return { id: t.id, name: `${t.club} ${t.name}`, value: played, score: played };
   });
   return rankEntries(entries, n);
 }
@@ -127,7 +132,7 @@ export function topRated(players = [], ratings = [], n) {
   const entries = players
     .map((p) => {
       const avg = average(ratings.filter((r) => r.playerId === p.id));
-      return avg == null ? null : { id: p.id, name: p.name, value: avg, rank: avg };
+      return avg == null ? null : { id: p.id, name: p.name, value: avg, score: avg };
     })
     .filter(Boolean);
   return rankEntries(entries, n, { excludeNonPositive: false });

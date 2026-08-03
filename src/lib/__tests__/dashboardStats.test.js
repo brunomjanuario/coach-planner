@@ -100,8 +100,8 @@ describe("topScorers", () => {
     ];
 
     expect(topScorers(players, 2).entries).toEqual([
-      { id: 1, name: "Ana", value: 10 },
-      { id: 2, name: "Beatriz", value: 5 },
+      { id: 1, name: "Ana", value: 10, rank: 1 },
+      { id: 2, name: "Beatriz", value: 5, rank: 2 },
     ]);
   });
 
@@ -112,7 +112,7 @@ describe("topScorers", () => {
     ];
 
     expect(topScorers(players, 3).entries).toEqual([
-      { id: 2, name: "Beatriz", value: 3 },
+      { id: 2, name: "Beatriz", value: 3, rank: 1 },
     ]);
   });
 
@@ -124,8 +124,8 @@ describe("topScorers", () => {
     ];
 
     expect(topScorers(players, 1).entries).toEqual([
-      { id: 2, name: "Ana", value: 5 },
-      { id: 1, name: "Carla", value: 5 },
+      { id: 2, name: "Ana", value: 5, rank: 1 },
+      { id: 1, name: "Carla", value: 5, rank: 1 },
     ]);
   });
 
@@ -165,8 +165,8 @@ describe("topCarded", () => {
     ];
 
     expect(topCarded(players, cards, 2).entries).toEqual([
-      { id: 1, name: "Ana", value: { yellow: 2, red: 1 } },
-      { id: 2, name: "Beatriz", value: { yellow: 1, red: 0 } },
+      { id: 1, name: "Ana", value: { yellow: 2, red: 1 }, rank: 1 },
+      { id: 2, name: "Beatriz", value: { yellow: 1, red: 0 }, rank: 2 },
     ]);
   });
 
@@ -178,7 +178,7 @@ describe("topCarded", () => {
     const cards = [{ id: 1, playerId: 1, gameId: 1, type: "yellow" }];
 
     expect(topCarded(players, cards, 3).entries).toEqual([
-      { id: 1, name: "Ana", value: { yellow: 1, red: 0 } },
+      { id: 1, name: "Ana", value: { yellow: 1, red: 0 }, rank: 1 },
     ]);
   });
 });
@@ -192,7 +192,7 @@ describe("topTeamGames", () => {
     ];
 
     expect(topTeamGames(teams, games, 2).entries).toEqual([
-      { id: 1, name: "Amadora Sub-11", value: 2 },
+      { id: 1, name: "Amadora Sub-11", value: 2, rank: 1 },
     ]);
   });
 
@@ -214,8 +214,8 @@ describe("topRated", () => {
     ];
 
     expect(topRated(players, ratings, 2).entries).toEqual([
-      { id: 1, name: "Ana", value: 7 },
-      { id: 2, name: "Beatriz", value: 4 },
+      { id: 1, name: "Ana", value: 7, rank: 1 },
+      { id: 2, name: "Beatriz", value: 4, rank: 2 },
     ]);
   });
 
@@ -227,7 +227,7 @@ describe("topRated", () => {
     const ratings = [{ playerId: 1, value: 5 }];
 
     expect(topRated(players, ratings, 3).entries).toEqual([
-      { id: 1, name: "Ana", value: 5 },
+      { id: 1, name: "Ana", value: 5, rank: 1 },
     ]);
   });
 
@@ -236,7 +236,7 @@ describe("topRated", () => {
     const ratings = [{ playerId: 1, value: 0 }];
 
     expect(topRated(players, ratings, 3).entries).toEqual([
-      { id: 1, name: "Ana", value: 0 },
+      { id: 1, name: "Ana", value: 0, rank: 1 },
     ]);
   });
 
@@ -259,6 +259,21 @@ describe("leader-tile tie cap", () => {
 
     expect(result.entries).toHaveLength(MAX_LEADER_ENTRIES);
     expect(result.overflow).toBe(20 - MAX_LEADER_ENTRIES);
+    expect(result.entries.every((e) => e.rank === 1)).toBe(true);
+  });
+});
+
+describe("standard competition ranking", () => {
+  it("gives a rank tier that skips ahead by the size of the preceding tie", () => {
+    const players = [
+      { id: 1, name: "Ana", goals: 5 },
+      { id: 2, name: "Beatriz", goals: 5 },
+      { id: 3, name: "Carla", goals: 2 },
+    ];
+
+    const result = topScorers(players, 3);
+
+    expect(result.entries.map((e) => e.rank)).toEqual([1, 1, 3]);
   });
 });
 
