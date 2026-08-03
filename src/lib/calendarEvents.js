@@ -47,9 +47,20 @@ export function toEvents(trainings, games, teams) {
 }
 
 /**
+ * Deterministic event ordering shared by every consumer of `toEvents`: by
+ * time ascending, ties broken by type then sourceId so rendering order never
+ * depends on input order (reused by `dashboardStats.nextEvent`).
+ */
+export function compareEvents(a, b) {
+  const diff = a.date.getTime() - b.date.getTime();
+  if (diff !== 0) return diff;
+  if (a.type !== b.type) return a.type.localeCompare(b.type);
+  return String(a.sourceId).localeCompare(String(b.sourceId));
+}
+
+/**
  * Filters events down to a single calendar month (0-indexed), ordered by
- * time. Ties (same timestamp) break deterministically by type then sourceId
- * so rendering order never depends on input order.
+ * time (see `compareEvents`).
  */
 export function eventsForMonth(events, year, month) {
   return events
@@ -57,10 +68,5 @@ export function eventsForMonth(events, year, month) {
       (event) =>
         event.date.getFullYear() === year && event.date.getMonth() === month
     )
-    .sort((a, b) => {
-      const diff = a.date.getTime() - b.date.getTime();
-      if (diff !== 0) return diff;
-      if (a.type !== b.type) return a.type.localeCompare(b.type);
-      return String(a.sourceId).localeCompare(String(b.sourceId));
-    });
+    .sort(compareEvents);
 }

@@ -35,6 +35,36 @@ describe("ratingService", () => {
     });
   }
 
+  it("getAll returns every persisted rating across players and events", async () => {
+    const { team, player } = await seedTeamAndPlayer();
+    const training = await seedTraining(team.id);
+    await ratingService.setRating({
+      playerId: player.id,
+      eventType: "training",
+      eventId: training.id,
+      value: 7,
+    });
+
+    const all = await ratingService.getAll();
+
+    expect(
+      all.some(
+        (rating) =>
+          rating.playerId === player.id &&
+          rating.eventType === "training" &&
+          rating.eventId === training.id &&
+          rating.value === 7
+      )
+    ).toBe(true);
+  });
+
+  it("getAll returns non-reference-identical arrays across two calls (AD-004)", async () => {
+    const first = await ratingService.getAll();
+    const second = await ratingService.getAll();
+    expect(first).not.toBe(second);
+    expect(first).toEqual(second);
+  });
+
   it("setRating persists a rating with an id assigned via newId() (AC RATE-01.2)", async () => {
     const { team, player } = await seedTeamAndPlayer();
     const training = await seedTraining(team.id);
