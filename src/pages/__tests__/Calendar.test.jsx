@@ -47,10 +47,10 @@ test("renders a training and a game on the same day, visually distinguished by t
   const { container } = render(<Calendar />);
 
   await waitFor(() => screen.getByText(/09:00/));
-  const trainingCell = screen.getByText(/09:00/).closest("div");
-  const gameCell = screen.getByText(/18:00/).closest("div");
+  const trainingEvent = screen.getByText(/09:00/).closest("button, div");
+  const gameEvent = screen.getByText(/18:00/).closest("button, div");
 
-  expect(trainingCell.style.background).not.toBe(gameCell.style.background);
+  expect(trainingEvent.className).not.toBe(gameEvent.className);
   expect(container.textContent).toMatch(/vs Benfica/);
 });
 
