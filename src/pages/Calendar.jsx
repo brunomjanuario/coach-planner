@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { trainingService } from "../services/trainingService";
 import { gameService } from "../services/gameService";
 import { teamService } from "../services/teamService";
@@ -23,6 +24,7 @@ function getFirstDayOfWeek(year, month) {
 }
 
 export default function Calendar() {
+  const navigate = useNavigate();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -88,6 +90,14 @@ export default function Calendar() {
     currentMonth === today.getMonth() &&
     currentYear === today.getFullYear();
 
+  const goToEvent = (event) => {
+    if (event.type === "training") {
+      navigate(`/trainings?training=${event.sourceId}`);
+    } else {
+      navigate(`/games?game=${event.sourceId}`);
+    }
+  };
+
   return (
     <div className="w-full m-5 md:m-10 rounded-2xl bg-white p-4 shadow-lg md:p-8">
       <div className="mb-6 flex items-center justify-between">
@@ -136,6 +146,7 @@ export default function Calendar() {
                       <button
                         key={event.id}
                         type="button"
+                        onClick={() => goToEvent(event)}
                         className={`mb-0.5 block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-gray-800 hover:brightness-95 focus:outline-2 focus:outline-blue-500 ${
                           event.type === "game" ? "bg-blue-100" : "bg-amber-200"
                         }`}
