@@ -1,5 +1,6 @@
 import { render, screen, within, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "../Home";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
@@ -14,6 +15,22 @@ function renderHome() {
   return render(
     <MemoryRouter>
       <Home />
+    </MemoryRouter>
+  );
+}
+
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname + location.search}</div>;
+}
+
+function renderHomeWithLocation() {
+  return render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<LocationDisplay />} />
+      </Routes>
     </MemoryRouter>
   );
 }
@@ -73,14 +90,13 @@ test("revisiting after a record is created elsewhere shows the updated count (AC
   expect(within(getTile("Teams")).getByText("3")).toBeInTheDocument();
 });
 
-test("preserves the existing 3x2 grid layout", async () => {
+test("preserves the 3-column grid layout, grown to fit the next-event tile", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
   const grid = container.querySelector(".grid");
   expect(grid.className).toContain("grid-cols-3");
-  expect(grid.className).toContain("grid-rows-2");
-  expect(grid.children).toHaveLength(6);
+  expect(grid.children).toHaveLength(7);
 });
 
 test("renders a loading placeholder rather than 0 before the initial load resolves (edge case)", () => {
@@ -92,7 +108,7 @@ test("renders a loading placeholder rather than 0 before the initial load resolv
   renderHome();
 
   expect(screen.queryByText("0")).not.toBeInTheDocument();
-  expect(screen.getAllByText("—")).toHaveLength(6);
+  expect(screen.getAllByText("—")).toHaveLength(7);
 });
 
 test("Most Goals lists the top 3 scorers with their totals (AC DASH-05.1)", async () => {
@@ -214,4 +230,115 @@ test("ties render every tied player (AC DASH-05.4)", async () => {
   const tile = within(getTile("Most Goals"));
   await tile.findByText("1. Ana");
   expect(tile.getByText("1. Beatriz")).toBeInTheDocument();
+});
+
+test("shows the soonest future event with date, time, type and team (AC DASH-06.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+    {
+      id: 42,
+      teamId: 1,
+      day: new Date(Date.now() + 86_400_000),
+      duration: 60,
+    },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await screen.findByText(/Training · Amadora Sub-11/);
+});
+
+test("picks the sooner of a training and a game (AC DASH-06.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, day: new Date(Date.now() + 7 * 86_400_000), duration: 60 },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      teamId: 1,
+      opponent: "Benfica",
+      date: new Date(Date.now() + 86_400_000),
+    },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await screen.findByText(/vs Benfica/);
+});
+
+test("clicking the next-event tile navigates to the record via ?training= or ?game= (AC DASH-06.3)", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    {
+      id: 99,
+      teamId: 1,
+      opponent: "Benfica",
+      date: new Date(Date.now() + 86_400_000),
+    },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHomeWithLocation();
+
+  const link = await screen.findByRole("link", { name: /Next Event/ });
+  await user.click(link);
+
+  expect(await screen.findByTestId("location")).toHaveTextContent(
+    "/games?game=99"
+  );
+});
+
+test("shows a message linking to the calendar when no future events exist (AC DASH-06.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  const tile = within(getTile("Next Event"));
+  await tile.findByText("No upcoming events");
+  expect(tile.getByRole("link", { name: "View calendar" })).toHaveAttribute(
+    "href",
+    "/calendar"
+  );
+});
+
+test("the next-event tile is keyboard-activatable", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    {
+      id: 99,
+      teamId: 1,
+      opponent: "Benfica",
+      date: new Date(Date.now() + 86_400_000),
+    },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHomeWithLocation();
+
+  const link = await screen.findByRole("link", { name: /Next Event/ });
+  link.focus();
+  await user.keyboard("{Enter}");
+
+  expect(await screen.findByTestId("location")).toHaveTextContent(
+    "/games?game=99"
+  );
 });

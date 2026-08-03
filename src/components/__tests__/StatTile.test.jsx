@@ -35,6 +35,15 @@ test("renders 'No data yet' with a link to the creating page when value is 0 (AC
   );
 });
 
+test("renders a custom empty-link label when emptyLinkLabel is given", () => {
+  renderTile({ value: null, emptyHref: "/calendar", emptyLinkLabel: "View calendar" });
+
+  expect(screen.getByRole("link", { name: "View calendar" })).toHaveAttribute(
+    "href",
+    "/calendar"
+  );
+});
+
 test("renders 'No data yet' when value is null, even without an emptyHref", () => {
   renderTile({ value: null });
 

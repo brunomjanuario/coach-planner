@@ -3,7 +3,13 @@ import { teamService } from "../services/teamService";
 import { trainingService } from "../services/trainingService";
 import { gameService } from "../services/gameService";
 import { cardService } from "../services/cardService";
-import { counts, topScorers, topCarded, topTeamGames } from "../lib/dashboardStats";
+import {
+  counts,
+  topScorers,
+  topCarded,
+  topTeamGames,
+  nextEvent,
+} from "../lib/dashboardStats";
 import StatTile from "../components/StatTile";
 import LeaderTile from "../components/LeaderTile";
 
@@ -40,9 +46,16 @@ export default function Home() {
   const scorers = topScorers(players, 3);
   const carded = topCarded(players, cards, 3);
   const teamGames = topTeamGames(teams, games, 3);
+  const upcoming = nextEvent(trainings, games, teams);
+
+  const nextEventHref = upcoming
+    ? upcoming.type === "training"
+      ? `/trainings?training=${upcoming.sourceId}`
+      : `/games?game=${upcoming.sourceId}`
+    : undefined;
 
   return (
-    <div className="grid grid-cols-3 grid-rows-2 gap-10 p-5 w-full">
+    <div className="grid grid-cols-3 gap-10 p-5 w-full">
       <StatTile
         label="Teams"
         value={stats.teams}
@@ -75,6 +88,16 @@ export default function Home() {
         data={carded}
         renderValue={renderCardValue}
         loading={loading}
+      />
+      <StatTile
+        label="Next Event"
+        value={upcoming ? upcoming.date.toLocaleString() : null}
+        breakdown={upcoming ? `${upcoming.title} · ${upcoming.teamName}` : undefined}
+        href={nextEventHref}
+        loading={loading}
+        emptyHref="/calendar"
+        emptyLabel="No upcoming events"
+        emptyLinkLabel="View calendar"
       />
     </div>
   );

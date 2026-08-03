@@ -17,6 +17,7 @@ export default function StatTile({
   breakdown,
   emptyHref,
   emptyLabel = "No data yet",
+  emptyLinkLabel = "Add one",
   loading = false,
   href,
   onClick,
@@ -47,7 +48,7 @@ export default function StatTile({
                 to={emptyHref}
                 className="text-blue-600 underline focus:outline-2 focus:outline-blue-500"
               >
-                Add one
+                {emptyLinkLabel}
               </Link>
             </>
           )}
