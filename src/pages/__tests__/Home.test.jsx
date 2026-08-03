@@ -6,6 +6,7 @@ import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
 import { cardService } from "../../services/cardService";
+import { ratingService } from "../../services/ratingService";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -65,11 +66,12 @@ test("a zero count renders the signposted empty state (AC DASH-04.4)", async () 
   vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
 
   renderHome();
 
   await waitFor(() => {
-    expect(screen.getAllByText("No data yet")).toHaveLength(6);
+    expect(screen.getAllByText("No data yet")).toHaveLength(7);
   });
   expect(
     within(getTile("Teams")).getByRole("link", { name: "Add one" })
@@ -90,13 +92,13 @@ test("revisiting after a record is created elsewhere shows the updated count (AC
   expect(within(getTile("Teams")).getByText("3")).toBeInTheDocument();
 });
 
-test("preserves the 3-column grid layout, grown to fit the next-event tile", async () => {
+test("preserves the 3-column grid layout, grown to fit the added tiles", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
   const grid = container.querySelector(".grid");
   expect(grid.className).toContain("grid-cols-3");
-  expect(grid.children).toHaveLength(7);
+  expect(grid.children).toHaveLength(8);
 });
 
 test("renders a loading placeholder rather than 0 before the initial load resolves (edge case)", () => {
@@ -104,11 +106,12 @@ test("renders a loading placeholder rather than 0 before the initial load resolv
   vi.spyOn(trainingService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(gameService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(cardService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(ratingService, "getAll").mockReturnValue(new Promise(() => {}));
 
   renderHome();
 
   expect(screen.queryByText("0")).not.toBeInTheDocument();
-  expect(screen.getAllByText("—")).toHaveLength(7);
+  expect(screen.getAllByText("—")).toHaveLength(8);
 });
 
 test("Most Goals lists the top 3 scorers with their totals (AC DASH-05.1)", async () => {
@@ -341,4 +344,73 @@ test("the next-event tile is keyboard-activatable", async () => {
   expect(await screen.findByTestId("location")).toHaveTextContent(
     "/games?game=99"
   );
+});
+
+test("Top Rated lists the top 3 players by average rating, to one decimal (AC DASH-07.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [
+        { id: 1, name: "Ana" },
+        { id: 2, name: "Beatriz" },
+      ],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([
+    { playerId: 1, value: 8 },
+    { playerId: 1, value: 7 },
+    { playerId: 2, value: 4 },
+  ]);
+
+  renderHome();
+
+  const tile = within(getTile("Top Rated"));
+  await tile.findByText("1. Ana");
+  expect(tile.getByText("7.5")).toBeInTheDocument();
+});
+
+test("excludes an unrated player rather than ranking them as 0 (AC DASH-07.2)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [
+        { id: 1, name: "Ana" },
+        { id: 2, name: "Beatriz" },
+      ],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([
+    { playerId: 1, value: 6 },
+  ]);
+
+  renderHome();
+
+  const tile = within(getTile("Top Rated"));
+  await tile.findByText("1. Ana");
+  expect(tile.queryByText(/Beatriz/)).not.toBeInTheDocument();
+});
+
+test("no ratings renders the empty state (AC DASH-07.3)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana" }] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await screen.findByText("Top Rated");
+  expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
 });
