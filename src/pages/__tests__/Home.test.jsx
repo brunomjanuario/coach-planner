@@ -414,3 +414,119 @@ test("no ratings renders the empty state (AC DASH-07.3)", async () => {
   await screen.findByText("Top Rated");
   expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
 });
+
+function mockTwoTeamsFixture() {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [{ id: 1, name: "Ana", goals: 5 }],
+    },
+    {
+      id: 2,
+      club: "Areias",
+      name: "Sub-19",
+      players: [{ id: 2, name: "Beatriz", goals: 3 }],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), duration: 60 },
+    { id: 2, teamId: 2, day: new Date(Date.now() + 86_400_000), duration: 60 },
+    { id: 3, teamId: null, day: new Date(Date.now() + 86_400_000), duration: 60 },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, usScore: 1, themScore: 0 },
+    { id: 2, teamId: 2, usScore: 2, themScore: 2 },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+}
+
+test("selecting a team recomputes every tile for that team only (AC DASH-08.1)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
+  expect(within(getTile("Training")).getByText("0 past · 1 upcoming")).toBeInTheDocument();
+  const goalsTile = within(getTile("Most Goals"));
+  expect(goalsTile.getByText("1. Ana")).toBeInTheDocument();
+  expect(goalsTile.queryByText(/Beatriz/)).not.toBeInTheDocument();
+});
+
+test("clearing the filter recomputes across all teams (AC DASH-08.2)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Team"), "");
+
+  expect(within(getTile("Teams")).getByText("2")).toBeInTheDocument();
+  const goalsTile = within(getTile("Most Goals"));
+  expect(goalsTile.getByText("1. Ana")).toBeInTheDocument();
+  expect(goalsTile.getByText("2. Beatriz")).toBeInTheDocument();
+});
+
+test("a team with no data selected shows every tile's empty state, never stale figures (AC DASH-08.3)", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana", goals: 5 }] },
+    { id: 2, club: "Zero", name: "Team", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), duration: 60 },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, usScore: 1, themScore: 0 },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "2");
+
+  expect(within(getTile("Training")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Games")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Most Goals")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Most Games")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Most Cards")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
+  expect(screen.getByText("No upcoming events")).toBeInTheDocument();
+});
+
+test("filter changes recompute without re-fetching or reloading (AC DASH-08.4)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(teamService.getAll).toHaveBeenCalledTimes(1);
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await within(getTile("Teams")).findByText("1");
+
+  expect(teamService.getAll).toHaveBeenCalledTimes(1);
+});
+
+test("excludes an unassigned training when filtered, counts it when unfiltered (edge case)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(within(getTile("Training")).getByText("3")).toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  expect(within(getTile("Training")).getByText("1")).toBeInTheDocument();
+});
