@@ -530,3 +530,29 @@ test("excludes an unassigned training when filtered, counts it when unfiltered (
 
   expect(within(getTile("Training")).getByText("1")).toBeInTheDocument();
 });
+
+test("excludes a player whose team has been deleted from the leader tiles (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [{ id: 1, name: "Ana", goals: 10 }],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([
+    { id: 1, playerId: 99, gameId: 1, type: "yellow" },
+  ]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([
+    { playerId: 99, value: 8 },
+  ]);
+
+  renderHome();
+
+  await screen.findByText("Most Goals");
+  expect(within(getTile("Most Goals")).getByText("1. Ana")).toBeInTheDocument();
+  expect(within(getTile("Most Cards")).getByText("No data yet")).toBeInTheDocument();
+  expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
+});
