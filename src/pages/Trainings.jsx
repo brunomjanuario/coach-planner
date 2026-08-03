@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { trainingService } from "../services/trainingService";
+import { useDeepLinkPopup } from "../lib/useDeepLinkPopup";
 import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
@@ -48,6 +49,7 @@ export default function Trainings() {
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [createMessage, setCreateMessage] = useState("");
   const [unassignedTrainings, setUnassignedTrainings] = useState([]);
+  const [deepLinkNotFound, setDeepLinkNotFound] = useState(false);
 
   const loadUnassigned = async () => {
     const data = await trainingService.getUnassigned();
@@ -110,6 +112,23 @@ export default function Trainings() {
     loadUnassigned();
   }, []);
 
+  useDeepLinkPopup({
+    paramName: "training",
+    findTarget: async (id) => {
+      const all = await trainingService.getAllNumbered();
+      return all.find((t) => String(t.id) === id) ?? null;
+    },
+    onNotFound: () => setDeepLinkNotFound(true),
+    onFound: async (target) => {
+      setDeepLinkNotFound(false);
+      if (selectedTeam && target.teamId !== selectedTeam.id) {
+        setSelectedTeam(null);
+        await filterTrainings(null);
+      }
+      selectTraining(target);
+    },
+  });
+
   function selectTraining(training) {
     setSelectedTraining(training);
     setShowTrainingDetailsPopup(true);
@@ -162,6 +181,11 @@ export default function Trainings() {
       </div>
       {createMessage && (
         <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
+      {deepLinkNotFound && (
+        <p className="text-sm text-red-500 px-4 pb-2">
+          That training no longer exists.
+        </p>
       )}
       {unassignedTrainings.length > 0 && (
         <div className="px-4 pb-4 flex-shrink-0">
