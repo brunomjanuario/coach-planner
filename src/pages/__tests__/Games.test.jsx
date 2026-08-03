@@ -1,5 +1,6 @@
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useSearchParams } from "react-router-dom";
 import Games from "../Games";
 import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
@@ -7,6 +8,33 @@ import { gameService } from "../../services/gameService";
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function SearchParamsDisplay() {
+  const [searchParams] = useSearchParams();
+  return <div data-testid="search-params">{searchParams.toString()}</div>;
+}
+
+function DeepLinkTrigger({ paramName }) {
+  const [, setSearchParams] = useSearchParams();
+  return (
+    <button
+      onClick={(e) => setSearchParams({ [paramName]: e.target.dataset.id })}
+      data-testid="deep-link-trigger"
+    >
+      trigger
+    </button>
+  );
+}
+
+function renderGames(initialEntries = ["/games"]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Games />
+      <SearchParamsDisplay />
+      <DeepLinkTrigger paramName="game" />
+    </MemoryRouter>
+  );
+}
 
 function getTeamsColumn(container) {
   return container.querySelector(".text-center.overflow-y-auto");
@@ -48,7 +76,7 @@ async function selectTeamInForm(user, form, label) {
 }
 
 test("renders teams returned by teamService.getAll on mount", async () => {
-  const { container } = render(<Games />);
+  const { container } = renderGames();
 
   expect(await screen.findByText("Amadora Sub-11")).toBeInTheDocument();
   expect(
@@ -57,7 +85,7 @@ test("renders teams returned by teamService.getAll on mount", async () => {
 });
 
 test("loads and splits all games into Upcoming and Played buckets on mount (AC GAME-04.1)", async () => {
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
 
   await waitFor(() => {
@@ -68,7 +96,7 @@ test("loads and splits all games into Upcoming and Played buckets on mount (AC G
 
 test("selecting a team filters both games lists to that team's games only (AC GAME-04.2)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
@@ -86,7 +114,7 @@ test("selecting a team filters both games lists to that team's games only (AC GA
 
 test("deselecting the selected team reverts to showing all games (AC GAME-04.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
@@ -110,7 +138,7 @@ test("deselecting the selected team reverts to showing all games (AC GAME-04.3)"
 
 test("creating a game refreshes the Upcoming list without a manual reload", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -128,7 +156,7 @@ test("creating a game refreshes the Upcoming list without a manual reload", asyn
 
 test("creating a game outside the active filter keeps the filter and reports where it went (same contract as 03 TTA-04.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
@@ -155,7 +183,7 @@ test("creating a game outside the active filter keeps the filter and reports whe
 
 test("canceling the create-game popup does not add a game and preserves the current team filter", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -177,7 +205,7 @@ test("canceling the create-game popup does not add a game and preserves the curr
 
 test("renders an empty-state message for Upcoming when the filtered team has none (AC GAME-04.4)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -189,7 +217,7 @@ test("renders an empty-state message for Upcoming when the filtered team has non
 
 test("renders an empty-state message for Played when the filtered team has none (AC GAME-04.4)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -201,7 +229,7 @@ test("renders an empty-state message for Played when the filtered team has none 
 
 test("renders no React key warnings for the team filter and game lists", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
@@ -215,7 +243,7 @@ test("renders no React key warnings for the team filter and game lists", async (
 
 test("disables the create-game button with a message pointing at Teams when there are no teams (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
-  const { container } = render(<Games />);
+  const { container } = renderGames();
 
   await screen.findByText("No teams yet. Add one on the Teams page first.");
 
@@ -231,7 +259,7 @@ test("renders a game with a null teamId in the Unassigned bucket (edge case)", a
     competition: "Cup",
   });
 
-  render(<Games />);
+  renderGames();
 
   await screen.findByText("Unassigned");
   expect(
@@ -248,7 +276,7 @@ test("renders a game with a dangling teamId in the Unassigned bucket (edge case)
     competition: "Cup",
   });
 
-  render(<Games />);
+  renderGames();
 
   await screen.findByText("Unassigned");
   expect(
@@ -265,7 +293,7 @@ test("assigning a team to an unassigned game persists it and removes it from the
     competition: "Cup",
   });
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Unassigned");
   const row = within(getUnassignedList())
     .getByText(/Assign Me FC/)
@@ -283,7 +311,7 @@ test("assigning a team to an unassigned game persists it and removes it from the
 
 test("clicking an upcoming game row opens the result-entry popup", async () => {
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
@@ -298,7 +326,7 @@ test("clicking an upcoming game row opens the result-entry popup", async () => {
 
 test("entering a result moves the game from Upcoming to Played (AC GAME-06.1)", async () => {
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
@@ -320,7 +348,7 @@ test("entering a result moves the game from Upcoming to Played (AC GAME-06.1)", 
 
 test("recording a 0-0 result moves the game to Played, not leaving it Upcoming (null-vs-zero edge case)", async () => {
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
@@ -340,7 +368,7 @@ test("recording a 0-0 result moves the game to Played, not leaving it Upcoming (
 
 test("clicking a played game row opens the popup pre-filled and edits the result in place (AC GAME-06.4)", async () => {
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
@@ -365,7 +393,7 @@ test("clicking a played game row opens the popup pre-filled and edits the result
 
 test("clearing a result returns the game to Upcoming (AC GAME-06.5)", async () => {
   const user = userEvent.setup();
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
@@ -386,7 +414,7 @@ function getLeagueTableSection() {
 }
 
 test("with no team selected, shows an instruction instead of a merged table (AC GAME-10)", async () => {
-  render(<Games />);
+  renderGames();
   await screen.findByText("Amadora Sub-11");
 
   expect(
@@ -397,7 +425,7 @@ test("with no team selected, shows an instruction instead of a merged table (AC 
 
 test("renders the league table scoped to the selected team (AC GAME-07.1, GAME-10)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -426,7 +454,7 @@ test("renders the league table scoped to the selected team (AC GAME-07.1, GAME-1
 
 test("recording a result recomputes our row with no page reload (AC GAME-07.5)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -449,7 +477,7 @@ test("recording a result recomputes our row with no page reload (AC GAME-07.5)",
 
 test("clearing a result recomputes our row with no page reload (AC GAME-07.5)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -470,7 +498,7 @@ test("clearing a result recomputes our row with no page reload (AC GAME-07.5)", 
 
 test("deleting a played game removes its contribution from the standings (edge case)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -493,7 +521,7 @@ test("deleting a played game removes its contribution from the standings (edge c
 
 test("adding a rival row re-sorts the table immediately", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Games />);
+  const { container } = renderGames();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -518,4 +546,93 @@ test("adding a rival row re-sorts the table immediately", async () => {
     expect(within(dataRows[0]).getByText("Benfica B")).toBeInTheDocument();
     expect(within(dataRows[1]).getByText("Amadora Sub-11")).toBeInTheDocument();
   });
+});
+
+test("opens the matching game from a ?game=<id> deep link (AC CAL-04.2)", async () => {
+  const created = await gameService.create({
+    teamId: 1,
+    opponent: "Benfica",
+    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    isHome: true,
+    competition: "District League",
+  });
+
+  renderGames([`/games?game=${created.id}`]);
+
+  expect(
+    await screen.findByRole("heading", { name: "Record Result" })
+  ).toBeInTheDocument();
+  expect(screen.getByText("Benfica")).toBeInTheDocument();
+});
+
+test("removes the game param from the URL once opened, so a refresh does not reopen it (AC CAL-04.4)", async () => {
+  const created = await gameService.create({
+    teamId: 1,
+    opponent: "Benfica",
+    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    isHome: true,
+    competition: "District League",
+  });
+
+  renderGames([`/games?game=${created.id}`]);
+  await screen.findByRole("heading", { name: "Record Result" });
+
+  await waitFor(() => {
+    expect(screen.getByTestId("search-params")).toHaveTextContent("");
+  });
+});
+
+test("shows a not-found message when the deep-linked id matches no game (AC CAL-04.3)", async () => {
+  renderGames(["/games?game=does-not-exist"]);
+
+  expect(
+    await screen.findByText("That game no longer exists.")
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Record Result" })
+  ).not.toBeInTheDocument();
+});
+
+test("clears the team filter when it would hide the deep-linked game (edge case)", async () => {
+  const user = userEvent.setup();
+  const created = await gameService.create({
+    teamId: 2,
+    opponent: "Sporting",
+    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    isHome: true,
+    competition: "District League",
+  });
+
+  const { container } = renderGames();
+  await screen.findByText("Amadora Sub-11");
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(
+      within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+    ).toHaveAttribute("aria-current", "true");
+  });
+
+  const trigger = screen.getByTestId("deep-link-trigger");
+  trigger.dataset.id = String(created.id);
+  await user.click(trigger);
+
+  expect(
+    await screen.findByRole("heading", { name: "Record Result" })
+  ).toBeInTheDocument();
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).not.toHaveAttribute("aria-current", "true");
+});
+
+test("arriving with no deep-link param behaves exactly as before (regression guard)", async () => {
+  renderGames();
+
+  await screen.findByText("Amadora Sub-11");
+  expect(
+    screen.queryByRole("heading", { name: "Record Result" })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("That game no longer exists.")).toBeNull();
 });

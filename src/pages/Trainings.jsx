@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { teamService } from "../services/teamService";
 import { trainingService } from "../services/trainingService";
+import { useDeepLinkPopup } from "../lib/useDeepLinkPopup";
 import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
@@ -38,7 +38,6 @@ function trainingRowLabel(training) {
 }
 
 export default function Trainings() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teams, setTeams] = useState([]);
   const [futureTrainings, setFutureTrainings] = useState([]);
@@ -113,39 +112,22 @@ export default function Trainings() {
     loadUnassigned();
   }, []);
 
-  useEffect(() => {
-    const trainingParam = searchParams.get("training");
-    if (trainingParam == null) return;
-
-    async function openFromDeepLink() {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete("training");
-          return next;
-        },
-        { replace: true }
-      );
-
+  useDeepLinkPopup({
+    paramName: "training",
+    findTarget: async (id) => {
       const all = await trainingService.getAllNumbered();
-      const target = all.find((t) => String(t.id) === trainingParam);
-
-      if (!target) {
-        setDeepLinkNotFound(true);
-        return;
-      }
-
+      return all.find((t) => String(t.id) === id) ?? null;
+    },
+    onNotFound: () => setDeepLinkNotFound(true),
+    onFound: async (target) => {
       setDeepLinkNotFound(false);
       if (selectedTeam && target.teamId !== selectedTeam.id) {
         setSelectedTeam(null);
         await filterTrainings(null);
       }
       selectTraining(target);
-    }
-
-    openFromDeepLink();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    },
+  });
 
   function selectTraining(training) {
     setSelectedTraining(training);

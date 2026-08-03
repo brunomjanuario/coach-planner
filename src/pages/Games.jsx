@@ -3,6 +3,7 @@ import { teamService } from "../services/teamService";
 import { gameService } from "../services/gameService";
 import { standingsService } from "../services/standingsService";
 import { computeOurRow, toStandingsRow, sortStandings } from "../lib/standings";
+import { useDeepLinkPopup } from "../lib/useDeepLinkPopup";
 import { IconPlus } from "@tabler/icons-react";
 import GameSavePopup from "../components/GameSavePopup";
 import GameResultPopup from "../components/GameResultPopup";
@@ -23,6 +24,7 @@ export default function Games() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [standingsRows, setStandingsRows] = useState([]);
   const [showRivalRowPopup, setShowRivalRowPopup] = useState(false);
+  const [deepLinkNotFound, setDeepLinkNotFound] = useState(false);
 
   const loadUnassigned = async () => {
     const data = await gameService.getUnassigned();
@@ -93,6 +95,24 @@ export default function Games() {
     await recomputeStandings(team.id);
   }
 
+  useDeepLinkPopup({
+    paramName: "game",
+    findTarget: async (id) => {
+      const all = await gameService.getAll();
+      return all.find((g) => String(g.id) === id) ?? null;
+    },
+    onNotFound: () => setDeepLinkNotFound(true),
+    onFound: async (target) => {
+      setDeepLinkNotFound(false);
+      if (selectedTeam && target.teamId !== selectedTeam.id) {
+        setSelectedTeam(null);
+        await filterGames(null);
+        await recomputeStandings(null);
+      }
+      selectGame(target);
+    },
+  });
+
   useEffect(() => {
     async function loadTeamsAndGames() {
       try {
@@ -161,6 +181,11 @@ export default function Games() {
       </div>
       {createMessage && (
         <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
+      {deepLinkNotFound && (
+        <p className="text-sm text-red-500 px-4 pb-2">
+          That game no longer exists.
+        </p>
       )}
       {unassignedGames.length > 0 && (
         <div className="px-4 pb-4 flex-shrink-0">
