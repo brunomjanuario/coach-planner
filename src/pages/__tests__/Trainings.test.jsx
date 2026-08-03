@@ -1,5 +1,6 @@
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useSearchParams } from "react-router-dom";
 import Trainings from "../Trainings";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
@@ -8,6 +9,33 @@ import { toInputValue } from "../../lib/datetime";
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function SearchParamsDisplay() {
+  const [searchParams] = useSearchParams();
+  return <div data-testid="search-params">{searchParams.toString()}</div>;
+}
+
+function DeepLinkTrigger({ paramName }) {
+  const [, setSearchParams] = useSearchParams();
+  return (
+    <button
+      onClick={(e) => setSearchParams({ [paramName]: e.target.dataset.id })}
+      data-testid="deep-link-trigger"
+    >
+      trigger
+    </button>
+  );
+}
+
+function renderTrainings(initialEntries = ["/trainings"]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Trainings />
+      <SearchParamsDisplay />
+      <DeepLinkTrigger paramName="training" />
+    </MemoryRouter>
+  );
+}
 
 function getTeamsColumn(container) {
   return container.querySelector(".text-center.overflow-y-auto");
@@ -49,7 +77,7 @@ async function selectTeamInForm(user, form, label) {
 }
 
 test("renders teams returned by teamService.getAll on mount", async () => {
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
 
   expect(await screen.findByText("Amadora Sub-11")).toBeInTheDocument();
   expect(
@@ -61,7 +89,7 @@ test("logs an error and does not crash when teamService.getAll rejects", async (
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(teamService, "getAll").mockRejectedValueOnce(new Error("boom"));
 
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
 
   await waitFor(() => {
     expect(errorSpy).toHaveBeenCalledWith(
@@ -75,7 +103,7 @@ test("logs an error and does not crash when teamService.getAll rejects", async (
 });
 
 test("loads and splits all trainings into past and future buckets on mount when no team is selected", async () => {
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await waitFor(() => {
@@ -86,7 +114,7 @@ test("loads and splits all trainings into past and future buckets on mount when 
 
 test("selecting a team filters both trainings lists to that team's trainings only", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -104,7 +132,7 @@ test("selecting a team filters both trainings lists to that team's trainings onl
 
 test("deselecting the selected team reverts to showing all trainings", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -128,7 +156,7 @@ test("deselecting the selected team reverts to showing all trainings", async () 
 
 test("creating a training with a future date refreshes the Next Trainings list without a manual reload", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -147,7 +175,7 @@ test("creating a training with a future date refreshes the Next Trainings list w
 
 test("creating a training with a past date immediately places it under Past Trainings", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -168,7 +196,7 @@ test("creating a training with a past date immediately places it under Past Trai
 
 test("creating a training while a team filter is active preserves the filter and does not leak other teams' trainings", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -194,7 +222,7 @@ test("creating a training while a team filter is active preserves the filter and
 
 test("canceling the create-training popup does not add a training and preserves the current team filter", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -218,7 +246,7 @@ test("canceling the create-training popup does not add a training and preserves 
 
 test("renders no React key warnings for the team filter and training lists", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -231,7 +259,7 @@ test("renders no React key warnings for the team filter and training lists", asy
 });
 
 test("renders an empty-state message for Next Trainings when there are none", async () => {
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   expect(await screen.findByText("No upcoming trainings.")).toBeInTheDocument();
@@ -239,7 +267,7 @@ test("renders an empty-state message for Next Trainings when there are none", as
 
 test("renders an empty-state message for Past Trainings when the filtered team has none", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -253,7 +281,7 @@ test("renders an empty-state message for Past Trainings when the filtered team h
 
 test("marks the selected team row with aria-current", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -267,7 +295,7 @@ test("marks the selected team row with aria-current", async () => {
 
 test("clicking the selected team again clears aria-current from its row", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -284,7 +312,7 @@ test("clicking the selected team again clears aria-current from its row", async 
 
 test("creating a future training removes the Next Trainings empty-state message", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await screen.findByText("No upcoming trainings.");
 
@@ -303,14 +331,14 @@ test("creating a future training removes the Next Trainings empty-state message"
 test("renders an empty-state message for the team filter when there are no teams", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
 
-  render(<Trainings />);
+  renderTrainings();
 
   expect(await screen.findByText("No teams yet.")).toBeInTheDocument();
 });
 
 test("disables the create-training button with a message pointing at Teams when there are no teams (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
 
   await screen.findByText("No teams yet. Add one on the Teams page first.");
 
@@ -318,7 +346,7 @@ test("disables the create-training button with a message pointing at Teams when 
 });
 
 test("keeps the create-training button enabled once teams have loaded", async () => {
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
 
   await screen.findByText("Amadora Sub-11");
 
@@ -327,7 +355,7 @@ test("keeps the create-training button enabled once teams have loaded", async ()
 
 test("creating a training for a different team than the active filter keeps the filter and names the target team (AC TTA-04.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
@@ -354,7 +382,7 @@ test("creating a training for a different team than the active filter keeps the 
 
 test("opening the create popup again clears a previous different-team message", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
@@ -376,7 +404,7 @@ test("opening the create popup again clears a previous different-team message", 
 });
 
 test("does not render the Unassigned bucket when every training has a valid team (AC TTA-05.2)", async () => {
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
@@ -390,7 +418,7 @@ test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.
     exercises: [],
   });
 
-  render(<Trainings />);
+  renderTrainings();
 
   await screen.findByText("Unassigned");
   expect(within(getUnassignedList()).getByText(/45 min/)).toBeInTheDocument();
@@ -404,7 +432,7 @@ test("renders a training with a dangling teamId in the Unassigned bucket (edge c
     exercises: [],
   });
 
-  render(<Trainings />);
+  renderTrainings();
 
   await screen.findByText("Unassigned");
   expect(within(getUnassignedList()).getByText(/46 min/)).toBeInTheDocument();
@@ -418,7 +446,7 @@ test("the Unassigned bucket's assign control lists teams formatted as club + nam
     exercises: [],
   });
 
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Unassigned");
 
   const assignSelect = container.querySelector("li select");
@@ -438,7 +466,7 @@ test("assigning a team to an unassigned training persists it and removes it from
     exercises: [],
   });
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Unassigned");
   const row = within(getUnassignedList()).getByText(/48 min/).closest("li");
 
@@ -460,7 +488,7 @@ test("a training reassigned to the active filter's team appears in its filtered 
     exercises: [],
   });
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Unassigned");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -492,7 +520,7 @@ async function addExerciseInForm(user, form, { description, duration, players, r
 
 test("a training with three fully-populated exercises survives create and reload with every field unchanged (AC TFORM-02.4)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -553,7 +581,7 @@ test("a training with three fully-populated exercises survives create and reload
 
 test("null numeric fields survive the round trip as null, not 0 or undefined (AC TFORM-01.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -580,7 +608,7 @@ test("null numeric fields survive the round trip as null, not 0 or undefined (AC
 
 test("exercise ids are unique across two exercises added in the same tick (AC TFORM-02.5)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -605,7 +633,7 @@ test("exercise ids are unique across two exercises added in the same tick (AC TF
 
 test("training.day is still a Date after the round trip (regression guard on 01 PERSIST-05)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   await openCreatePopup(user, container);
@@ -635,7 +663,7 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
   });
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Unassigned");
 
   const keyWarning = errorSpy.mock.calls.find((call) =>
@@ -645,7 +673,7 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
 });
 
 test("renders a row with Training #N, a locale-formatted date and the duration in minutes (AC TNUM-04.1)", async () => {
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -663,7 +691,7 @@ test("no row renders a raw UUID id (AC TNUM-04.2)", async () => {
     exercises: [],
   });
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Unassigned");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -682,7 +710,7 @@ test("no row renders a Date.toString() form — the string 'GMT' is absent", asy
     exercises: [],
   });
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Unassigned");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -697,7 +725,7 @@ test("renders 'Invalid date' rather than crashing when a training's day is inval
     { id: "bad-day", teamId: 1, number: 3, day: new Date("not-a-date"), duration: 33 },
   ]);
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   expect(await screen.findByText(/Invalid date/)).toBeInTheDocument();
@@ -711,7 +739,7 @@ test("renders '—' for the number of an unassigned training (AC TNUM-01.5)", as
     exercises: [],
   });
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Unassigned");
 
   const row = within(getUnassignedList()).getByText(/53 min/).closest("li");
@@ -730,7 +758,7 @@ test("future-only and past-only filtered views keep team-wide numbers instead of
   const expectedNumber = numbered.find((t) => t.id === future.id).number;
   expect(expectedNumber).toBe(3);
 
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
 
   const futureRow = await within(getFutureList()).findByText(/54 min/);
@@ -739,7 +767,7 @@ test("future-only and past-only filtered views keep team-wide numbers instead of
 
 test("the number shown in the details popup matches the number on the row that opened it (edge case)", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -756,7 +784,7 @@ test("the number shown in the details popup matches the number on the row that o
 
 test("clicking Edit in the details popup closes the details popup and opens the form in edit mode for that training (AC TEDIT-04.1)", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -775,7 +803,7 @@ test("clicking Edit in the details popup closes the details popup and opens the 
 
 test("the edit form receives the same training the details popup was showing, by id not index", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -810,7 +838,7 @@ test("deleting a training removes it and renumbers the remaining team trainings 
     exercises: [],
   });
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(3);
@@ -833,7 +861,7 @@ test("deleting a training removes it and renumbers the remaining team trainings 
 
 test("deleting a training closes both the details popup and the confirmation dialog", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -852,7 +880,7 @@ test("deleting a training closes both the details popup and the confirmation dia
 
 test("cancelling a delete leaves the training list unchanged", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -868,7 +896,7 @@ test("cancelling a delete leaves the training list unchanged", async () => {
 
 test("reopening the details popup after an edit shows the updated values (edge case)", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -893,7 +921,7 @@ test("reopening the details popup after an edit shows the updated values (edge c
 
 test("editing refreshes both training lists without a page reload (AC TEDIT-06.1)", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -914,7 +942,7 @@ test("editing refreshes both training lists without a page reload (AC TEDIT-06.1
 
 test("an edit that moves a training from past to future jumps it to Next Trainings (AC TEDIT-06.2)", async () => {
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -935,7 +963,7 @@ test("an edit that moves a training from past to future jumps it to Next Trainin
 
 test("an edit that changes a training's team re-applies the active filter, removing it from the filtered list (AC TEDIT-06.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -958,7 +986,7 @@ test("an edit that changes a training's team re-applies the active filter, remov
 
 test("editing a training out of the active team filter keeps the filter and reports where it went (edge case, same as AC TTA-04.3)", async () => {
   const user = userEvent.setup();
-  const { container } = render(<Trainings />);
+  const { container } = renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -985,7 +1013,7 @@ test("editing a training out of the active team filter keeps the filter and repo
 test("editing a training deleted in another tab fails with a clear message and does not re-create it (edge case)", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   const user = userEvent.setup();
-  render(<Trainings />);
+  renderTrainings();
   await screen.findByText("Amadora Sub-11");
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -1007,4 +1035,91 @@ test("editing a training deleted in another tab fails with a clear message and d
   const afterCount = (await trainingService.getAll()).length;
   expect(afterCount).toBe(beforeCount);
   expect(errorSpy).toHaveBeenCalledWith("Failed to save training:", expect.any(Error));
+});
+
+test("opens the matching training's details popup from a ?training=<id> deep link (AC CAL-04.1)", async () => {
+  const created = await trainingService.create({
+    teamId: 1,
+    day: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    duration: 45,
+    exercises: [],
+  });
+
+  renderTrainings([`/trainings?training=${created.id}`]);
+
+  expect(
+    await screen.findByRole("button", { name: "Close" })
+  ).toBeInTheDocument();
+  expect(screen.getByText("45")).toBeInTheDocument();
+});
+
+test("removes the training param from the URL once the popup opens, so a refresh does not reopen it (AC CAL-04.4)", async () => {
+  const created = await trainingService.create({
+    teamId: 1,
+    day: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    duration: 45,
+    exercises: [],
+  });
+
+  renderTrainings([`/trainings?training=${created.id}`]);
+  await screen.findByRole("button", { name: "Close" });
+
+  await waitFor(() => {
+    expect(screen.getByTestId("search-params")).toHaveTextContent("");
+  });
+});
+
+test("shows a not-found message rather than an empty popup when the deep-linked id matches no training (AC CAL-04.3)", async () => {
+  renderTrainings(["/trainings?training=does-not-exist"]);
+
+  expect(
+    await screen.findByText("That training no longer exists.")
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Close" })
+  ).not.toBeInTheDocument();
+});
+
+test("clears the team filter when it would hide the deep-linked training (edge case)", async () => {
+  const user = userEvent.setup();
+  const created = await trainingService.create({
+    teamId: 2,
+    day: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    duration: 20,
+    exercises: [],
+  });
+
+  const { container } = renderTrainings();
+  await screen.findByText("Amadora Sub-11");
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+  await waitFor(() => {
+    expect(
+      within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+    ).toHaveAttribute("aria-current", "true");
+  });
+
+  const trigger = screen.getByTestId("deep-link-trigger");
+  trigger.dataset.id = String(created.id);
+  await user.click(trigger);
+
+  expect(
+    await screen.findByRole("button", { name: "Close" })
+  ).toBeInTheDocument();
+  expect(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  ).not.toHaveAttribute("aria-current", "true");
+});
+
+test("arriving with no deep-link param behaves exactly as before (regression guard)", async () => {
+  const { container } = renderTrainings();
+
+  await screen.findByText("Amadora Sub-11");
+  expect(
+    screen.queryByRole("button", { name: "Close" })
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("That training no longer exists.")).toBeNull();
+  expect(container).toBeTruthy();
 });

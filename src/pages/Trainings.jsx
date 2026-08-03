@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { teamService } from "../services/teamService";
 import { trainingService } from "../services/trainingService";
 import { IconPlus } from "@tabler/icons-react";
@@ -37,6 +38,7 @@ function trainingRowLabel(training) {
 }
 
 export default function Trainings() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teams, setTeams] = useState([]);
   const [futureTrainings, setFutureTrainings] = useState([]);
@@ -48,6 +50,7 @@ export default function Trainings() {
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [createMessage, setCreateMessage] = useState("");
   const [unassignedTrainings, setUnassignedTrainings] = useState([]);
+  const [deepLinkNotFound, setDeepLinkNotFound] = useState(false);
 
   const loadUnassigned = async () => {
     const data = await trainingService.getUnassigned();
@@ -110,6 +113,40 @@ export default function Trainings() {
     loadUnassigned();
   }, []);
 
+  useEffect(() => {
+    const trainingParam = searchParams.get("training");
+    if (trainingParam == null) return;
+
+    async function openFromDeepLink() {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("training");
+          return next;
+        },
+        { replace: true }
+      );
+
+      const all = await trainingService.getAllNumbered();
+      const target = all.find((t) => String(t.id) === trainingParam);
+
+      if (!target) {
+        setDeepLinkNotFound(true);
+        return;
+      }
+
+      setDeepLinkNotFound(false);
+      if (selectedTeam && target.teamId !== selectedTeam.id) {
+        setSelectedTeam(null);
+        await filterTrainings(null);
+      }
+      selectTraining(target);
+    }
+
+    openFromDeepLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   function selectTraining(training) {
     setSelectedTraining(training);
     setShowTrainingDetailsPopup(true);
@@ -162,6 +199,11 @@ export default function Trainings() {
       </div>
       {createMessage && (
         <p className="text-sm text-yellow-500 px-4 pb-2">{createMessage}</p>
+      )}
+      {deepLinkNotFound && (
+        <p className="text-sm text-red-500 px-4 pb-2">
+          That training no longer exists.
+        </p>
       )}
       {unassignedTrainings.length > 0 && (
         <div className="px-4 pb-4 flex-shrink-0">
