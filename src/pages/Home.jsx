@@ -2,31 +2,44 @@ import { useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { trainingService } from "../services/trainingService";
 import { gameService } from "../services/gameService";
-import { counts } from "../lib/dashboardStats";
+import { cardService } from "../services/cardService";
+import { counts, topScorers, topCarded, topTeamGames } from "../lib/dashboardStats";
 import StatTile from "../components/StatTile";
+import LeaderTile from "../components/LeaderTile";
+
+function renderCardValue(value) {
+  return `${value.yellow}Y / ${value.red}R`;
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState([]);
   const [trainings, setTrainings] = useState([]);
   const [games, setGames] = useState([]);
+  const [cards, setCards] = useState([]);
 
   useEffect(() => {
     async function load() {
-      const [teamsData, trainingsData, gamesData] = await Promise.all([
+      const [teamsData, trainingsData, gamesData, cardsData] = await Promise.all([
         teamService.getAll(),
         trainingService.getAll(),
         gameService.getAll(),
+        cardService.getAll(),
       ]);
       setTeams(teamsData);
       setTrainings(trainingsData);
       setGames(gamesData);
+      setCards(cardsData);
       setLoading(false);
     }
     load();
   }, []);
 
+  const players = teams.flatMap((team) => team.players ?? []);
   const stats = counts({ teams, trainings, games });
+  const scorers = topScorers(players, 3);
+  const carded = topCarded(players, cards, 3);
+  const teamGames = topTeamGames(teams, games, 3);
 
   return (
     <div className="grid grid-cols-3 grid-rows-2 gap-10 p-5 w-full">
@@ -50,9 +63,19 @@ export default function Home() {
         loading={loading}
         emptyHref="/games"
       />
-      <div className="w-full border px-3 py-2 rounded-2xl">Most Goals</div>
-      <div className="w-full border px-3 py-2 rounded-2xl">Most Games</div>
-      <div className="w-full border px-3 py-2 rounded-2xl">Most Cards</div>
+      <LeaderTile label="Most Goals" data={scorers} loading={loading} />
+      <LeaderTile
+        label="Most Games"
+        note="Team appearances, not individual"
+        data={teamGames}
+        loading={loading}
+      />
+      <LeaderTile
+        label="Most Cards"
+        data={carded}
+        renderValue={renderCardValue}
+        loading={loading}
+      />
     </div>
   );
 }
