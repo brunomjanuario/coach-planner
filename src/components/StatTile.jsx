@@ -1,7 +1,5 @@
 import { Link } from "react-router-dom";
-
-const TILE_CLASS = "w-full border px-3 py-2 rounded-2xl block";
-const INTERACTIVE_CLASS = "text-left hover:bg-gray-50 focus:outline-2 focus:outline-blue-500";
+import Tile from "./Tile";
 
 /**
  * A single dashboard number with an optional breakdown line, a signposted
@@ -24,12 +22,11 @@ export default function StatTile({
 }) {
   if (loading) {
     return (
-      <div className={TILE_CLASS}>
-        <div className="text-sm text-gray-500">{label}</div>
+      <Tile label={label}>
         <div className="text-2xl font-semibold text-gray-300" aria-hidden="true">
           —
         </div>
-      </div>
+      </Tile>
     );
   }
 
@@ -37,8 +34,7 @@ export default function StatTile({
 
   if (isEmpty) {
     return (
-      <div className={TILE_CLASS}>
-        <div className="text-sm text-gray-500">{label}</div>
+      <Tile label={label}>
         <div className="text-sm">
           {emptyLabel}
           {emptyHref && (
@@ -53,33 +49,14 @@ export default function StatTile({
             </>
           )}
         </div>
-      </div>
+      </Tile>
     );
   }
 
-  const body = (
-    <>
-      <div className="text-sm text-gray-500">{label}</div>
+  return (
+    <Tile label={label} href={href} onClick={onClick}>
       <div className="text-2xl font-semibold">{value}</div>
       {breakdown && <div className="text-sm text-gray-500">{breakdown}</div>}
-    </>
+    </Tile>
   );
-
-  if (href) {
-    return (
-      <Link to={href} className={`${TILE_CLASS} ${INTERACTIVE_CLASS}`}>
-        {body}
-      </Link>
-    );
-  }
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={`${TILE_CLASS} ${INTERACTIVE_CLASS}`}>
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={TILE_CLASS}>{body}</div>;
 }
