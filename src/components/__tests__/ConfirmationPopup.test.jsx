@@ -45,6 +45,19 @@ test("clicking Submit calls onSubmit and not onClose", async () => {
   expect(onClose).not.toHaveBeenCalled();
 });
 
+test("the Cancel and Submit buttons render outside the scroll region (AC POPUP-02.4)", () => {
+  render(
+    <ConfirmationPopup message="Delete this?" onSubmit={() => {}} onClose={() => {}} />
+  );
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const submitButton = screen.getByRole("button", { name: "Submit" });
+
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(submitButton);
+});
+
 test("stacks correctly when opened from inside another popup (edge case)", async () => {
   const onSubmit = vi.fn();
   const user = userEvent.setup();

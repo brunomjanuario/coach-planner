@@ -28,6 +28,19 @@ test("renders at natural height with no forced tall box (AC POPUP-03)", () => {
   expect(panel.className).toMatch(/max-h-\[85vh\]/);
 });
 
+test("the form fields sit inside the scroll region while Cancel/Submit stay outside it (AC POPUP-02.4)", () => {
+  const { container } = render(<TeamPopup team={null} onClose={() => {}} />);
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const form = container.querySelector("form");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const submitButton = screen.getByRole("button", { name: "Submit" });
+
+  expect(shellBody).toContainElement(form);
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(submitButton);
+});
+
 test("the Submit button in the footer still submits the form fields inside the scroll region", async () => {
   const createSpy = vi.spyOn(teamService, "create").mockImplementation(() => {});
   const onClose = vi.fn();

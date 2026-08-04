@@ -50,6 +50,21 @@ test("renders every team as an option formatted as club + name", async () => {
   ).toBeInTheDocument();
 });
 
+test("the form fields sit inside the scroll region while Cancel/Create stay outside it (AC POPUP-02.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const { container } = renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const form = container.querySelector("form");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const createButton = screen.getByRole("button", { name: "Create" });
+
+  expect(shellBody).toContainElement(form);
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(createButton);
+});
+
 test("blocks submission and shows a validation message when no team is selected (AC GAME-03.2)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const createSpy = vi.spyOn(gameService, "create");

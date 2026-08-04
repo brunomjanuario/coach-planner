@@ -37,6 +37,19 @@ test("renders through PopupShell as an accessible dialog at natural height (AC P
   expect(screen.getByText("Player Form")).toBeInTheDocument();
 });
 
+test("the form fields sit inside the scroll region while Cancel/Submit stay outside it (AC POPUP-02.4)", () => {
+  const { container } = render(<PlayerPopup player={null} teamId={1} onClose={() => {}} />);
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const form = container.querySelector("form");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const submitButton = screen.getByRole("button", { name: "Submit" });
+
+  expect(shellBody).toContainElement(form);
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(submitButton);
+});
+
 test("creating a player awaits teamService.addPlayer before calling onClose (AC PREF-03.1)", async () => {
   const { promise, resolve } = deferred();
   const addPlayerSpy = vi.spyOn(teamService, "addPlayer").mockReturnValue(promise);

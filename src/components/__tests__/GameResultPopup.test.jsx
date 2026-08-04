@@ -56,6 +56,25 @@ test("renders nothing when no game is passed", async () => {
   expect(container).toBeEmptyDOMElement();
 });
 
+test("the score form sits inside the scroll region while the action buttons stay outside it (AC POPUP-02.4)", async () => {
+  const { container } = await renderPopup({ game: playedGame, onDelete: vi.fn() });
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const form = container.querySelector("form");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const saveButton = screen.getByRole("button", { name: "Save" });
+  const rateButton = screen.getByRole("button", { name: "Rate squad" });
+  const clearButton = screen.getByRole("button", { name: "Clear Result" });
+  const deleteButton = screen.getByRole("button", { name: "Delete Game" });
+
+  expect(shellBody).toContainElement(form);
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(saveButton);
+  expect(shellBody).not.toContainElement(rateButton);
+  expect(shellBody).not.toContainElement(clearButton);
+  expect(shellBody).not.toContainElement(deleteButton);
+});
+
 test("renders 'Record Result' heading for a scheduled game", async () => {
   await renderPopup({ game: scheduledGame });
 
