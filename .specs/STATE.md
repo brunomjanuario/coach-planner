@@ -74,7 +74,48 @@
 - **Date**: 2026-07-30
 - **Status**: active
 
+### AD-009
+
+- **Decision**: The popup overlay, its 85vh height cap and its scroll region are defined once in `src/components/PopupShell.jsx`. No component outside it renders the `fixed inset-0 … z-50` markup.
+- **Reason**: The overlay was hand-copied into nine components with no height constraint, so every popup could grow past the viewport and strand its own action row. Nine copies is how one missing constraint became nine bugs.
+- **Trade-off**: Popups give up per-popup layout freedom and take a three-region API (title / body / footer). A popup wanting a genuinely different shape has to extend the shell rather than opt out.
+- **Scope**: `13-popup-shell` migrates the nine existing popups; every popup added after it starts from the shell.
+- **Date**: 2026-08-04
+- **Status**: active
+
+### AD-010
+
+- **Decision**: Competitions and opponents are **managed reference lists**, not foreign keys. Games keep their existing `competition` and `opponent` **strings**; the new collections exist to populate dropdowns and to be renamed as a set.
+- **Reason**: The job is to stop the same name being retyped three different ways. A full FK model would mean rewriting every game record, every read path and every test for a feature whose visible output is a `<select>`.
+- **Trade-off**: No referential integrity. A deleted competition leaves its name on historical games (deliberate — the fixture happened), and a rename has to cascade explicitly or the games drift. Both are specified and tested rather than left implicit. Revisit if per-competition standings are ever built.
+- **Scope**: `20-competitions`, `21-opponents`, `22-game-form-selects`.
+- **Date**: 2026-08-04
+- **Status**: active
+
+### AD-011
+
+- **Decision**: The auth mock stores a plaintext password in `localStorage` and `signIn` checks it, so a password set in the app is the password that signs you in. The hard-coded demo pair remains the fallback when no user is stored.
+- **Reason**: `signUp` discarded the password it was given, so a user who signed up could never sign back in. A profile page that offers a password field the system ignores is worse than no field.
+- **Trade-off**: This makes the mock **consistent**, not **secure** — plaintext, no hashing, no server, no session. The whole module is replaced when a real backend arrives; nothing in it should be carried forward. Recorded here so it is a known limitation rather than a later discovery.
+- **Scope**: `24-profile-settings`, `src/context/AuthContext.jsx`.
+- **Date**: 2026-08-04
+- **Status**: active
+
 ## Handoff
+
+- **Feature**: Planning round two — thirteen new features (`12`–`24`) specified from the user's change list. Nothing implemented yet.
+- **Phase / Task**: Specify complete for all thirteen; each has `spec.md` + `tasks.md`. Design skipped throughout (no feature is Large; the two with real modelling decisions, `20` and `21`, resolved them in their assumptions tables and in AD-010).
+- **Completed**: `00`–`11` are all merged to `main` (latest: `c9cd451 feat(dashboard): wire the landing page to real data (#13)`). The `09` handoff below this line is superseded — that branch was merged.
+- **In-progress** (file:line): none.
+- **Next step**: Execute in the README's stated order. `12`–`15` are independent quick fixes and can go in any order; `13-popup-shell` should land before `20`, `21` and `24` so their new popups inherit the shell rather than copy the old markup.
+- **Blockers**: none.
+- **Uncommitted files**: `.specs/features/12-…` through `24-…` (26 new files), plus this file and `.specs/README.md`.
+- **Branch**: `main`, clean before this planning round. Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking.
+- **Open items carried forward**: the `11-dashboard` handoff asked whether `ratingService` should gain a batch aggregation method now that a second consumer exists. Still unanswered; `18-dashboard-grid` does not touch data, so it does not force the question.
+
+---
+
+## Superseded handoff (09-player-ratings)
 
 - **Feature**: `09-player-ratings` — done and verified (PASS after one fix→re-verify iteration).
 - **Phase / Task**: All 9 tasks complete (T1 rating service + cascades → T2 average/form/rankSquad → T3 RatingInput → T4 SquadRatingPopup → T5 rate-from-training → T6 rate-from-game → T7 PlayerCard figures → T8 rating history → T9 squad ranking → Verifier). Two sub-agent batches (T1–T6, T7–T9), per the user's choice to delegate. Verifier found one real gap — `rankSquad`'s unrated-vs-zero distinction (AC RATE-09.3) had no test with a genuinely 0-average player, so a null-vs-0 sorting regression would go undetected — fixed with one added test (commit `9bdf952`) and re-verified PASS (3/3 sensor mutations killed, 25/25 ACs spec-matched, 571 tests green). See `.specs/features/09-player-ratings/validation.md` and `design.md` (design phase settled the 5 open questions: `(eventType, eventId)` pair key, service-free pure aggregation taking pre-fetched arrays, no batch method added to `ratingService` this feature, hand-wired cascades like `08`, native number input for ratings).
