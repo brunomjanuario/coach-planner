@@ -55,8 +55,8 @@ export default function StatTile({
 
   return (
     <Tile label={label} href={href} onClick={onClick}>
-      <div className="text-2xl font-semibold">{value}</div>
-      {breakdown && <div className="text-sm text-gray-500">{breakdown}</div>}
+      <div className="text-2xl font-semibold break-words">{value}</div>
+      {breakdown && <div className="text-sm text-gray-500 break-words">{breakdown}</div>}
     </Tile>
   );
 }

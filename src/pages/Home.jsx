@@ -102,7 +102,7 @@ export default function Home() {
       </label>
       <section>
         <h2 className="text-lg font-semibold mb-2">Overview</h2>
-        <div className="grid grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">
           <StatTile
             label="Teams"
             value={stats.teams}
@@ -137,7 +137,7 @@ export default function Home() {
       </section>
       <section>
         <h2 className="text-lg font-semibold mb-2">Leaders</h2>
-        <div className="grid grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">
           <LeaderTile label="Most Goals" data={scorers} loading={loading} />
           <LeaderTile
             label="Most Games"

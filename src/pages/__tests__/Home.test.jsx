@@ -620,3 +620,122 @@ test("excludes a player whose team has been deleted from the leader tiles (edge 
   expect(within(getTile("Most Cards")).getByText("No data yet")).toBeInTheDocument();
   expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
 });
+
+test("each section's grid carries auto-rows-fr and the 1/2/4 responsive column classes (AC DGRID-01.1, DGRID-02)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  for (const grid of [overviewGrid, leadersGrid]) {
+    expect(grid.className).toMatch(/\bauto-rows-fr\b/);
+    expect(grid.className).toMatch(/\bgrid-cols-1\b/);
+    expect(grid.className).toMatch(/\bmd:grid-cols-2\b/);
+    expect(grid.className).toMatch(/\blg:grid-cols-4\b/);
+  }
+});
+
+test("each section holds exactly four tiles, so no cell is empty at four columns (AC DGRID-02.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("gap-10 is replaced with a gap consistent with the tiles' padding (AC DGRID-01.5)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  expect(overviewGrid.className).not.toMatch(/\bgap-10\b/);
+  expect(overviewGrid.className).toMatch(/\bgap-4\b/);
+});
+
+test("a fresh install with no data renders all eight tiles in their empty states with signpost links intact (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await waitFor(() => {
+    expect(screen.getAllByText("No data yet")).toHaveLength(7);
+  });
+  expect(screen.getByText("No upcoming events")).toBeInTheDocument();
+  expect(
+    within(getTile("Teams")).getByRole("link", { name: "Add one" })
+  ).toHaveAttribute("href", "/teams");
+  expect(
+    within(getTile("Next Event")).getByRole("link", { name: "View calendar" })
+  ).toHaveAttribute("href", "/calendar");
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("the grid does not reflow between loading and loaded (edge case)", () => {
+  vi.spyOn(teamService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(trainingService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(gameService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(cardService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(ratingService, "getAll").mockReturnValue(new Promise(() => {}));
+
+  renderHome();
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+  expect(overviewGrid.className).toMatch(/\bauto-rows-fr\b/);
+});
+
+test("filtering to a team with no data keeps the grid's shape and shows empty states (edge case)", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana", goals: 5 }] },
+    { id: 2, club: "Zero", name: "Team", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "2");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+  expect(within(getTile("Training")).getByText("No data yet")).toBeInTheDocument();
+});
+
+test("a long Next Event value wraps inside its tile rather than widening the column (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora Football Club Sporting Association", name: "Sub-11 Under Eleven Squad", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      teamId: 1,
+      opponent: "A Very Long Opponent Club Name Written Out In Full",
+      date: new Date(Date.now() + 86_400_000),
+    },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await screen.findByText(/vs A Very Long Opponent/);
+  const breakdown = within(getTile("Next Event")).getByText(/vs A Very Long Opponent/);
+  expect(breakdown.className).toMatch(/\bbreak-words\b/);
+});
