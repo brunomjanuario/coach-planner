@@ -1,5 +1,5 @@
 /* global process */
-import { formatTrainingDate, exerciseSummary } from "../trainingDisplay";
+import { formatTrainingDate, exerciseSummary, splitTrainings } from "../trainingDisplay";
 
 const originalTZ = process.env.TZ;
 
@@ -111,5 +111,122 @@ describe("exerciseSummary", () => {
       text: "1 exercise · 0 min planned",
     });
     expect(result.text).not.toBe("No exercises");
+  });
+});
+
+describe("splitTrainings", () => {
+  // A function, not a shared const: constructed inside each test body (after
+  // beforeAll sets TZ), never at describe-collection time (before it).
+  function fixedNow() {
+    return new Date(2027, 0, 15, 12, 0);
+  }
+
+  test("orders upcoming trainings soonest first (AC TLAY-05.2)", () => {
+    const soon = { id: "soon", day: new Date(2027, 0, 16) };
+    const later = { id: "later", day: new Date(2027, 0, 20) };
+    const latest = { id: "latest", day: new Date(2027, 1, 1) };
+
+    const { upcoming } = splitTrainings([latest, soon, later], fixedNow());
+
+    expect(upcoming.map((t) => t.id)).toEqual(["soon", "later", "latest"]);
+  });
+
+  test("orders past trainings most recent first (AC TLAY-05.1)", () => {
+    const jan = { id: "jan", day: new Date(2027, 0, 1) };
+    const feb = { id: "feb", day: new Date(2027, 0, 10) };
+    const mar = { id: "mar", day: new Date(2027, 0, 14) };
+
+    const { past } = splitTrainings([jan, mar, feb], fixedNow());
+
+    expect(past.map((t) => t.id)).toEqual(["mar", "feb", "jan"]);
+  });
+
+  test("a training dated exactly now lands in upcoming", () => {
+    const now = fixedNow();
+    const training = { id: "now", day: new Date(now) };
+
+    const { upcoming, past } = splitTrainings([training], now);
+
+    expect(upcoming.map((t) => t.id)).toEqual(["now"]);
+    expect(past).toEqual([]);
+  });
+
+  test("a training dated 1ms before now lands in past", () => {
+    const now = fixedNow();
+    const training = { id: "just-past", day: new Date(now.getTime() - 1) };
+
+    const { upcoming, past } = splitTrainings([training], now);
+
+    expect(upcoming).toEqual([]);
+    expect(past.map((t) => t.id)).toEqual(["just-past"]);
+  });
+
+  test("an invalid day lands in past without disturbing the ordering of the valid ones (AC TLAY-05.3)", () => {
+    const jan = { id: "jan", day: new Date(2027, 0, 1) };
+    const feb = { id: "feb", day: new Date(2027, 0, 10) };
+    const invalid = { id: "invalid", day: new Date("not-a-date") };
+
+    const { past } = splitTrainings([feb, invalid, jan], fixedNow());
+
+    expect(past.map((t) => t.id)).toEqual(["feb", "jan", "invalid"]);
+  });
+
+  test("multiple invalid days all land at the end of past, valid ones stay correctly ordered", () => {
+    const jan = { id: "jan", day: new Date(2027, 0, 1) };
+    const feb = { id: "feb", day: new Date(2027, 0, 10) };
+    const invalidA = { id: "invalid-a", day: new Date("not-a-date") };
+    const invalidB = { id: "invalid-b", day: undefined };
+
+    const { past } = splitTrainings([invalidA, feb, invalidB, jan], fixedNow());
+
+    expect(past.slice(0, 2).map((t) => t.id)).toEqual(["feb", "jan"]);
+    expect(past.slice(2).map((t) => t.id).sort()).toEqual(["invalid-a", "invalid-b"]);
+  });
+
+  test("`now` is injected rather than read internally — the same input splits differently for different `now` values", () => {
+    const training = { id: "t1", day: new Date(2027, 0, 15) };
+
+    const before = splitTrainings([training], new Date(2027, 0, 10));
+    const after = splitTrainings([training], new Date(2027, 0, 20));
+
+    expect(before.upcoming.map((t) => t.id)).toEqual(["t1"]);
+    expect(before.past).toEqual([]);
+    expect(after.upcoming).toEqual([]);
+    expect(after.past.map((t) => t.id)).toEqual(["t1"]);
+  });
+
+  test("returns empty upcoming and past arrays for an empty input", () => {
+    expect(splitTrainings([], fixedNow())).toEqual({ upcoming: [], past: [] });
+  });
+
+  test("does not mutate the input array", () => {
+    const jan = { id: "jan", day: new Date(2027, 0, 1) };
+    const feb = { id: "feb", day: new Date(2027, 0, 10) };
+    const input = [feb, jan];
+    const before = [...input];
+
+    splitTrainings(input, fixedNow());
+
+    expect(input).toEqual(before);
+  });
+
+  test("accepts a non-Date day value and classifies it the same way", () => {
+    const training = { id: "string-day", day: "2027-01-16T00:00:00" };
+
+    const { upcoming } = splitTrainings([training], fixedNow());
+
+    expect(upcoming.map((t) => t.id)).toEqual(["string-day"]);
+  });
+
+  test("every loaded training appears in exactly one of the two sections (AC TLAY-01.1 precondition)", () => {
+    const trainings = [
+      { id: "a", day: new Date(2027, 0, 1) },
+      { id: "b", day: new Date(2027, 1, 1) },
+      { id: "c", day: new Date("not-a-date") },
+    ];
+
+    const { upcoming, past } = splitTrainings(trainings, fixedNow());
+
+    expect(upcoming.length + past.length).toBe(trainings.length);
   });
 });
