@@ -1021,13 +1021,13 @@ test("editing a training deleted in another tab fails with a clear message and d
   const row = within(getPastList()).getAllByRole("listitem")[0];
   await user.click(row);
   await user.click(await screen.findByRole("button", { name: "Edit" }));
-  const form = getFormFor("Edit Training");
+  await screen.findByRole("heading", { name: "Edit Training" });
   const beforeCount = (await trainingService.getAll()).length;
   vi.spyOn(trainingService, "update").mockRejectedValueOnce(
     new Error("Training not found")
   );
 
-  await user.click(within(form).getByRole("button", { name: "Save" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(
     await screen.findByText("Failed to save the training. Please try again.")

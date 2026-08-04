@@ -103,15 +103,15 @@
 
 ## Handoff
 
-- **Feature**: `12-player-list-refresh` — done and verified (PASS, one fix→re-verify iteration for a spec-precision gap).
-- **Phase / Task**: All 3 tasks complete — T1 (`PlayerPopup` awaits its service call before closing, `0ef6565`) → T2 (`PlayerCard.deletePlayer` awaits + new `onDeleted` callback wired in `Teams.jsx`, `2cb3017`) → T3 (add-refresh ordering + Add-player control disabled with no team selected, `7859f2c`). Verifier found one real gap — PREF-04.3's "updated in the list" half had no test editing a list-visible field (`name`/`shirtNumber`); the only edit test changed `age`, which the Players list never renders — fixed with one added test (commit `b0ecf5b`) and confirmed load-bearing by mutation (reverting `refreshAndResyncPlayer`'s `setSelectedTeam` call made it fail). Re-verified: 702 tests green, all mutations killed. See `.specs/features/12-player-list-refresh/validation.md`.
-- **Completed**: T1–T3 plus the post-Verifier fix, all committed individually on `feature/12-player-list-refresh`.
+- **Feature**: `13-popup-shell` — done and verified (PASS, one fix→re-verify iteration for a moderate coverage gap).
+- **Phase / Task**: All 5 tasks complete — T1 (new `PopupShell` component: 85vh cap, scrollable body via `overflow-y-auto`+`min-h-0`, pinned title/footer, dialog a11y, `31a5593`) → T2 (small popups migrated: `ConfirmationPopup`, `TeamPopup`, `PlayerPopup`, `3560297`) → T3 (training popups migrated — the two that motivated the feature, `e21371f`) → T4 (game/rating popups migrated: `GameSavePopup`, `GameResultPopup`, `RivalRowPopup`, `SquadRatingPopup`, `147836c`) → T5 (invariant test proving the overlay markup exists only in `PopupShell.jsx`, `e76cc00`). Every migrated popup keeps its submit button in the shell's footer (a DOM sibling of the scrollable body) by linking it to the form via the HTML `form` attribute + `useId()`, rather than nesting it inside the `<form>`. Verifier found one real gap — the footer/body DOM-separation invariant (submit stays outside the scroll region) was only test-enforced for 3 of 9 popups (`TrainingSavePopup`, `TrainingDetailsPopup`, `SquadRatingPopup`); a mutation re-nesting `GameSavePopup`'s submit button inside its form went undetected. Fixed by adding the same containment test to the other six popups (commit `bc4c571`), confirmed load-bearing by re-running the exact mutation. Re-verified: 735 tests green. See `.specs/features/13-popup-shell/validation.md`.
+- **Completed**: T1–T5 plus the post-Verifier fix, all committed individually on `feature/13-popup-shell`.
 - **In-progress** (file:line): none — feature closed out.
-- **Next step**: `feature/12-player-list-refresh` is not yet merged to `main`. Per the README's suggested order, `13-popup-shell` is next — it should land before `20`, `21` and `24` so their new popups inherit the shell rather than copy the old overlay markup.
+- **Next step**: `feature/13-popup-shell` is not yet merged to `main`. Per the README's suggested order, `16-training-card` → `17-trainings-page-layout` is next, or `20`/`21`/`22` (competitions/opponents/game-form-selects) now that the shell exists for their new popups to build on.
 - **Blockers**: none.
-- **Uncommitted files**: none — everything for `12` is committed.
-- **Branch**: `feature/12-player-list-refresh` (not yet merged to `main`). Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking.
-- **Remaining round-two features**: `13`–`24` are specified (`spec.md` + `tasks.md`) but not started.
+- **Uncommitted files**: none — everything for `13` is committed.
+- **Branch**: `feature/13-popup-shell` (not yet merged to `main`). Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking. `feature/12-player-list-refresh` was merged via PR #14 (`d945e78`) before this branch was cut from `main`.
+- **Remaining round-two features**: `14`–`24` are specified (`spec.md` + `tasks.md`) but not started.
 - **Open items carried forward**: the `11-dashboard` handoff asked whether `ratingService` should gain a batch aggregation method now that a second consumer exists. Still unanswered; `18-dashboard-grid` does not touch data, so it does not force the question.
 
 ---

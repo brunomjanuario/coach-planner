@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useId, useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { toInputValue, fromInputValue } from "../lib/datetime";
+import PopupShell from "./PopupShell";
 
 export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
+  const formId = useId();
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [error, setError] = useState("");
@@ -97,101 +99,101 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">
-          {game ? "Edit Game" : "Create Game"}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Team</label>
-            <select
-              name="teamId"
-              value={formData.teamId ?? ""}
-              onChange={handleChange}
-              disabled={loadingTeams || teams.length === 0}
-              className="w-full border px-3 py-2 rounded"
-            >
-              <option value="">Select a team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.club} {team.name}
-                </option>
-              ))}
-            </select>
-            {!loadingTeams && teams.length === 0 && (
-              <p className="text-sm text-red-500">
-                No teams yet. Add one on the Teams page first.
-              </p>
-            )}
-            {error && <p className="text-sm text-red-500">{error}</p>}
-          </div>
-          <div>
-            <label htmlFor="opponent" className="block text-sm font-medium">
-              Opponent
-            </label>
-            <input
-              id="opponent"
-              type="text"
-              name="opponent"
-              value={formData.opponent}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Date & Time</label>
-            <input
-              type="datetime-local"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              required
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              id="isHome"
-              type="checkbox"
-              name="isHome"
-              checked={Boolean(formData.isHome)}
-              onChange={handleChange}
-            />
-            <label htmlFor="isHome" className="text-sm font-medium">
-              Home game
-            </label>
-          </div>
-          <div>
-            <label htmlFor="competition" className="block text-sm font-medium">
-              Competition
-            </label>
-            <input
-              id="competition"
-              type="text"
-              name="competition"
-              value={formData.competition}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              {game ? "Save" : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <PopupShell
+      title={game ? "Edit Game" : "Create Game"}
+      footer={
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-300 text-white rounded"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            {game ? "Save" : "Create"}
+          </button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">Team</label>
+          <select
+            name="teamId"
+            value={formData.teamId ?? ""}
+            onChange={handleChange}
+            disabled={loadingTeams || teams.length === 0}
+            className="w-full border px-3 py-2 rounded"
+          >
+            <option value="">Select a team</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.club} {team.name}
+              </option>
+            ))}
+          </select>
+          {!loadingTeams && teams.length === 0 && (
+            <p className="text-sm text-red-500">
+              No teams yet. Add one on the Teams page first.
+            </p>
+          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+        <div>
+          <label htmlFor="opponent" className="block text-sm font-medium">
+            Opponent
+          </label>
+          <input
+            id="opponent"
+            type="text"
+            name="opponent"
+            value={formData.opponent}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Date & Time</label>
+          <input
+            type="datetime-local"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            id="isHome"
+            type="checkbox"
+            name="isHome"
+            checked={Boolean(formData.isHome)}
+            onChange={handleChange}
+          />
+          <label htmlFor="isHome" className="text-sm font-medium">
+            Home game
+          </label>
+        </div>
+        <div>
+          <label htmlFor="competition" className="block text-sm font-medium">
+            Competition
+          </label>
+          <input
+            id="competition"
+            type="text"
+            name="competition"
+            value={formData.competition}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+      </form>
+    </PopupShell>
   );
 }

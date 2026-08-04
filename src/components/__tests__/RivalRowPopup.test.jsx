@@ -31,6 +31,19 @@ async function fillValidRow(user, { name = "Sporting B" } = {}) {
   await user.type(screen.getByLabelText("Goals Against"), "1");
 }
 
+test("the form fields sit inside the scroll region while Cancel/Add stay outside it (AC POPUP-02.4)", () => {
+  const { container } = renderPopup();
+
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  const form = container.querySelector("form");
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const addButton = screen.getByRole("button", { name: "Add" });
+
+  expect(shellBody).toContainElement(form);
+  expect(shellBody).not.toContainElement(cancelButton);
+  expect(shellBody).not.toContainElement(addButton);
+});
+
 test("renders 'Add Rival Row' heading for a new row", () => {
   renderPopup();
   expect(

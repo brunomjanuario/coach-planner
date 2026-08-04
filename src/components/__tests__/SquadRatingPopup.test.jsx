@@ -239,7 +239,24 @@ test("a 30-player squad scrolls within the popup without pushing the action butt
   await screen.findByLabelText(`Rate ${label(bigTeam.players[0])}`);
   const list = container.querySelector("ul.overflow-y-auto");
   expect(list).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  const saveButton = screen.getByRole("button", { name: "Save" });
+  expect(saveButton).toBeInTheDocument();
+  const shellBody = screen.getByRole("dialog").querySelector(".overflow-y-auto.min-h-0");
+  expect(shellBody).toContainElement(list);
+  expect(shellBody).not.toContainElement(saveButton);
+});
+
+test("renders through PopupShell as an accessible dialog", async () => {
+  const [team] = await teamService.getAll();
+  const game = await seedGame(team.id);
+
+  render(
+    <SquadRatingPopup eventType="game" eventId={game.id} teamId={team.id} onClose={() => {}} />
+  );
+
+  const dialog = await screen.findByRole("dialog");
+  expect(dialog).toHaveAttribute("aria-modal", "true");
+  expect(screen.getByText("Rate Squad")).toBeInTheDocument();
 });
 
 test("cancelling calls onClose without persisting any ratings", async () => {

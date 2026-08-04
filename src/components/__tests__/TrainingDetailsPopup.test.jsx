@@ -15,6 +15,25 @@ function playerLabel(player) {
   return `#${player.shirtNumber} ${player.name}`;
 }
 
+test("renders through PopupShell with the exercise list inside the scroll region and the action row outside it (AC POPUP-02.4)", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, image: "" },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  const dialog = screen.getByRole("dialog");
+  const shellBody = dialog.querySelector(".overflow-y-auto.min-h-0");
+  const exerciseItem = screen.getByText(/SSG/).closest("li");
+  const closeButton = screen.getByRole("button", { name: "Close" });
+
+  expect(shellBody).toContainElement(exerciseItem);
+  expect(shellBody).not.toContainElement(closeButton);
+});
+
 test("renders each exercise's duration, players and repetitions alongside its description (AC TFORM-07.1)", () => {
   const training = {
     ...baseTraining,
