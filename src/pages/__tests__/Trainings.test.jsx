@@ -506,6 +506,43 @@ test("a training reassigned to the active filter's team appears in its filtered 
   expect(created.teamId).toBeNull();
 });
 
+test("the unassigned list renders each training as a TrainingCard with the assign-to-team select beside it (AC TCARD-04.3)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 67,
+    exercises: [],
+  });
+
+  renderTrainings();
+  await screen.findByRole("heading", { name: "Unassigned" });
+
+  const row = within(getUnassignedList()).getByText(/67 min/).closest("li");
+  expect(within(row).getByRole("button")).toBeInTheDocument();
+  expect(within(row).getByRole("combobox")).toBeInTheDocument();
+});
+
+test("operating the assign-to-team select does not open the details popup (edge case)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 68,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("heading", { name: "Unassigned" });
+  const row = within(getUnassignedList()).getByText(/68 min/).closest("li");
+
+  await user.selectOptions(
+    within(row).getByRole("combobox"),
+    "Amadora Sub-11"
+  );
+
+  expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /Training #/ })).not.toBeInTheDocument();
+});
+
 async function addExerciseInForm(user, form, { description, duration, players, repetitions } = {}) {
   await user.type(within(form).getByLabelText(/description/i), description ?? "Corrida");
   await user.type(within(form).getByLabelText(/duration/i), duration ?? "10");

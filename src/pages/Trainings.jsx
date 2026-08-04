@@ -26,18 +26,6 @@ function splitTrainings(trainings) {
   };
 }
 
-/** Locale-formats a training's day, falling back to "Invalid date" (AC TNUM-04.3). */
-function formatDay(day) {
-  const date = day instanceof Date ? day : new Date(day);
-  return isNaN(date.getTime()) ? "Invalid date" : date.toLocaleString();
-}
-
-/** Readable row label: `Training #N`, formatted date/time, duration in minutes. */
-function trainingRowLabel(training) {
-  const number = training.number ?? "—";
-  return `Training #${number} · ${formatDay(training.day)} · ${training.duration} min`;
-}
-
 /** Resolves a training's teamId to "Club Name", or null for a missing/dangling team. */
 function teamNameFor(teamId, teams) {
   const team = teams.find((t) => t.id === teamId);
@@ -199,11 +187,14 @@ export default function Trainings() {
           <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
           <ul>
             {unassignedTrainings.map((training) => (
-              <li
-                key={training.id}
-                className="flex items-center justify-between gap-2 p-2 border rounded mb-2"
-              >
-                <span>{trainingRowLabel(training)}</span>
+              <li key={training.id} className="flex items-center gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <TrainingCard
+                    training={training}
+                    teamName={teamNameFor(training.teamId, teams)}
+                    onSelect={() => selectTraining(training)}
+                  />
+                </div>
                 <select
                   className="border px-2 py-1 rounded"
                   value=""
