@@ -6,6 +6,7 @@ import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
 import SelectableListItem from "../components/SelectableListItem";
+import TrainingCard from "../components/TrainingCard";
 
 function isValidDay(day) {
   const date = day instanceof Date ? day : new Date(day);
@@ -35,6 +36,12 @@ function formatDay(day) {
 function trainingRowLabel(training) {
   const number = training.number ?? "—";
   return `Training #${number} · ${formatDay(training.day)} · ${training.duration} min`;
+}
+
+/** Resolves a training's teamId to "Club Name", or null for a missing/dangling team. */
+function teamNameFor(teamId, teams) {
+  const team = teams.find((t) => t.id === teamId);
+  return team ? `${team.club} ${team.name}` : null;
 }
 
 export default function Trainings() {
@@ -242,12 +249,12 @@ export default function Trainings() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {futureTrainings.map((training) => (
-                  <li
-                    key={training.id}
-                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                    onClick={() => selectTraining(training)}
-                  >
-                    {trainingRowLabel(training)}
+                  <li key={training.id} className="p-1">
+                    <TrainingCard
+                      training={training}
+                      teamName={teamNameFor(training.teamId, teams)}
+                      onSelect={() => selectTraining(training)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -261,12 +268,13 @@ export default function Trainings() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {pastTrainings.map((training) => (
-                  <li
-                    key={training.id}
-                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                    onClick={() => selectTraining(training)}
-                  >
-                    {trainingRowLabel(training)}
+                  <li key={training.id} className="p-1">
+                    <TrainingCard
+                      training={training}
+                      teamName={teamNameFor(training.teamId, teams)}
+                      past
+                      onSelect={() => selectTraining(training)}
+                    />
                   </li>
                 ))}
               </ul>
