@@ -99,10 +99,10 @@ is usable at all.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| CONTR-01 | P1: Squad-ranking rows readable | Tasks | Pending |
-| CONTR-02 | P1: Filter buttons readable | Tasks | Pending |
-| CONTR-03 | P1: Rating-history rows readable | Tasks | Pending |
-| CONTR-04 | P1: Both colour schemes verified | Tasks | Pending |
+| CONTR-01 | P1: Squad-ranking rows readable | Verified | ✅ Verified |
+| CONTR-02 | P1: Filter buttons readable | Verified | ✅ Verified |
+| CONTR-03 | P1: Rating-history rows readable | Verified | ✅ Verified |
+| CONTR-04 | P1: Both colour schemes verified | Verified | ✅ Verified |
 
 **Coverage:** 4 total, 4 mapped to tasks, 0 unmapped
 
