@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { trainingService } from "../services/trainingService";
 import { gameService } from "../services/gameService";
 import { teamService } from "../services/teamService";
-import { toEvents, eventsForMonth } from "../lib/calendarEvents";
+import { toEvents, eventsForMonth, eventStyle, EVENT_STYLES } from "../lib/calendarEvents";
 
 const MAX_VISIBLE_EVENTS_PER_DAY = 3;
 
@@ -100,16 +100,32 @@ export default function Calendar() {
 
   return (
     <div className="w-full m-5 md:m-10 rounded-2xl bg-white p-4 shadow-lg md:p-8">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <button
           onClick={prevMonth}
           className="rounded bg-gray-100 px-3 py-1 text-xl text-black hover:bg-gray-200 focus:outline-2 focus:outline-blue-500"
         >
           &lt;
         </button>
-        <h2 className="m-0 font-semibold text-black">
-          {displayMonth} {currentYear}
-        </h2>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <h2 className="m-0 font-semibold text-black">
+            {displayMonth} {currentYear}
+          </h2>
+          <ul
+            className="flex flex-wrap items-center gap-3 text-xs text-gray-700"
+            aria-label="Event type legend"
+          >
+            {Object.entries(EVENT_STYLES).map(([type, style]) => (
+              <li key={type} className="flex items-center gap-1">
+                <span
+                  aria-hidden="true"
+                  className={`inline-block h-3 w-3 rounded border ${style.background} ${style.border}`}
+                />
+                <span>{style.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         <button
           onClick={nextMonth}
           className="rounded bg-gray-100 px-3 py-1 text-xl text-black hover:bg-gray-200 focus:outline-2 focus:outline-blue-500"
@@ -142,19 +158,21 @@ export default function Calendar() {
                 <div>
                   {getEventsForDay(day)
                     .slice(0, MAX_VISIBLE_EVENTS_PER_DAY)
-                    .map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => goToEvent(event)}
-                        className={`mb-0.5 block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-gray-800 hover:brightness-95 focus:outline-2 focus:outline-blue-500 ${
-                          event.type === "game" ? "bg-blue-100" : "bg-amber-200"
-                        }`}
-                      >
-                        <b>{formatTime(event.date)}</b> {event.teamName} —{" "}
-                        {event.title}
-                      </button>
-                    ))}
+                    .map((event) => {
+                      const style = eventStyle(event.type);
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => goToEvent(event)}
+                          aria-label={`${style.label} at ${formatTime(event.date)}, ${event.teamName} — ${event.title}`}
+                          className={`mb-0.5 block w-full truncate rounded border-l-4 px-1.5 py-0.5 text-left text-xs hover:brightness-95 focus:outline-2 focus:outline-blue-500 ${style.background} ${style.border} ${style.text}`}
+                        >
+                          <b>{formatTime(event.date)}</b> {event.teamName} —{" "}
+                          {event.title}
+                        </button>
+                      );
+                    })}
                   {getEventsForDay(day).length > MAX_VISIBLE_EVENTS_PER_DAY && (
                     <div className="text-xs text-gray-500">
                       +{getEventsForDay(day).length - MAX_VISIBLE_EVENTS_PER_DAY}{" "}

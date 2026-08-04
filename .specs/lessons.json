@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 8,
+  "next_id": 10,
   "lessons": [
     {
       "id": "L-001",
@@ -130,6 +130,42 @@
       ],
       "created": "2026-08-04T16:32:42Z",
       "last_seen": "2026-08-04T16:32:42Z"
+    },
+    {
+      "id": "L-008",
+      "key": "spec_precision_gap::when a spec ac names a visual attribute e g a colour swatch assert that attribute s class value directly in the test not just the presence of adjacent text",
+      "text": "When a spec AC names a visual attribute (e.g. a colour swatch), assert that attribute's class/value directly in the test, not just the presence of adjacent text.",
+      "signal": "spec_precision_gap",
+      "scope": "calendar",
+      "status": "candidate",
+      "features": [
+        "15-calendar-event-colours"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC CALCOL-04.1 / src/pages/__tests__/Calendar.test.jsx:360-370 (calendar)"
+      ],
+      "created": "2026-08-04T17:01:33Z",
+      "last_seen": "2026-08-04T17:01:33Z"
+    },
+    {
+      "id": "L-009",
+      "key": "ac_gap::write one test per listed spec edge case even when the underlying implementation is a static class already covered by another test an untested static class is still an unverified requirement",
+      "text": "Write one test per listed spec Edge Case, even when the underlying implementation is a static class already covered by another test — an untested static class is still an unverified requirement.",
+      "signal": "ac_gap",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "15-calendar-event-colours"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Cases (hover/focus, long-title truncation) — no test in src/pages/__tests__/Calendar.test.jsx (testing)"
+      ],
+      "created": "2026-08-04T17:01:38Z",
+      "last_seen": "2026-08-04T17:01:38Z"
     }
   ]
 }

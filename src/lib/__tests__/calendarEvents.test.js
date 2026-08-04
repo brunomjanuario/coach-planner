@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toEvents, eventsForMonth } from "../calendarEvents";
+import { toEvents, eventsForMonth, eventStyle, EVENT_STYLES } from "../calendarEvents";
 
 const teams = [{ id: 1, club: "Amadora", name: "Sub-11" }];
 
@@ -73,6 +73,59 @@ describe("toEvents", () => {
     expect(JSON.parse(JSON.stringify([training]))).toEqual(trainingsCopy);
     expect(JSON.parse(JSON.stringify([game]))).toEqual(gamesCopy);
     expect(JSON.parse(JSON.stringify(teams))).toEqual(teamsCopy);
+  });
+});
+
+describe("EVENT_STYLES / eventStyle", () => {
+  it("maps 'game' to an orange style with background, border and text classes (AC CALCOL-01)", () => {
+    const style = EVENT_STYLES.game;
+
+    expect(style.background).toMatch(/^bg-orange-/);
+    expect(style.border).toMatch(/^border-orange-/);
+    expect(style.text).toMatch(/^text-orange-/);
+  });
+
+  it("maps 'training' to a blue style with background, border and text classes (AC CALCOL-01)", () => {
+    const style = EVENT_STYLES.training;
+
+    expect(style.background).toMatch(/^bg-blue-/);
+    expect(style.border).toMatch(/^border-blue-/);
+    expect(style.text).toMatch(/^text-blue-/);
+  });
+
+  it("gives every mapped entry a human label matching its type (AC CALCOL-04.2)", () => {
+    expect(EVENT_STYLES.game.label).toBe("Game");
+    expect(EVENT_STYLES.training.label).toBe("Training");
+  });
+
+  it("eventStyle('game') returns the mapped game style", () => {
+    expect(eventStyle("game")).toBe(EVENT_STYLES.game);
+  });
+
+  it("eventStyle('training') returns the mapped training style", () => {
+    expect(eventStyle("training")).toBe(EVENT_STYLES.training);
+  });
+
+  it("eventStyle returns a neutral fallback style for an unknown type, never undefined (AC CALCOL-03)", () => {
+    const style = eventStyle("tournament");
+
+    expect(style).toBeDefined();
+    expect(style).not.toBe(EVENT_STYLES.game);
+    expect(style).not.toBe(EVENT_STYLES.training);
+    expect(style.background).toMatch(/^bg-gray-/);
+  });
+
+  it("eventStyle returns the neutral fallback for a missing type (edge case)", () => {
+    const style = eventStyle(undefined);
+
+    expect(style).toBeDefined();
+    expect(style.background).toMatch(/^bg-gray-/);
+  });
+
+  it("every mapped style sets an explicit text colour rather than inheriting", () => {
+    for (const style of Object.values(EVENT_STYLES)) {
+      expect(style.text).toBeTruthy();
+    }
   });
 });
 
