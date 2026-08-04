@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useId, useState, useEffect } from "react";
 import { IconArrowUp, IconArrowDown } from "@tabler/icons-react";
 import { teamService } from "../services/teamService";
 import ExerciseFields from "./ExerciseFields";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
 import { toInputValue, fromInputValue } from "../lib/datetime";
+import PopupShell from "./PopupShell";
 
 export default function TrainingSavePopup({ training, teamId, onClose, onSubmit }) {
+  const formId = useId();
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [error, setError] = useState("");
@@ -138,148 +140,148 @@ export default function TrainingSavePopup({ training, teamId, onClose, onSubmit 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">
-          {training ? "Edit Training" : "Create Training"}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Team</label>
-            <select
-              name="teamId"
-              value={formData.teamId ?? ""}
-              onChange={handleChange}
-              disabled={loadingTeams || teams.length === 0}
-              className="w-full border px-3 py-2 rounded"
-            >
-              <option value="">Select a team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.club} {team.name}
-                </option>
-              ))}
-            </select>
-            {!loadingTeams && teams.length === 0 && (
-              <p className="text-sm text-red-500">
-                No teams yet. Add one on the Teams page first.
-              </p>
-            )}
-            {error && <p className="text-sm text-red-500">{error}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Date & Time</label>
-            <input
-              type="datetime-local"
-              name="day"
-              value={formData.day}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              className="w-full border px-3 py-2 rounded"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Exercises</label>
-            <ExerciseFields
-              key={editingExerciseId ?? "new"}
-              exercise={formData.exercises.find((ex) => ex.id === editingExerciseId) ?? null}
-              onAdd={handleAddExercise}
-              onCancelEdit={() => setEditingExerciseId(null)}
-            />
-            <ul className="max-h-48 overflow-y-auto mt-2">
-              {formData.exercises.map((ex, index) => (
-                <li
-                  key={ex.id}
-                  className="flex justify-between items-center bg-gray-100 rounded px-2 py-1 mb-1"
-                >
-                  <span className="break-words">
-                    {ex.description} — {ex.duration}min
-                    {ex.numberOfPlayers != null ? ` · ${ex.numberOfPlayers} players` : ""}
-                    {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
-                  </span>
-                  <span className="flex gap-2 ml-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleMoveExercise(ex.id, -1)}
-                      disabled={index === 0}
-                      aria-label="Move up"
-                      className="disabled:opacity-30"
-                    >
-                      <IconArrowUp size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleMoveExercise(ex.id, 1)}
-                      disabled={index === formData.exercises.length - 1}
-                      aria-label="Move down"
-                      className="disabled:opacity-30"
-                    >
-                      <IconArrowDown size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingExerciseId(ex.id)}
-                      className="text-blue-500"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExercise(ex.id)}
-                      className="text-red-500"
-                    >
-                      Remove
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {formData.exercises.length > 0 &&
-              (() => {
-                const total = totalPlannedMinutes(formData.exercises);
-                const sessionDuration = Number(formData.duration);
-                const overage = total - sessionDuration;
-                return overage > 0 ? (
-                  <p className="text-sm text-red-500 mt-2">
-                    Planned time {total}min exceeds the session by {overage} minutes.
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500 mt-2">
-                    Planned time {total}min — {-overage} minutes remaining.
-                  </p>
-                );
-              })()}
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              {training ? "Save" : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <PopupShell
+      title={training ? "Edit Training" : "Create Training"}
+      footer={
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-300 text-white rounded"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            {training ? "Save" : "Create"}
+          </button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">Team</label>
+          <select
+            name="teamId"
+            value={formData.teamId ?? ""}
+            onChange={handleChange}
+            disabled={loadingTeams || teams.length === 0}
+            className="w-full border px-3 py-2 rounded"
+          >
+            <option value="">Select a team</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.club} {team.name}
+              </option>
+            ))}
+          </select>
+          {!loadingTeams && teams.length === 0 && (
+            <p className="text-sm text-red-500">
+              No teams yet. Add one on the Teams page first.
+            </p>
+          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Date & Time</label>
+          <input
+            type="datetime-local"
+            name="day"
+            value={formData.day}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">
+            Duration (minutes)
+          </label>
+          <input
+            type="number"
+            name="duration"
+            value={formData.duration}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Exercises</label>
+          <ExerciseFields
+            key={editingExerciseId ?? "new"}
+            exercise={formData.exercises.find((ex) => ex.id === editingExerciseId) ?? null}
+            onAdd={handleAddExercise}
+            onCancelEdit={() => setEditingExerciseId(null)}
+          />
+          <ul className="max-h-48 overflow-y-auto mt-2">
+            {formData.exercises.map((ex, index) => (
+              <li
+                key={ex.id}
+                className="flex justify-between items-center bg-gray-100 rounded px-2 py-1 mb-1"
+              >
+                <span className="break-words">
+                  {ex.description} — {ex.duration}min
+                  {ex.numberOfPlayers != null ? ` · ${ex.numberOfPlayers} players` : ""}
+                  {ex.repetitions != null ? ` · x${ex.repetitions}` : ""}
+                </span>
+                <span className="flex gap-2 ml-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleMoveExercise(ex.id, -1)}
+                    disabled={index === 0}
+                    aria-label="Move up"
+                    className="disabled:opacity-30"
+                  >
+                    <IconArrowUp size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveExercise(ex.id, 1)}
+                    disabled={index === formData.exercises.length - 1}
+                    aria-label="Move down"
+                    className="disabled:opacity-30"
+                  >
+                    <IconArrowDown size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingExerciseId(ex.id)}
+                    className="text-blue-500"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExercise(ex.id)}
+                    className="text-red-500"
+                  >
+                    Remove
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          {formData.exercises.length > 0 &&
+            (() => {
+              const total = totalPlannedMinutes(formData.exercises);
+              const sessionDuration = Number(formData.duration);
+              const overage = total - sessionDuration;
+              return overage > 0 ? (
+                <p className="text-sm text-red-500 mt-2">
+                  Planned time {total}min exceeds the session by {overage} minutes.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-2">
+                  Planned time {total}min — {-overage} minutes remaining.
+                </p>
+              );
+            })()}
+        </div>
+      </form>
+    </PopupShell>
   );
 }

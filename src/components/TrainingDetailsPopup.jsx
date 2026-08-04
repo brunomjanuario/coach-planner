@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
 import ConfirmationPopup from "./ConfirmationPopup";
 import SquadRatingPopup from "./SquadRatingPopup";
+import PopupShell from "./PopupShell";
 
 export default function TrainingDetailsPopup({ training, onClose, onEdit, onDelete }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -21,13 +22,46 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
   };
 
   return (
-    <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">
-          {typeof training.number === "number"
+    <>
+      <PopupShell
+        title={
+          typeof training.number === "number"
             ? `Training #${training.number}`
-            : "Training Details"}
-        </h2>
+            : "Training Details"
+        }
+        footer={
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-300 text-white rounded"
+              onClick={onClose}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+              onClick={onEdit}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-red-600 text-white rounded"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={() => setShowRatingPopup(true)}
+            >
+              Rate squad
+            </button>
+          </div>
+        }
+      >
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium">Date & Time</label>
@@ -71,38 +105,8 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
               </p>
             )}
           </div>
-          <div className="flex justify-end space-x-2 mt-4">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-              onClick={onEdit}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-red-600 text-white rounded"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-green-600 text-white rounded"
-              onClick={() => setShowRatingPopup(true)}
-            >
-              Rate squad
-            </button>
-          </div>
         </div>
-      </div>
+      </PopupShell>
       {showDeleteConfirm && (
         <ConfirmationPopup
           message={`Delete ${trainingLabel}?`}
@@ -118,6 +122,6 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
           onClose={() => setShowRatingPopup(false)}
         />
       )}
-    </div>
+    </>
   );
 }

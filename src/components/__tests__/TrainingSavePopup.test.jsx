@@ -328,6 +328,22 @@ test("a saved training reloaded from the store returns every exercise field unch
   });
 });
 
+test("renders through PopupShell with the exercise list inside the scroll region and Create outside it (AC POPUP-02.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const user = userEvent.setup();
+  renderPopup({ onSubmit: vi.fn() });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await addExercise(user, { description: "SSG", duration: "20" });
+
+  const dialog = screen.getByRole("dialog");
+  const shellBody = dialog.querySelector(".overflow-y-auto.min-h-0");
+  const exerciseList = screen.getByText(/SSG/).closest("ul");
+  const createButton = screen.getByRole("button", { name: "Create" });
+
+  expect(shellBody).toContainElement(exerciseList);
+  expect(shellBody).not.toContainElement(createButton);
+});
+
 test("20+ exercises scroll within the popup without pushing the action buttons off-screen (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const user = userEvent.setup();
