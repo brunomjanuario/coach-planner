@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useId, useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { ratingService } from "../services/ratingService";
 import RatingInput from "./RatingInput";
+import PopupShell from "./PopupShell";
 
 /**
  * Rates every player on an event's team in a single pass (AC RATE-01.1,
@@ -14,6 +15,7 @@ import RatingInput from "./RatingInput";
  * than duplicating (AC RATE-01.4).
  */
 export default function SquadRatingPopup({ eventType, eventId, teamId, onClose }) {
+  const formId = useId();
   const [players, setPlayers] = useState([]);
   const [ratings, setRatings] = useState({});
   const [loading, setLoading] = useState(true);
@@ -69,62 +71,70 @@ export default function SquadRatingPopup({ eventType, eventId, teamId, onClose }
 
   if (loading) return null;
 
+  if (players.length === 0) {
+    return (
+      <PopupShell
+        title="Rate Squad"
+        footer={
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-300 text-white rounded"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-500">No players to rate.</p>
+      </PopupShell>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">Rate Squad</h2>
-        {players.length === 0 ? (
-          <>
-            <p className="text-sm text-gray-500">No players to rate.</p>
-            <div className="flex justify-end mt-4">
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-300 text-white rounded"
-                onClick={onClose}
+    <PopupShell
+      title="Rate Squad"
+      footer={
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-300 text-white rounded"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Save
+          </button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <ul className="space-y-2 max-h-80 overflow-y-auto">
+          {players.map((player) => {
+            const playerLabel = `#${player.shirtNumber} ${player.name}`;
+            return (
+              <li
+                key={player.id}
+                className="flex items-center justify-between gap-2 bg-gray-100 rounded px-2 py-1"
               >
-                Close
-              </button>
-            </div>
-          </>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <ul className="space-y-2 max-h-80 overflow-y-auto">
-              {players.map((player) => {
-                const playerLabel = `#${player.shirtNumber} ${player.name}`;
-                return (
-                  <li
-                    key={player.id}
-                    className="flex items-center justify-between gap-2 bg-gray-100 rounded px-2 py-1"
-                  >
-                    <span className="break-words">{playerLabel}</span>
-                    <RatingInput
-                      value={ratings[player.id] ?? null}
-                      onChange={(value) => handleChange(player.id, value)}
-                      label={`Rate ${playerLabel}`}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-300 text-white rounded"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+                <span className="break-words">{playerLabel}</span>
+                <RatingInput
+                  value={ratings[player.id] ?? null}
+                  onChange={(value) => handleChange(player.id, value)}
+                  label={`Rate ${playerLabel}`}
+                />
+              </li>
+            );
+          })}
+        </ul>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </form>
+    </PopupShell>
   );
 }

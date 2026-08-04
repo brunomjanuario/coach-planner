@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import PopupShell from "./PopupShell";
 
 const NUMBER_FIELDS = [
   { name: "played", label: "Played" },
@@ -22,6 +23,7 @@ function isValidFigure(value) {
  * submission" contract as GameSavePopup/GameResultPopup.
  */
 export default function RivalRowPopup({ row, ourTeamName, onClose, onSubmit }) {
+  const formId = useId();
   const [formData, setFormData] = useState(() => ({
     id: row?.id,
     name: row?.name ?? "",
@@ -92,65 +94,65 @@ export default function RivalRowPopup({ row, ourTeamName, onClose, onSubmit }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/[var(--bg-opacity)] [--bg-opacity:50%] flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-2xl shadow-md w-full max-w-md text-black">
-        <h2 className="text-xl mb-4 font-bold">
-          {row ? "Edit Rival Row" : "Add Rival Row"}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium">
-              Team Name
+    <PopupShell
+      title={row ? "Edit Rival Row" : "Add Rival Row"}
+      footer={
+        <div className="flex justify-end space-x-2">
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-300 text-white rounded"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            {row ? "Save" : "Add"}
+          </button>
+        </div>
+      }
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium">
+            Team Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+          />
+          {duplicatesOurTeam && (
+            <p className="text-sm text-yellow-600">
+              This matches your own team's name — you'll have two rows for
+              the same club.
+            </p>
+          )}
+        </div>
+        {NUMBER_FIELDS.map((field) => (
+          <div key={field.name}>
+            <label htmlFor={field.name} className="block text-sm font-medium">
+              {field.label}
             </label>
             <input
-              id="name"
+              id={field.name}
               type="text"
-              name="name"
-              value={formData.name}
+              inputMode="numeric"
+              name={field.name}
+              value={formData[field.name]}
               onChange={handleChange}
               className="w-full border px-3 py-2 rounded"
             />
-            {duplicatesOurTeam && (
-              <p className="text-sm text-yellow-600">
-                This matches your own team's name — you'll have two rows for
-                the same club.
-              </p>
-            )}
           </div>
-          {NUMBER_FIELDS.map((field) => (
-            <div key={field.name}>
-              <label htmlFor={field.name} className="block text-sm font-medium">
-                {field.label}
-              </label>
-              <input
-                id={field.name}
-                type="text"
-                inputMode="numeric"
-                name={field.name}
-                value={formData[field.name]}
-                onChange={handleChange}
-                className="w-full border px-3 py-2 rounded"
-              />
-            </div>
-          ))}
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              {row ? "Save" : "Add"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        ))}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </form>
+    </PopupShell>
   );
 }
