@@ -50,6 +50,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/services/trainingService.js:30-33 mutant 2 (services)
 - last seen: 2026-08-01T08:33:48Z
 
+### L-007 — When an AC requires an unchanged element to remain readable, add a className assertion for it, not just a text-presence assertion — symmetric elements (e.g. two empty-state messages fixed by the same feature) can end up with asymmetric test coverage.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `components` · harmful: 0
+- features: 14-ratings-contrast
+- evidence: src/components/__tests__/SquadRanking.test.jsx:173,190,199 (components)
+- last seen: 2026-08-04T16:32:42Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
