@@ -695,6 +695,40 @@ test("the grid does not reflow between loading and loaded (edge case)", () => {
   expect(overviewGrid.className).toMatch(/\bauto-rows-fr\b/);
 });
 
+test("a leader tile with three entries and its neighbour with one both fill the row height via the shared surface (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [
+        { id: 1, name: "Ana", goals: 10 },
+        { id: 2, name: "Beatriz", goals: 5 },
+        { id: 3, name: "Carla", goals: 1 },
+      ],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, usScore: 1, themScore: 0 },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  const goalsTile = within(getTile("Most Goals"));
+  await goalsTile.findByText("1. Ana");
+  expect(goalsTile.getAllByRole("listitem")).toHaveLength(3);
+  const gamesTile = within(getTile("Most Games"));
+  await gamesTile.findByText("1. Amadora Sub-11");
+  expect(gamesTile.getAllByRole("listitem")).toHaveLength(1);
+
+  const goalsSurfaceClass = screen.getByText("Most Goals").parentElement.className;
+  const gamesSurfaceClass = screen.getByText("Most Games").parentElement.className;
+  expect(goalsSurfaceClass).toContain("h-full");
+  expect(gamesSurfaceClass).toBe(goalsSurfaceClass);
+});
+
 test("filtering to a team with no data keeps the grid's shape and shows empty states (edge case)", async () => {
   const user = userEvent.setup();
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
@@ -736,6 +770,9 @@ test("a long Next Event value wraps inside its tile rather than widening the col
   renderHome();
 
   await screen.findByText(/vs A Very Long Opponent/);
-  const breakdown = within(getTile("Next Event")).getByText(/vs A Very Long Opponent/);
+  const nextEventTile = within(getTile("Next Event"));
+  const value = nextEventTile.getByText(/\d{1,2}\/\d{1,2}\/\d{4}/);
+  const breakdown = nextEventTile.getByText(/vs A Very Long Opponent/);
+  expect(value.className).toMatch(/\bbreak-words\b/);
   expect(breakdown.className).toMatch(/\bbreak-words\b/);
 });
