@@ -199,8 +199,8 @@ export default function Trainings() {
           </ul>
         </div>
       )}
-      <div className="flex flex-1 min-h-0">
-        <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
+      <div className="flex flex-col md:flex-row">
+        <div className="w-full md:w-56 md:flex-shrink-0 p-4 text-center">
           {teams.length === 0 ? (
             <p>No teams yet.</p>
           ) : (
@@ -217,7 +217,7 @@ export default function Trainings() {
             </ul>
           )}
         </div>
-        <div className="flex-3 p-4 flex flex-col gap-4 flex-1 min-h-0">
+        <div className="flex-1 min-w-0 p-4 flex flex-col gap-4">
           <h2 className="text-lg font-semibold">
             Next Trainings ({futureTrainings.length})
           </h2>

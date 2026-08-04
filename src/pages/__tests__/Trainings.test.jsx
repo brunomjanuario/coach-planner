@@ -38,7 +38,7 @@ function renderTrainings(initialEntries = ["/trainings"]) {
 }
 
 function getTeamsColumn(container) {
-  return container.querySelector(".text-center.overflow-y-auto");
+  return container.querySelector(".text-center");
 }
 
 function getFutureList() {
@@ -1528,6 +1528,129 @@ test("the create-training different-team message still renders in place after th
   expect(
     await screen.findByText(/Training created for Amadora Sub-11/)
   ).toBeInTheDocument();
+});
+
+test("the team filter column carries a fixed desktop width and stacks above the content at narrow width (AC TLAY-03.1, TLAY-03.2)", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  const teamsColumn = getTeamsColumn(container);
+  expect(teamsColumn.className).toMatch(/\bw-full\b/);
+  expect(teamsColumn.className).toMatch(/\bmd:w-56\b/);
+
+  const layoutRow = teamsColumn.parentElement;
+  expect(layoutRow.className).toMatch(/\bflex-col\b/);
+  expect(layoutRow.className).toMatch(/\bmd:flex-row\b/);
+});
+
+test("no element carries both flex-1 and flex-3 (AC TLAY-03.5)", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const elements = container.querySelectorAll("*");
+  for (const el of elements) {
+    const classes = el.className.toString().split(/\s+/);
+    const hasFlex1 = classes.includes("flex-1");
+    const hasFlex3 = classes.includes("flex-3");
+    expect(hasFlex1 && hasFlex3).toBe(false);
+  }
+});
+
+test("selecting a team filters both sections and their counts together (AC TLAY-03.3)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+
+  expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Next Trainings (0)" })).toBeInTheDocument();
+});
+
+test("clicking the selected team again clears the filter and restores every training's counts (AC TLAY-03.4)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (0)" })).toBeInTheDocument();
+  });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  });
+});
+
+test("filtering to a team with no trainings shows both empty states with zero counts (edge case)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (0)" })).toBeInTheDocument();
+  });
+  expect(screen.getByRole("heading", { name: "Next Trainings (0)" })).toBeInTheDocument();
+  expect(within(getPastList()).getByText("No past trainings.")).toBeInTheDocument();
+  expect(within(getFutureList()).getByText("No upcoming trainings.")).toBeInTheDocument();
+});
+
+test("no element on the page carries overflow-y-auto, guarding the single-scrollbar goal", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});
+
+test("the content column takes the remaining width without also carrying flex-3 (AC TLAY-03.1)", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  const contentColumn = getTeamsColumn(container).nextElementSibling;
+  expect(contentColumn.className).toMatch(/\bflex-1\b/);
+  expect(contentColumn.className).not.toMatch(/\bflex-3\b/);
+});
+
+test("the team filter column keeps its fixed-width class after selecting a team (layout is stable across filtering)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Amadora Sub-11")
+  );
+
+  expect(getTeamsColumn(container).className).toMatch(/\bmd:w-56\b/);
+});
+
+test("with no teams, the 'No teams yet.' state and the disabled add button remain unchanged (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+  const { container } = renderTrainings();
+
+  await screen.findByText("No teams yet. Add one on the Teams page first.");
+
+  expect(within(getTeamsColumn(container)).getByText("No teams yet.")).toBeInTheDocument();
+  expect(container.querySelector(".bg-blue-500")).toBeDisabled();
 });
 
 test("selecting a team updates the future/past counts to reflect the filtered set (regression guard on TLAY-02)", async () => {
