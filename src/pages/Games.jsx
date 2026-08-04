@@ -8,9 +8,17 @@ import { IconPlus } from "@tabler/icons-react";
 import GameSavePopup from "../components/GameSavePopup";
 import GameResultPopup from "../components/GameResultPopup";
 import GameRow from "../components/GameRow";
+import NextGameCard from "../components/NextGameCard";
 import SelectableListItem from "../components/SelectableListItem";
 import LeagueTable from "../components/LeagueTable";
 import RivalRowPopup from "../components/RivalRowPopup";
+import { nextGame } from "../lib/gameSchedule";
+
+/** Resolves a game's teamId to "Club Name", or null for a missing/dangling team. */
+function teamNameFor(teamId, teams) {
+  const team = teams.find((t) => t.id === teamId);
+  return team ? `${team.club} ${team.name}` : null;
+}
 
 export default function Games() {
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -112,6 +120,11 @@ export default function Games() {
       selectGame(target);
     },
   });
+
+  const upcoming = nextGame(upcomingGames, new Date());
+  const nextGameTeamName = selectedTeam
+    ? undefined
+    : (teamNameFor(upcoming?.teamId, teams) ?? undefined);
 
   useEffect(() => {
     async function loadTeamsAndGames() {
@@ -216,8 +229,8 @@ export default function Games() {
           </ul>
         </div>
       )}
-      <div className="flex flex-1 min-h-0">
-        <div className="flex-1 p-4 text-center overflow-y-auto min-h-0">
+      <div className="flex flex-col md:flex-row">
+        <div className="w-full md:w-56 md:flex-shrink-0 p-4 text-center">
           {teams.length === 0 ? (
             <p>No teams yet.</p>
           ) : (
@@ -234,13 +247,19 @@ export default function Games() {
             </ul>
           )}
         </div>
-        <div className="flex-3 p-4 flex flex-col gap-4 flex-1 min-h-0">
+        <div className="flex-1 min-w-0 p-4 flex flex-col gap-4">
+          <NextGameCard
+            game={upcoming}
+            teamName={nextGameTeamName}
+            onSelect={selectGame}
+          />
+
           <h2 className="text-lg font-semibold">Upcoming</h2>
-          <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
+          <div className="flex flex-col rounded border">
             {upcomingGames.length === 0 ? (
               <p className="p-3">No upcoming games.</p>
             ) : (
-              <ul className="flex-1 overflow-y-auto">
+              <ul>
                 {upcomingGames.map((game) => (
                   <GameRow key={game.id} game={game} onSelect={selectGame} />
                 ))}
@@ -249,11 +268,11 @@ export default function Games() {
           </div>
 
           <h2 className="text-lg font-semibold">Played</h2>
-          <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
+          <div className="flex flex-col rounded border">
             {playedGames.length === 0 ? (
               <p className="p-3">No played games.</p>
             ) : (
-              <ul className="flex-1 overflow-y-auto">
+              <ul>
                 {playedGames.map((game) => (
                   <GameRow key={game.id} game={game} onSelect={selectGame} />
                 ))}
@@ -282,10 +301,11 @@ export default function Games() {
               }}
             />
           )}
-
-          <h2 className="text-lg font-semibold">League Table</h2>
+        </div>
+        <div className="w-full md:w-96 md:flex-shrink-0 p-4">
+          <h2 className="text-lg font-semibold mb-2">League Table</h2>
           {selectedTeam ? (
-            <div className="flex-1 flex flex-col gap-2 min-h-0">
+            <div className="flex flex-col gap-2">
               <div className="flex justify-end">
                 <button
                   className="bg-green-600 text-white px-3 py-1 rounded"
