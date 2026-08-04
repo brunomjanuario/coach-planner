@@ -357,16 +357,63 @@ test("an event chip on today's cell stays distinguishable from the today highlig
   expect(chip.className).not.toContain("bg-blue-50");
 });
 
-test("the header renders a labelled swatch per mapped event type (AC CALCOL-04.1)", async () => {
+test("a hovered or focused chip keeps its type colour classes (edge case)", async () => {
+  const today = new Date();
+  mockData({
+    games: [
+      { id: 7, teamId: 1, opponent: "Benfica", date: new Date(today.getFullYear(), today.getMonth(), 14, 18, 0) },
+    ],
+  });
+
+  renderCalendar();
+
+  const chip = (await screen.findByText(/18:00/)).closest("button");
+  chip.focus();
+  expect(chip.className).toContain("bg-orange-200");
+  expect(chip.className).toContain("border-orange-600");
+  expect(chip.className).not.toMatch(/hover:bg-|focus:bg-/);
+});
+
+test("a chip with a long title truncates without losing its colour or border (edge case)", async () => {
+  const today = new Date();
+  mockData({
+    games: [
+      {
+        id: 7,
+        teamId: 1,
+        opponent: "A Very Long Opponent Name That Should Truncate Instead Of Wrapping",
+        date: new Date(today.getFullYear(), today.getMonth(), 14, 18, 0),
+      },
+    ],
+  });
+
+  renderCalendar();
+
+  const chip = (await screen.findByText(/18:00/)).closest("button");
+  expect(chip.className).toContain("truncate");
+  expect(chip.className).toContain("bg-orange-200");
+  expect(chip.className).toContain("border-orange-600");
+});
+
+test("the header renders a labelled swatch per mapped event type, coloured to match (AC CALCOL-04.1)", async () => {
   mockData();
 
   renderCalendar();
 
   await waitFor(() => expect(trainingService.getAll).toHaveBeenCalled());
   const legend = screen.getByLabelText("Event type legend");
-  expect(within(legend).getByText("Game")).toBeInTheDocument();
-  expect(within(legend).getByText("Training")).toBeInTheDocument();
-  expect(within(legend).getAllByRole("listitem")).toHaveLength(2);
+  const items = within(legend).getAllByRole("listitem");
+  expect(items).toHaveLength(2);
+
+  const gameItem = within(legend).getByText("Game").closest("li");
+  const gameSwatch = gameItem.querySelector("span[aria-hidden='true']");
+  expect(gameSwatch.className).toContain("bg-orange-200");
+  expect(gameSwatch.className).toContain("border-orange-600");
+
+  const trainingItem = within(legend).getByText("Training").closest("li");
+  const trainingSwatch = trainingItem.querySelector("span[aria-hidden='true']");
+  expect(trainingSwatch.className).toContain("bg-blue-200");
+  expect(trainingSwatch.className).toContain("border-blue-600");
 });
 
 test("adding a mapping entry adds a third legend item with no change to the page (AC CALCOL-04.3)", async () => {
