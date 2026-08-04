@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from "fs";
+import { fileURLToPath } from "url";
+import path from "path";
 import { render, screen } from "@testing-library/react";
 import PopupShell from "../PopupShell";
 
@@ -8,6 +11,39 @@ function renderShell(props = {}) {
     </PopupShell>
   );
 }
+
+const COMPONENTS_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+const MIGRATED_POPUPS = [
+  "ConfirmationPopup.jsx",
+  "TeamPopup.jsx",
+  "PlayerPopup.jsx",
+  "TrainingSavePopup.jsx",
+  "TrainingDetailsPopup.jsx",
+  "GameSavePopup.jsx",
+  "GameResultPopup.jsx",
+  "RivalRowPopup.jsx",
+  "SquadRatingPopup.jsx",
+];
+
+test("the fixed inset-0 overlay markup appears only in PopupShell.jsx (AC POPUP-05.5)", () => {
+  const componentFiles = readdirSync(COMPONENTS_DIR).filter((name) => name.endsWith(".jsx"));
+
+  const filesWithOverlay = componentFiles.filter((name) => {
+    const contents = readFileSync(path.join(COMPONENTS_DIR, name), "utf-8");
+    return contents.includes("fixed inset-0");
+  });
+
+  expect(filesWithOverlay).toEqual(["PopupShell.jsx"]);
+});
+
+test("every one of the nine originally-duplicated popups no longer defines its own overlay", () => {
+  for (const file of MIGRATED_POPUPS) {
+    const contents = readFileSync(path.join(COMPONENTS_DIR, file), "utf-8");
+    expect(contents).not.toContain("fixed inset-0");
+    expect(contents).toContain("PopupShell");
+  }
+});
 
 test("renders overlay, panel, title, scrollable body and footer in order (AC POPUP-04.1)", () => {
   const { container } = renderShell({ footer: <button>Save</button> });
