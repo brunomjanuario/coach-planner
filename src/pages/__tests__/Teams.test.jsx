@@ -109,6 +109,83 @@ test("adding a player to the selected team refreshes the players list immediatel
   ).toBeInTheDocument();
 });
 
+test("the Add-player control is disabled with no team selected (AC PREF-05)", async () => {
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  const addButton = getColumn("Players").querySelector(".tabler-icon-users-plus").closest("button");
+  expect(addButton).toBeDisabled();
+  expect(addButton).toHaveAttribute("title", expect.stringContaining("Select a team"));
+});
+
+test("the Add-player control is enabled once a team is selected", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  const addButton = getColumn("Players").querySelector(".tabler-icon-users-plus").closest("button");
+  expect(addButton).not.toBeDisabled();
+});
+
+test("the player list refreshes only after teamService.addPlayer resolves (AC PREF-03.1)", async () => {
+  const originalAddPlayer = teamService.addPlayer.bind(teamService);
+  let openGate;
+  const gate = new Promise((resolve) => {
+    openGate = resolve;
+  });
+  vi.spyOn(teamService, "addPlayer").mockImplementation(async (...args) => {
+    await gate;
+    return originalAddPlayer(...args);
+  });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  await user.click(getColumn("Players").querySelector(".tabler-icon-users-plus"));
+  const form = getFormFor("Player Form");
+  await typeInto(user, form, "name", "PendingPlayer");
+  await typeInto(user, form, "age", "16");
+  await typeInto(user, form, "shirtNumber", "77");
+  await typeInto(user, form, "position", "GK");
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(screen.queryByText("77 PendingPlayer")).not.toBeInTheDocument();
+
+  openGate();
+
+  expect(
+    await within(getColumn("Players")).findByText("77 PendingPlayer")
+  ).toBeInTheDocument();
+});
+
+test("adding a player to a team other than the selected one leaves the selected team's list unchanged (edge case)", async () => {
+  const teams = await teamService.getAll();
+  const otherTeam = teams.find((t) => t.name !== "Sub-11") ?? teams[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  const before = within(getColumn("Players")).getAllByRole("listitem").length;
+
+  await teamService.addPlayer(otherTeam.id, {
+    name: "ElsewherePlayer",
+    age: 18,
+    shirtNumber: 55,
+    goals: 0,
+    assists: 0,
+    concededGoals: 0,
+    position: "RW",
+  });
+
+  expect(
+    within(getColumn("Players")).queryByText("55 ElsewherePlayer")
+  ).not.toBeInTheDocument();
+  expect(within(getColumn("Players")).getAllByRole("listitem")).toHaveLength(before);
+});
+
 test("editing the selected team's details updates the list and the edit panel without losing the selection", async () => {
   const user = userEvent.setup();
   render(<Teams />);
