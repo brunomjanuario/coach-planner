@@ -42,15 +42,15 @@ function getTeamsColumn(container) {
 }
 
 function getFutureList() {
-  return screen.getByText("Next Trainings").nextElementSibling;
+  return screen.getByRole("heading", { name: /^Next Trainings/ }).nextElementSibling;
 }
 
 function getPastList() {
-  return screen.getByText("Past Trainings").nextElementSibling;
+  return screen.getByRole("heading", { name: /^Past Trainings/ }).nextElementSibling;
 }
 
 function getUnassignedList() {
-  return screen.getByRole("heading", { name: "Unassigned" }).nextElementSibling;
+  return screen.getByRole("heading", { name: /^Unassigned/ }).nextElementSibling;
 }
 
 function getFormFor(headingText) {
@@ -407,7 +407,7 @@ test("does not render the Unassigned bucket when every training has a valid team
   renderTrainings();
   await screen.findByRole("button", { name: "Amadora Sub-11" });
 
-  expect(screen.queryByRole("heading", { name: "Unassigned" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /^Unassigned/ })).not.toBeInTheDocument();
 });
 
 test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.1)", async () => {
@@ -420,7 +420,7 @@ test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.
 
   renderTrainings();
 
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   expect(within(getUnassignedList()).getByText(/45 min/)).toBeInTheDocument();
 });
 
@@ -434,7 +434,7 @@ test("renders a training with a dangling teamId in the Unassigned bucket (edge c
 
   renderTrainings();
 
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   expect(within(getUnassignedList()).getByText(/46 min/)).toBeInTheDocument();
 });
 
@@ -447,7 +447,7 @@ test("the Unassigned bucket's assign control lists teams formatted as club + nam
   });
 
   const { container } = renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
 
   const assignSelect = container.querySelector("li select");
   expect(
@@ -467,7 +467,7 @@ test("assigning a team to an unassigned training persists it and removes it from
   });
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   const row = within(getUnassignedList()).getByText(/48 min/).closest("li");
 
   await user.selectOptions(
@@ -476,7 +476,7 @@ test("assigning a team to an unassigned training persists it and removes it from
   );
 
   await waitFor(() => {
-    expect(screen.queryByRole("heading", { name: "Unassigned" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Unassigned/ })).not.toBeInTheDocument();
   });
 });
 
@@ -489,7 +489,7 @@ test("a training reassigned to the active filter's team appears in its filtered 
   });
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
@@ -515,7 +515,7 @@ test("the unassigned list renders each training as a TrainingCard with the assig
   });
 
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
 
   const row = within(getUnassignedList()).getByText(/67 min/).closest("li");
   expect(within(row).getByRole("button")).toBeInTheDocument();
@@ -531,7 +531,7 @@ test("operating the assign-to-team select does not open the details popup (edge 
   });
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   const row = within(getUnassignedList()).getByText(/68 min/).closest("li");
 
   await user.selectOptions(
@@ -701,7 +701,7 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
 
   const keyWarning = errorSpy.mock.calls.find((call) =>
     String(call[0]).includes('unique "key" prop')
@@ -904,7 +904,7 @@ test("no row renders a raw UUID id (AC TNUM-04.2)", async () => {
   });
 
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -923,7 +923,7 @@ test("no row renders a Date.toString() form — the string 'GMT' is absent", asy
   });
 
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -952,7 +952,7 @@ test("renders '—' for the number of an unassigned training (AC TNUM-01.5)", as
   });
 
   renderTrainings();
-  await screen.findByRole("heading", { name: "Unassigned" });
+  await screen.findByRole("heading", { name: /^Unassigned/ });
 
   const row = within(getUnassignedList()).getByText(/53 min/).closest("li");
   expect(row).toHaveTextContent("Training #—");
@@ -1334,4 +1334,215 @@ test("arriving with no deep-link param behaves exactly as before (regression gua
   ).not.toBeInTheDocument();
   expect(screen.queryByText("That training no longer exists.")).toBeNull();
   expect(container).toBeTruthy();
+});
+
+test("twelve upcoming trainings all render in the DOM with no per-section cap (AC TLAY-01.1)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  for (let i = 0; i < 12; i++) {
+    await trainingService.create({
+      teamId: seedTeam.id,
+      day: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000),
+      duration: 60,
+      exercises: [],
+    });
+  }
+
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    expect(within(getFutureList()).getAllByRole("listitem")).toHaveLength(12);
+  });
+});
+
+test("twelve past trainings all render in the DOM with no per-section cap (AC TLAY-01.1)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  for (let i = 0; i < 12; i++) {
+    await trainingService.create({
+      teamId: seedTeam.id,
+      day: new Date("2020-01-01T10:00:00Z").getTime() + i * 24 * 60 * 60 * 1000,
+      duration: 60,
+      exercises: [],
+    });
+  }
+
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    // 2 seeded past trainings + 12 newly created ones.
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(14);
+  });
+});
+
+test("the page contains no h-screen or per-list overflow-y-auto container (AC TLAY-01.2, TLAY-01.3)", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(getFutureList().className).not.toMatch(/overflow-y-auto/);
+  expect(getPastList().className).not.toMatch(/overflow-y-auto/);
+  const futureUl = within(getFutureList()).queryByRole("list");
+  const pastUl = within(getPastList()).getByRole("list");
+  expect(futureUl?.className ?? "").not.toMatch(/overflow-y-auto/);
+  expect(pastUl.className).not.toMatch(/overflow-y-auto/);
+});
+
+test("each heading renders its section's count, not just its label (AC TLAY-02)", async () => {
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  expect(screen.getByRole("heading", { name: "Next Trainings (0)" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+});
+
+test("an empty section renders its existing message and a zero count (AC TLAY-01.5)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (0)" })).toBeInTheDocument();
+  });
+  expect(screen.getByRole("heading", { name: "Next Trainings (0)" })).toBeInTheDocument();
+  expect(within(getPastList()).getByText("No past trainings.")).toBeInTheDocument();
+  expect(within(getFutureList()).getByText("No upcoming trainings.")).toBeInTheDocument();
+});
+
+test("the unassigned section is uncapped and stays above the future/past sections (edge case)", async () => {
+  for (let i = 0; i < 12; i++) {
+    await trainingService.create({
+      teamId: null,
+      day: new Date("2030-06-01T10:00:00Z").getTime() + i * 1000,
+      duration: 60,
+      exercises: [],
+    });
+  }
+
+  const { container } = renderTrainings();
+  await screen.findByRole("heading", { name: /^Unassigned/ });
+
+  await waitFor(() => {
+    expect(within(getUnassignedList()).getAllByRole("listitem")).toHaveLength(12);
+  });
+  const unassignedHeading = screen.getByRole("heading", { name: /^Unassigned/ });
+  const nextHeading = screen.getByRole("heading", { name: /^Next Trainings/ });
+  expect(
+    unassignedHeading.compareDocumentPosition(nextHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+  expect(container).toBeTruthy();
+});
+
+test("creating a training updates the section count with no page reload (edge case)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Next Trainings (0)" })).toBeInTheDocument();
+  });
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-01-01T10:00");
+  await typeInto(user, form, "duration", "61");
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Next Trainings (1)" })).toBeInTheDocument();
+  });
+});
+
+test("deleting a training updates the section count with no page reload (edge case)", async () => {
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(within(row).getByRole("button"));
+  await user.click(await screen.findByRole("button", { name: "Delete" }));
+
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (1)" })).toBeInTheDocument();
+  });
+});
+
+test("editing a training's date moves it between sections and updates both counts with no page reload (edge case)", async () => {
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(within(row).getByRole("button"));
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = getFormFor("Edit Training");
+  await typeInto(user, form, "day", "2030-01-01T10:00");
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (1)" })).toBeInTheDocument();
+  });
+  expect(screen.getByRole("heading", { name: "Next Trainings (1)" })).toBeInTheDocument();
+});
+
+test("the filter message and deep-link error still render in place after the layout change (edge case)", async () => {
+  renderTrainings(["/trainings?training=does-not-exist"]);
+
+  expect(
+    await screen.findByText("That training no longer exists.")
+  ).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /^Next Trainings/ })).toBeInTheDocument();
+});
+
+test("the create-training different-team message still renders in place after the layout change (edge case)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-01-01T10:00");
+  await typeInto(user, form, "duration", "70");
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(
+    await screen.findByText(/Training created for Amadora Sub-11/)
+  ).toBeInTheDocument();
+});
+
+test("selecting a team updates the future/past counts to reflect the filtered set (regression guard on TLAY-02)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (2)" })).toBeInTheDocument();
+  });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Past Trainings (0)" })).toBeInTheDocument();
+  });
 });

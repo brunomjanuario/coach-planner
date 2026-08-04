@@ -7,24 +7,7 @@ import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
 import SelectableListItem from "../components/SelectableListItem";
 import TrainingCard from "../components/TrainingCard";
-
-function isValidDay(day) {
-  const date = day instanceof Date ? day : new Date(day);
-  return !isNaN(date.getTime());
-}
-
-/** A training is "future" only when its `day` is valid and not yet past; an invalid `day` falls to Past so it still renders (AC TNUM-04.3). */
-function isFuture(training) {
-  return isValidDay(training.day) && training.day >= new Date();
-}
-
-/** Splits trainings into future/past buckets by comparing `day` to now. */
-function splitTrainings(trainings) {
-  return {
-    future: trainings.filter(isFuture),
-    past: trainings.filter((t) => !isFuture(t)),
-  };
-}
+import { splitTrainings } from "../lib/trainingDisplay";
 
 /** Resolves a training's teamId to "Club Name", or null for a missing/dangling team. */
 function teamNameFor(teamId, teams) {
@@ -68,8 +51,8 @@ export default function Trainings() {
   const filterTrainings = async (teamId) => {
     const data = await trainingService.getAllNumbered(teamId);
 
-    const { future, past } = splitTrainings(data);
-    setFutureTrainings(future);
+    const { upcoming, past } = splitTrainings(data, new Date());
+    setFutureTrainings(upcoming);
     setPastTrainings(past);
   };
 
@@ -95,8 +78,8 @@ export default function Trainings() {
 
       try {
         const data = await trainingService.getAllNumbered();
-        const { future, past } = splitTrainings(data);
-        setFutureTrainings(future);
+        const { upcoming, past } = splitTrainings(data, new Date());
+        setFutureTrainings(upcoming);
         setPastTrainings(past);
       } catch (err) {
         console.error("Failed to load trainings:", err);
@@ -130,7 +113,7 @@ export default function Trainings() {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full flex flex-col">
       <div className="flex justify-between items-center h-20 flex-shrink-0">
         <h1 className="text-lg font-semibold mb-4 p-4">Trainings</h1>
         <button
@@ -184,7 +167,9 @@ export default function Trainings() {
       )}
       {unassignedTrainings.length > 0 && (
         <div className="px-4 pb-4 flex-shrink-0">
-          <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Unassigned ({unassignedTrainings.length})
+          </h2>
           <ul>
             {unassignedTrainings.map((training) => (
               <li key={training.id} className="flex items-center gap-2 mb-2">
@@ -233,12 +218,14 @@ export default function Trainings() {
           )}
         </div>
         <div className="flex-3 p-4 flex flex-col gap-4 flex-1 min-h-0">
-          <h2 className="text-lg font-semibold">Next Trainings</h2>
-          <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
+          <h2 className="text-lg font-semibold">
+            Next Trainings ({futureTrainings.length})
+          </h2>
+          <div className="flex flex-col rounded border">
             {futureTrainings.length === 0 ? (
               <p className="p-3">No upcoming trainings.</p>
             ) : (
-              <ul className="flex-1 overflow-y-auto">
+              <ul>
                 {futureTrainings.map((training) => (
                   <li key={training.id} className="p-1">
                     <TrainingCard
@@ -252,12 +239,14 @@ export default function Trainings() {
             )}
           </div>
 
-          <h2 className="text-lg font-semibold">Past Trainings</h2>
-          <div className="flex-1 flex flex-col rounded border overflow-y-auto min-h-0">
+          <h2 className="text-lg font-semibold">
+            Past Trainings ({pastTrainings.length})
+          </h2>
+          <div className="flex flex-col rounded border">
             {pastTrainings.length === 0 ? (
               <p className="p-3">No past trainings.</p>
             ) : (
-              <ul className="flex-1 overflow-y-auto">
+              <ul>
                 {pastTrainings.map((training) => (
                   <li key={training.id} className="p-1">
                     <TrainingCard
