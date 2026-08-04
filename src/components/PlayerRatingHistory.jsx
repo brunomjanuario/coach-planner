@@ -84,7 +84,7 @@ export default function PlayerRatingHistory({ playerId, onChange }) {
             return (
               <li
                 key={entry.id}
-                className="flex items-center justify-between gap-2 bg-gray-100 rounded px-2 py-1"
+                className="flex items-center justify-between gap-2 bg-gray-100 text-gray-900 rounded px-2 py-1"
               >
                 <span className="flex items-center gap-2 break-words">
                   <span
@@ -99,6 +99,7 @@ export default function PlayerRatingHistory({ playerId, onChange }) {
                 </span>
                 <button
                   type="button"
+                  className="text-gray-500 hover:text-red-600 focus:text-red-600"
                   aria-label={`Delete ${typeLabel.toLowerCase()} rating of ${entry.value} on ${dateLabel}`}
                   onClick={() => setToDelete(entry)}
                 >
