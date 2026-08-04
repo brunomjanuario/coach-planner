@@ -10,6 +10,51 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
+function isValidDay(day) {
+  const date = day instanceof Date ? day : new Date(day);
+  return !isNaN(date.getTime());
+}
+
+function toTime(day) {
+  const date = day instanceof Date ? day : new Date(day);
+  return date.getTime();
+}
+
+/**
+ * Sort key for descending-time ordering: an invalid day always sorts last,
+ * regardless of how many other invalid entries exist, without disturbing
+ * the relative order of the valid entries (AC TLAY-05.3).
+ */
+function pastSortKey(day) {
+  return isValidDay(day) ? toTime(day) : -Infinity;
+}
+
+/**
+ * Splits trainings into upcoming/past sections relative to `now`, injected
+ * rather than read internally so the boundary is testable without faking
+ * timers. `upcoming` is soonest-first; `past` is most-recent-first
+ * (AC TLAY-05.1, TLAY-05.2). A training with an invalid `day` falls to
+ * `past` without disturbing the ordering of the valid ones (AC TLAY-05.3,
+ * regression guard on 05's TNUM-04.3). Does not mutate `trainings`.
+ */
+export function splitTrainings(trainings, now) {
+  const upcoming = [];
+  const past = [];
+
+  for (const training of trainings) {
+    if (isValidDay(training.day) && toTime(training.day) >= now.getTime()) {
+      upcoming.push(training);
+    } else {
+      past.push(training);
+    }
+  }
+
+  upcoming.sort((a, b) => toTime(a.day) - toTime(b.day));
+  past.sort((a, b) => pastSortKey(b.day) - pastSortKey(a.day));
+
+  return { upcoming, past };
+}
+
 /**
  * Formats a training's day as "Weekday D Mon, HH:mm" using local getters
  * (never UTC or toLocaleString, which carries seconds/AM-PM noise). Falls

@@ -121,11 +121,11 @@ am not hunting inside two small boxes.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TLAY-01 | P1: No per-section height cap; page scrolls once | Tasks | Pending |
-| TLAY-02 | P1: Section counts | Tasks | Pending |
-| TLAY-03 | P1: Fixed-width, responsive team filter column | Tasks | Pending |
-| TLAY-04 | P1: Conflicting flex utilities removed | Tasks | Pending |
-| TLAY-05 | P2: Section ordering | Tasks | Pending |
+| TLAY-01 | P1: No per-section height cap; page scrolls once | Verified | ✅ Verified |
+| TLAY-02 | P1: Section counts | Verified | ✅ Verified |
+| TLAY-03 | P1: Fixed-width, responsive team filter column | Verified | ✅ Verified |
+| TLAY-04 | P1: Conflicting flex utilities removed | Verified | ✅ Verified |
+| TLAY-05 | P2: Section ordering | Verified | ✅ Verified |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
