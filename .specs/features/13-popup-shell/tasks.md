@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/13-popup-shell/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Done — verified PASS (see `validation.md`)
 **Batches**: 5 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -52,7 +52,7 @@ T2 → T3 → T4 → T5
 
 ## Task Breakdown
 
-### T1: Add `PopupShell`
+### T1: Add `PopupShell` ✅ Complete (`31a5593`)
 
 **What**: One component owning the overlay, the height cap, the scroll region and the pinned title/action rows.
 **Where**: `src/components/PopupShell.jsx` (new), `src/components/__tests__/PopupShell.test.jsx` (new)
@@ -81,7 +81,7 @@ T2 → T3 → T4 → T5
 
 ---
 
-### T2: Migrate the small popups
+### T2: Migrate the small popups ✅ Complete (`3560297`, follow-up `bc4c571`)
 
 **What**: Move `ConfirmationPopup`, `TeamPopup`, `PlayerPopup` onto the shell.
 **Where**: `src/components/ConfirmationPopup.jsx`, `TeamPopup.jsx`, `PlayerPopup.jsx` (modify)
@@ -107,7 +107,7 @@ T2 → T3 → T4 → T5
 
 ---
 
-### T3: Migrate the training popups
+### T3: Migrate the training popups ✅ Complete (`e21371f`)
 
 **What**: `TrainingSavePopup` and `TrainingDetailsPopup` — the two that motivated the feature.
 **Where**: `src/components/TrainingSavePopup.jsx`, `TrainingDetailsPopup.jsx` (modify)
@@ -133,7 +133,7 @@ T2 → T3 → T4 → T5
 
 ---
 
-### T4: Migrate the game and rating popups
+### T4: Migrate the game and rating popups ✅ Complete (`147836c`, follow-up `bc4c571`)
 
 **What**: `GameSavePopup`, `GameResultPopup`, `RivalRowPopup`, `SquadRatingPopup`.
 **Where**: those four files (modify)
@@ -158,7 +158,7 @@ T2 → T3 → T4 → T5
 
 ---
 
-### T5: Prove the duplication is gone
+### T5: Prove the duplication is gone ✅ Complete (`e76cc00`)
 
 **What**: Remove the last copies and lock the invariant in a test.
 **Where**: `src/components/__tests__/PopupShell.test.jsx` (modify), any straggler popup
