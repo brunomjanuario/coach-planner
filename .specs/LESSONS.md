@@ -68,6 +68,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: spec.md Edge Cases (hover/focus, long-title truncation) — no test in src/pages/__tests__/Calendar.test.jsx (testing)
 - last seen: 2026-08-04T17:01:38Z
 
+### L-010 — When a spec edge case names a specific field as the long-value example, assert the wrap-related class on that exact field's element, not on a nearby sibling field that happens to lengthen too.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `dashboard` · harmful: 0
+- features: 18-dashboard-grid
+- evidence: spec.md Edge Cases (long value wraps); Home.test.jsx:721-741 (dashboard)
+- last seen: 2026-08-04T19:40:51Z
+
+### L-011 — When a spec edge case describes two sibling components with differing content sizes behaving identically, add a test that renders both together and directly compares their computed properties, not just a test that the shared behavior holds in isolation for each.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `dashboard` · harmful: 0
+- features: 18-dashboard-grid
+- evidence: spec.md Edge Cases (uneven leader entry counts fill row height); Home.test.jsx (no direct pairing test) (dashboard)
+- last seen: 2026-08-04T19:41:00Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

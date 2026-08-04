@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 10,
+  "next_id": 12,
   "lessons": [
     {
       "id": "L-001",
@@ -166,6 +166,42 @@
       ],
       "created": "2026-08-04T17:01:38Z",
       "last_seen": "2026-08-04T17:01:38Z"
+    },
+    {
+      "id": "L-010",
+      "key": "spec_precision_gap::when a spec edge case names a specific field as the long value example assert the wrap related class on that exact field s element not on a nearby sibling field that happens to lengthen too",
+      "text": "When a spec edge case names a specific field as the long-value example, assert the wrap-related class on that exact field's element, not on a nearby sibling field that happens to lengthen too.",
+      "signal": "spec_precision_gap",
+      "scope": "dashboard",
+      "status": "candidate",
+      "features": [
+        "18-dashboard-grid"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Cases (long value wraps); Home.test.jsx:721-741 (dashboard)"
+      ],
+      "created": "2026-08-04T19:40:51Z",
+      "last_seen": "2026-08-04T19:40:51Z"
+    },
+    {
+      "id": "L-011",
+      "key": "spec_precision_gap::when a spec edge case describes two sibling components with differing content sizes behaving identically add a test that renders both together and directly compares their computed properties not just a test that the shared behavior holds in isolation for each",
+      "text": "When a spec edge case describes two sibling components with differing content sizes behaving identically, add a test that renders both together and directly compares their computed properties, not just a test that the shared behavior holds in isolation for each.",
+      "signal": "spec_precision_gap",
+      "scope": "dashboard",
+      "status": "candidate",
+      "features": [
+        "18-dashboard-grid"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Cases (uneven leader entry counts fill row height); Home.test.jsx (no direct pairing test) (dashboard)"
+      ],
+      "created": "2026-08-04T19:41:00Z",
+      "last_seen": "2026-08-04T19:41:00Z"
     }
   ]
 }
