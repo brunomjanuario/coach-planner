@@ -1,10 +1,5 @@
 import { hasResult, deriveOutcome } from "../lib/gameResult";
-
-/** Locale-formats a game's date, falling back to "Invalid date" (matches pages/Trainings.jsx's formatDay). */
-function formatDate(date) {
-  const d = date instanceof Date ? date : new Date(date);
-  return isNaN(d.getTime()) ? "Invalid date" : d.toLocaleString();
-}
+import { formatGameDate, homeAwayPrefix } from "../lib/gameSchedule";
 
 export default function GameRow({ game, onSelect }) {
   const played = hasResult(game);
@@ -17,10 +12,10 @@ export default function GameRow({ game, onSelect }) {
     >
       <div className="flex justify-between items-center gap-2">
         <span className="break-words">
-          {game.isHome ? "vs" : "@"} {game.opponent}
+          {homeAwayPrefix(game)} {game.opponent}
         </span>
         <span className="flex-shrink-0 text-sm text-gray-400">
-          {formatDate(game.date)}
+          {formatGameDate(game.date)}
         </span>
       </div>
       {played && (

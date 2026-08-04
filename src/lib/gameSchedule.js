@@ -43,3 +43,14 @@ function pastSortKey(value) {
 export function sortPlayed(games) {
   return [...(games ?? [])].sort((a, b) => pastSortKey(b.date) - pastSortKey(a.date));
 }
+
+/** Locale-formats a game's date, falling back to "Invalid date". Shared by GameRow and NextGameCard so the two never drift. */
+export function formatGameDate(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  return isNaN(d.getTime()) ? "Invalid date" : d.toLocaleString();
+}
+
+/** "vs" for a home fixture, "@" for an away one — shared by GameRow and NextGameCard. */
+export function homeAwayPrefix(game) {
+  return game.isHome ? "vs" : "@";
+}
