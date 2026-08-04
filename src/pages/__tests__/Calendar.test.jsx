@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Calendar from "../Calendar";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
 import { teamService } from "../../services/teamService";
+import { EVENT_STYLES } from "../../lib/calendarEvents";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -49,9 +50,9 @@ test("renders a training on its correct day cell with time and a team + type lab
 
   renderCalendar();
 
-  await waitFor(() => screen.getByText(/09:00/));
-  expect(screen.getByText(/Amadora Sub-11/)).toBeInTheDocument();
-  expect(screen.getByText(/Training/)).toBeInTheDocument();
+  const chip = (await screen.findByText(/09:00/)).closest("button");
+  expect(within(chip).getByText(/Amadora Sub-11/)).toBeInTheDocument();
+  expect(within(chip).getByText(/Training/)).toBeInTheDocument();
 });
 
 test("renders a training and a game on the same day, visually distinguished by type (AC CAL-01.3)", async () => {
@@ -354,6 +355,68 @@ test("an event chip on today's cell stays distinguishable from the today highlig
   expect(cell.className).toContain("bg-blue-50");
   expect(chip.className).toContain("bg-blue-200");
   expect(chip.className).not.toContain("bg-blue-50");
+});
+
+test("the header renders a labelled swatch per mapped event type (AC CALCOL-04.1)", async () => {
+  mockData();
+
+  renderCalendar();
+
+  await waitFor(() => expect(trainingService.getAll).toHaveBeenCalled());
+  const legend = screen.getByLabelText("Event type legend");
+  expect(within(legend).getByText("Game")).toBeInTheDocument();
+  expect(within(legend).getByText("Training")).toBeInTheDocument();
+  expect(within(legend).getAllByRole("listitem")).toHaveLength(2);
+});
+
+test("adding a mapping entry adds a third legend item with no change to the page (AC CALCOL-04.3)", async () => {
+  mockData();
+  EVENT_STYLES.tournament = {
+    label: "Tournament",
+    background: "bg-purple-200",
+    border: "border-purple-600",
+    text: "text-purple-900",
+  };
+
+  try {
+    renderCalendar();
+
+    await waitFor(() => expect(trainingService.getAll).toHaveBeenCalled());
+    const legend = screen.getByLabelText("Event type legend");
+    expect(within(legend).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(legend).getByText("Tournament")).toBeInTheDocument();
+  } finally {
+    delete EVENT_STYLES.tournament;
+  }
+});
+
+test("the neutral fallback is not listed in the legend", async () => {
+  mockData();
+
+  renderCalendar();
+
+  await waitFor(() => expect(trainingService.getAll).toHaveBeenCalled());
+  const legend = screen.getByLabelText("Event type legend");
+  expect(within(legend).queryByText("Event")).not.toBeInTheDocument();
+  expect(within(legend).queryByText(/fallback/i)).not.toBeInTheDocument();
+});
+
+test("month navigation still works with the legend present", async () => {
+  const user = userEvent.setup();
+  const today = new Date();
+  const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 10, 12, 0);
+  mockData({
+    trainings: [{ id: 1, teamId: 1, day: nextMonthDate, duration: 60 }],
+  });
+
+  renderCalendar();
+  await waitFor(() => expect(trainingService.getAll).toHaveBeenCalled());
+  screen.getByLabelText("Event type legend");
+
+  expect(screen.queryByText(/12:00/)).not.toBeInTheDocument();
+  await user.click(screen.getByText(">"));
+
+  await waitFor(() => expect(screen.getByText(/12:00/)).toBeInTheDocument());
 });
 
 test("clicking the day cell background does not navigate", async () => {
