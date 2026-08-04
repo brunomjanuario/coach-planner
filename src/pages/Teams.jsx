@@ -198,6 +198,7 @@ export default function Teams() {
             player={selectedPlayer}
             onClose={() => setSelectedPlayer(null)}
             onUpdated={() => refreshAndResyncPlayer()}
+            onDeleted={() => refreshAndResync()}
           />
         ) : (
           ""

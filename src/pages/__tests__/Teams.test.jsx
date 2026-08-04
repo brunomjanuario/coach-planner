@@ -408,6 +408,144 @@ test("the Training/Game toggle in Squad Ranking recomputes the order within the 
   ).toBeInTheDocument();
 });
 
+test("deleting a player removes it from the player list immediately, with no reload (AC PREF-01.1)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).queryByText(
+        `${targetPlayer.shirtNumber} ${targetPlayer.name}`
+      )
+    ).not.toBeInTheDocument();
+  });
+  const remaining = await teamService.getAll();
+  expect(
+    remaining.find((t) => t.id === team.id).players.some((p) => p.id === targetPlayer.id)
+  ).toBe(false);
+});
+
+test("deleting a rated player removes them from the Squad Ranking (AC PREF-01.4)", async () => {
+  const [team] = await teamService.getAll();
+  const [p1] = team.players;
+  const game = await gameService.create({
+    teamId: team.id,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 6 });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await within(getColumn("Players")).findByText(`#${p1.shirtNumber}`, { exact: false });
+  await user.click(
+    within(getColumn("Players")).getByText(`${p1.shirtNumber} ${p1.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).getByText("No rated players yet.")
+    ).toBeInTheDocument();
+  });
+});
+
+test("deleting a player clears the player selection and keeps the team selected (AC PREF-01.3)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Edit")).queryByText(
+        `${targetPlayer.shirtNumber} ${targetPlayer.name}`
+      )
+    ).not.toBeInTheDocument();
+  });
+  expect(within(getColumn("Teams")).getByText("Amadora Sub-11")).toHaveAttribute(
+    "aria-current",
+    "true"
+  );
+});
+
+test("deleting the last player of a team renders the empty-players state", async () => {
+  const soloTeam = await teamService.create({
+    club: "Solo",
+    name: "Team",
+    season: "24/25",
+    players: [],
+  });
+  await teamService.addPlayer(soloTeam.id, {
+    name: "Only",
+    age: 20,
+    shirtNumber: 1,
+    goals: 0,
+    assists: 0,
+    concededGoals: 0,
+    position: "GK",
+  });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Solo Team");
+  await selectTeamByName(user, "Solo Team");
+  await user.click(within(getColumn("Players")).getByText("1 Only"));
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(
+    await within(getColumn("Players")).findByText("No players yet.")
+  ).toBeInTheDocument();
+});
+
+test("a rejected player delete keeps the player listed and shows an inline error (AC PREF-01.5)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  vi.spyOn(teamService, "deletePlayer").mockRejectedValueOnce(new Error("boom"));
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(await within(getColumn("Edit")).findByRole("alert")).toHaveTextContent(
+    "Failed to delete the player. Please try again."
+  );
+  expect(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  ).toBeInTheDocument();
+});
+
 test("logs an error and does not crash when loading suspensions fails", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(gameService, "getAll").mockRejectedValueOnce(new Error("boom"));

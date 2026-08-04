@@ -11,9 +11,10 @@ import { ratingService } from "../services/ratingService";
 import { cardTotals, suspensionStatus, SUSPENSION_THRESHOLD } from "../lib/playerCards";
 import { average, form } from "../lib/playerRatings";
 
-export default function PlayerCard({ player, onClose, onUpdated }) {
+export default function PlayerCard({ player, onClose, onUpdated, onDeleted }) {
   const [showEditPlayerPopup, setShowEditPlayerPopup] = useState(false);
   const [toDeletePlayer, setToDeletePlayer] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [cardCounts, setCardCounts] = useState({ yellow: 0, red: 0 });
   const [ratingStats, setRatingStats] = useState({
     average: null,
@@ -70,10 +71,17 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
 
   const status = suspensionStatus(cardCounts);
 
-  const deletePlayer = () => {
-    teamService.deletePlayer(player);
-    setToDeletePlayer(false);
-    onClose();
+  const deletePlayer = async () => {
+    try {
+      await teamService.deletePlayer(player);
+      setToDeletePlayer(false);
+      if (onDeleted) onDeleted();
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete player:", err);
+      setToDeletePlayer(false);
+      setDeleteError("Failed to delete the player. Please try again.");
+    }
   };
 
   return (
@@ -120,6 +128,11 @@ export default function PlayerCard({ player, onClose, onUpdated }) {
           />
         )}
       </div>
+      {deleteError && (
+        <p role="alert" className="mb-3 text-sm font-semibold text-red-600">
+          {deleteError}
+        </p>
+      )}
       <div className="mb-3">
         <h3>Age</h3>
         <p>{player.age}</p>
