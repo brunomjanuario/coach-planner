@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { trainingService } from "../services/trainingService";
 import { gameService } from "../services/gameService";
 import { teamService } from "../services/teamService";
-import { toEvents, eventsForMonth } from "../lib/calendarEvents";
+import { toEvents, eventsForMonth, eventStyle } from "../lib/calendarEvents";
 
 const MAX_VISIBLE_EVENTS_PER_DAY = 3;
 
@@ -142,19 +142,21 @@ export default function Calendar() {
                 <div>
                   {getEventsForDay(day)
                     .slice(0, MAX_VISIBLE_EVENTS_PER_DAY)
-                    .map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        onClick={() => goToEvent(event)}
-                        className={`mb-0.5 block w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-gray-800 hover:brightness-95 focus:outline-2 focus:outline-blue-500 ${
-                          event.type === "game" ? "bg-blue-100" : "bg-amber-200"
-                        }`}
-                      >
-                        <b>{formatTime(event.date)}</b> {event.teamName} —{" "}
-                        {event.title}
-                      </button>
-                    ))}
+                    .map((event) => {
+                      const style = eventStyle(event.type);
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => goToEvent(event)}
+                          aria-label={`${style.label} at ${formatTime(event.date)}, ${event.teamName} — ${event.title}`}
+                          className={`mb-0.5 block w-full truncate rounded border-l-4 px-1.5 py-0.5 text-left text-xs hover:brightness-95 focus:outline-2 focus:outline-blue-500 ${style.background} ${style.border} ${style.text}`}
+                        >
+                          <b>{formatTime(event.date)}</b> {event.teamName} —{" "}
+                          {event.title}
+                        </button>
+                      );
+                    })}
                   {getEventsForDay(day).length > MAX_VISIBLE_EVENTS_PER_DAY && (
                     <div className="text-xs text-gray-500">
                       +{getEventsForDay(day).length - MAX_VISIBLE_EVENTS_PER_DAY}{" "}
