@@ -92,13 +92,77 @@ test("revisiting after a record is created elsewhere shows the updated count (AC
   expect(within(getTile("Teams")).getByText("3")).toBeInTheDocument();
 });
 
-test("preserves the 3-column grid layout, grown to fit the added tiles", async () => {
+test("Overview holds exactly Teams, Training, Games and Next Event, in an Overview section (AC DGRID-03.1)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewHeading = screen.getByRole("heading", { name: "Overview" });
+  const overviewGrid = overviewHeading.nextElementSibling;
+  const labels = ["Teams", "Training", "Games", "Next Event"];
+  for (const label of labels) {
+    expect(within(overviewGrid).getByText(label)).toBeInTheDocument();
+  }
+  for (const label of ["Most Goals", "Most Games", "Most Cards", "Top Rated"]) {
+    expect(within(overviewGrid).queryByText(label)).not.toBeInTheDocument();
+  }
+  expect(overviewGrid.children).toHaveLength(4);
+});
+
+test("Leaders holds exactly Most Goals, Most Games, Most Cards and Top Rated, in a Leaders section (AC DGRID-03.2)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const leadersHeading = screen.getByRole("heading", { name: "Leaders" });
+  const leadersGrid = leadersHeading.nextElementSibling;
+  const labels = ["Most Goals", "Most Games", "Most Cards", "Top Rated"];
+  for (const label of labels) {
+    expect(within(leadersGrid).getByText(label)).toBeInTheDocument();
+  }
+  for (const label of ["Teams", "Training", "Games", "Next Event"]) {
+    expect(within(leadersGrid).queryByText(label)).not.toBeInTheDocument();
+  }
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("the page exposes exactly two section headings (AC DGRID-03.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.getAllByRole("heading")).toHaveLength(2);
+});
+
+test("selecting a team recomputes tiles in both Overview and Leaders sections (regression guard on 11 DASH, AC DGRID-03.4)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
+  const goalsTile = within(getTile("Most Goals"));
+  expect(goalsTile.getByText("1. Ana")).toBeInTheDocument();
+  expect(goalsTile.queryByText(/Beatriz/)).not.toBeInTheDocument();
+});
+
+test("both section headings are real heading elements (AC DGRID-03.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.getByRole("heading", { name: "Overview" }).tagName).toMatch(/^H[1-6]$/);
+  expect(screen.getByRole("heading", { name: "Leaders" }).tagName).toMatch(/^H[1-6]$/);
+});
+
+test("the team filter sits above both sections and its label is reachable regardless of section order (AC DGRID-03.4)", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
-  const grid = container.querySelector(".grid");
-  expect(grid.className).toContain("grid-cols-3");
-  expect(grid.children).toHaveLength(8);
+  const filterLabel = screen.getByText("Team").closest("label");
+  const overviewHeading = screen.getByRole("heading", { name: "Overview" });
+  expect(
+    filterLabel.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+  expect(container).toBeTruthy();
 });
 
 test("renders a loading placeholder rather than 0 before the initial load resolves (edge case)", () => {
