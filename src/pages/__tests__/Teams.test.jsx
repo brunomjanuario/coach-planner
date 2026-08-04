@@ -109,6 +109,83 @@ test("adding a player to the selected team refreshes the players list immediatel
   ).toBeInTheDocument();
 });
 
+test("the Add-player control is disabled with no team selected (AC PREF-05)", async () => {
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  const addButton = getColumn("Players").querySelector(".tabler-icon-users-plus").closest("button");
+  expect(addButton).toBeDisabled();
+  expect(addButton).toHaveAttribute("title", expect.stringContaining("Select a team"));
+});
+
+test("the Add-player control is enabled once a team is selected", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  const addButton = getColumn("Players").querySelector(".tabler-icon-users-plus").closest("button");
+  expect(addButton).not.toBeDisabled();
+});
+
+test("the player list refreshes only after teamService.addPlayer resolves (AC PREF-03.1)", async () => {
+  const originalAddPlayer = teamService.addPlayer.bind(teamService);
+  let openGate;
+  const gate = new Promise((resolve) => {
+    openGate = resolve;
+  });
+  vi.spyOn(teamService, "addPlayer").mockImplementation(async (...args) => {
+    await gate;
+    return originalAddPlayer(...args);
+  });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  await user.click(getColumn("Players").querySelector(".tabler-icon-users-plus"));
+  const form = getFormFor("Player Form");
+  await typeInto(user, form, "name", "PendingPlayer");
+  await typeInto(user, form, "age", "16");
+  await typeInto(user, form, "shirtNumber", "77");
+  await typeInto(user, form, "position", "GK");
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(screen.queryByText("77 PendingPlayer")).not.toBeInTheDocument();
+
+  openGate();
+
+  expect(
+    await within(getColumn("Players")).findByText("77 PendingPlayer")
+  ).toBeInTheDocument();
+});
+
+test("adding a player to a team other than the selected one leaves the selected team's list unchanged (edge case)", async () => {
+  const teams = await teamService.getAll();
+  const otherTeam = teams.find((t) => t.name !== "Sub-11") ?? teams[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  const before = within(getColumn("Players")).getAllByRole("listitem").length;
+
+  await teamService.addPlayer(otherTeam.id, {
+    name: "ElsewherePlayer",
+    age: 18,
+    shirtNumber: 55,
+    goals: 0,
+    assists: 0,
+    concededGoals: 0,
+    position: "RW",
+  });
+
+  expect(
+    within(getColumn("Players")).queryByText("55 ElsewherePlayer")
+  ).not.toBeInTheDocument();
+  expect(within(getColumn("Players")).getAllByRole("listitem")).toHaveLength(before);
+});
+
 test("editing the selected team's details updates the list and the edit panel without losing the selection", async () => {
   const user = userEvent.setup();
   render(<Teams />);
@@ -149,6 +226,29 @@ test("editing the selected player's details updates the displayed player without
   await waitFor(() => {
     expect(within(getColumn("Edit")).getByText("17")).toBeInTheDocument();
   });
+});
+
+test("editing a player's shirt number updates both the Players list and the open card (AC PREF-04.3)", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(within(getColumn("Players")).getByText("1 João"));
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-edit"));
+  const form = getFormFor("Player Form");
+  await typeInto(user, form, "shirtNumber", "23");
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).getByText("23 João")
+    ).toBeInTheDocument();
+  });
+  expect(within(getColumn("Players")).queryByText("1 João")).not.toBeInTheDocument();
+  expect(
+    within(getColumn("Edit")).getByText("23 João")
+  ).toBeInTheDocument();
 });
 
 test("deleting the selected team clears the selection and removes it from the team list", async () => {
@@ -405,6 +505,144 @@ test("the Training/Game toggle in Squad Ranking recomputes the order within the 
 
   expect(
     await within(getColumn("Players")).findByText("No rated players yet.")
+  ).toBeInTheDocument();
+});
+
+test("deleting a player removes it from the player list immediately, with no reload (AC PREF-01.1)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).queryByText(
+        `${targetPlayer.shirtNumber} ${targetPlayer.name}`
+      )
+    ).not.toBeInTheDocument();
+  });
+  const remaining = await teamService.getAll();
+  expect(
+    remaining.find((t) => t.id === team.id).players.some((p) => p.id === targetPlayer.id)
+  ).toBe(false);
+});
+
+test("deleting a rated player removes them from the Squad Ranking (AC PREF-01.4)", async () => {
+  const [team] = await teamService.getAll();
+  const [p1] = team.players;
+  const game = await gameService.create({
+    teamId: team.id,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 6 });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await within(getColumn("Players")).findByText(`#${p1.shirtNumber}`, { exact: false });
+  await user.click(
+    within(getColumn("Players")).getByText(`${p1.shirtNumber} ${p1.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).getByText("No rated players yet.")
+    ).toBeInTheDocument();
+  });
+});
+
+test("deleting a player clears the player selection and keeps the team selected (AC PREF-01.3)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Edit")).queryByText(
+        `${targetPlayer.shirtNumber} ${targetPlayer.name}`
+      )
+    ).not.toBeInTheDocument();
+  });
+  expect(within(getColumn("Teams")).getByText("Amadora Sub-11")).toHaveAttribute(
+    "aria-current",
+    "true"
+  );
+});
+
+test("deleting the last player of a team renders the empty-players state", async () => {
+  const soloTeam = await teamService.create({
+    club: "Solo",
+    name: "Team",
+    season: "24/25",
+    players: [],
+  });
+  await teamService.addPlayer(soloTeam.id, {
+    name: "Only",
+    age: 20,
+    shirtNumber: 1,
+    goals: 0,
+    assists: 0,
+    concededGoals: 0,
+    position: "GK",
+  });
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Solo Team");
+  await selectTeamByName(user, "Solo Team");
+  await user.click(within(getColumn("Players")).getByText("1 Only"));
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(
+    await within(getColumn("Players")).findByText("No players yet.")
+  ).toBeInTheDocument();
+});
+
+test("a rejected player delete keeps the player listed and shows an inline error (AC PREF-01.5)", async () => {
+  const [team] = await teamService.getAll();
+  const targetPlayer = team.players[1];
+  vi.spyOn(teamService, "deletePlayer").mockRejectedValueOnce(new Error("boom"));
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
+  );
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  expect(await within(getColumn("Edit")).findByRole("alert")).toHaveTextContent(
+    "Failed to delete the player. Please try again."
+  );
+  expect(
+    within(getColumn("Players")).getByText(`${targetPlayer.shirtNumber} ${targetPlayer.name}`)
   ).toBeInTheDocument();
 });
 

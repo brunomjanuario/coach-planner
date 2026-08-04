@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/12-player-list-refresh/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Done — verified PASS (see `validation.md`)
 **Batches**: 3 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -46,7 +46,7 @@ T1 → T2 → T3
 
 ## Task Breakdown
 
-### T1: Await player writes in `PlayerPopup`
+### T1: Await player writes in `PlayerPopup` ✅ Complete (`0ef6565`)
 
 **What**: Make the submit handler `async`, await the service call, and surface failures instead of closing.
 **Where**: `src/components/PlayerPopup.jsx` (modify), `src/components/__tests__/PlayerPopup.test.jsx` (new — the component has no test file today)
@@ -73,7 +73,7 @@ T1 → T2 → T3
 
 ---
 
-### T2: Refresh the squad after a delete
+### T2: Refresh the squad after a delete ✅ Complete (`2cb3017`)
 
 **What**: Give `PlayerCard` an `onDeleted` callback distinct from `onClose`, await the delete, and have `Teams.jsx` re-read.
 **Where**: `src/components/PlayerCard.jsx` (modify), `src/pages/Teams.jsx` (modify)
@@ -102,7 +102,7 @@ T1 → T2 → T3
 
 ---
 
-### T3: Refresh the squad after an add, and guard the add control
+### T3: Refresh the squad after an add, and guard the add control ✅ Complete (`7859f2c`, follow-up `b0ecf5b`)
 
 **What**: Await the popup close path on `Teams.jsx` and disable Add-player when no team is selected.
 **Where**: `src/pages/Teams.jsx` (modify)

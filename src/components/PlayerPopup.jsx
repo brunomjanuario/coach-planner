@@ -13,6 +13,7 @@ export default function PlayerPopup({ player, teamId, onClose }) {
     concededGoals: player !== null ? player.concededGoals : 0,
     position: player !== null ? player.position : "",
   });
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,14 +23,19 @@ export default function PlayerPopup({ player, teamId, onClose }) {
     setFormData((prev) => ({ ...prev, [name]: data }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (player !== null) {
-      teamService.updatePlayer(formData);
-    } else {
-      teamService.addPlayer(teamId, formData);
+    try {
+      if (player !== null) {
+        await teamService.updatePlayer(formData);
+      } else {
+        await teamService.addPlayer(teamId, formData);
+      }
+      onClose();
+    } catch (err) {
+      console.error("Failed to save player:", err);
+      setError("Failed to save the player. Please try again.");
     }
-    onClose();
   };
 
   return (
@@ -84,6 +90,8 @@ export default function PlayerPopup({ player, teamId, onClose }) {
               required
             />
           </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <div className="flex justify-end space-x-2">
             <button

@@ -138,12 +138,15 @@ export default function Teams() {
       <div className="flex-1 p-4 text-center">
         <div className="flex items-center justify-between mb-4">
           <h2 className="flex-1 text-center text-xl font-semibold">Players</h2>
-          <div
-            className="cursor-pointer rounded hover:bg-lightgrey"
+          <button
+            type="button"
+            className="cursor-pointer rounded hover:bg-lightgrey disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedTeam}
+            title={!selectedTeam ? "Select a team before adding a player." : undefined}
             onClick={() => setShowPlayerPopup(true)}
           >
             <IconUsersPlus />
-          </div>
+          </button>
           {showPlayerPopup && (
             <PlayerPopup
               player={null}
@@ -198,6 +201,7 @@ export default function Teams() {
             player={selectedPlayer}
             onClose={() => setSelectedPlayer(null)}
             onUpdated={() => refreshAndResyncPlayer()}
+            onDeleted={() => refreshAndResync()}
           />
         ) : (
           ""

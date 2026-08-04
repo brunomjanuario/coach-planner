@@ -1,10 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PlayerCard from "../PlayerCard";
 import { teamService } from "../../services/teamService";
 import { cardService } from "../../services/cardService";
 import { gameService } from "../../services/gameService";
 import { ratingService } from "../../services/ratingService";
 import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -313,4 +324,85 @@ test("average and form recompute after a rating changes, with no page reload (AC
   await waitFor(() => {
     expect(statValue("Average Rating")).toHaveTextContent("7.0");
   });
+});
+
+test("deleting a player, once confirmed, awaits the service before calling onDeleted and onClose (AC PREF-01.1, PREF-02)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const { promise, resolve } = deferred();
+  const deleteSpy = vi.spyOn(teamService, "deletePlayer").mockReturnValue(promise);
+  const onClose = vi.fn();
+  const onDeleted = vi.fn();
+  const user = userEvent.setup();
+  const { container } = render(
+    <PlayerCard player={player} onClose={onClose} onUpdated={() => {}} onDeleted={onDeleted} />
+  );
+
+  await user.click(container.querySelector(".tabler-icon-trash"));
+  await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+  expect(deleteSpy).toHaveBeenCalledWith(player);
+  expect(onDeleted).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+
+  resolve();
+  await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("a rejected delete keeps the player and renders an inline error without closing (AC PREF-01.5)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  vi.spyOn(teamService, "deletePlayer").mockRejectedValue(new Error("boom"));
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const onClose = vi.fn();
+  const onDeleted = vi.fn();
+  const user = userEvent.setup();
+  const { container } = render(
+    <PlayerCard player={player} onClose={onClose} onUpdated={() => {}} onDeleted={onDeleted} />
+  );
+
+  await user.click(container.querySelector(".tabler-icon-trash"));
+  await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Failed to delete the player. Please try again."
+  );
+  expect(onClose).not.toHaveBeenCalled();
+  expect(onDeleted).not.toHaveBeenCalled();
+  expect(errorSpy).toHaveBeenCalledWith("Failed to delete player:", expect.any(Error));
+  expect(screen.getByText(`${player.shirtNumber} ${player.name}`)).toBeInTheDocument();
+});
+
+test("deleting a player still cascades card and rating removal (regression guard on 08/09)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const cardSpy = vi.spyOn(cardService, "removeByPlayer");
+  const ratingSpy = vi.spyOn(ratingService, "removeByPlayer");
+  const user = userEvent.setup();
+  const { container } = render(
+    <PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} onDeleted={() => {}} />
+  );
+
+  await user.click(container.querySelector(".tabler-icon-trash"));
+  await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+  await waitFor(() => expect(cardSpy).toHaveBeenCalledWith(player.id));
+  expect(ratingSpy).toHaveBeenCalledWith(player.id);
+});
+
+test("cancelling the delete confirmation leaves the player unchanged", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const deleteSpy = vi.spyOn(teamService, "deletePlayer");
+  const user = userEvent.setup();
+  const { container } = render(
+    <PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} onDeleted={() => {}} />
+  );
+
+  await user.click(container.querySelector(".tabler-icon-trash"));
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(deleteSpy).not.toHaveBeenCalled();
+  expect(screen.getByText(`${player.shirtNumber} ${player.name}`)).toBeInTheDocument();
 });

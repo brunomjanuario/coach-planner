@@ -103,14 +103,15 @@
 
 ## Handoff
 
-- **Feature**: Planning round two — thirteen new features (`12`–`24`) specified from the user's change list. Nothing implemented yet.
-- **Phase / Task**: Specify complete for all thirteen; each has `spec.md` + `tasks.md`. Design skipped throughout (no feature is Large; the two with real modelling decisions, `20` and `21`, resolved them in their assumptions tables and in AD-010).
-- **Completed**: `00`–`11` are all merged to `main` (latest: `c9cd451 feat(dashboard): wire the landing page to real data (#13)`). The `09` handoff below this line is superseded — that branch was merged.
-- **In-progress** (file:line): none.
-- **Next step**: Execute in the README's stated order. `12`–`15` are independent quick fixes and can go in any order; `13-popup-shell` should land before `20`, `21` and `24` so their new popups inherit the shell rather than copy the old markup.
+- **Feature**: `12-player-list-refresh` — done and verified (PASS, one fix→re-verify iteration for a spec-precision gap).
+- **Phase / Task**: All 3 tasks complete — T1 (`PlayerPopup` awaits its service call before closing, `0ef6565`) → T2 (`PlayerCard.deletePlayer` awaits + new `onDeleted` callback wired in `Teams.jsx`, `2cb3017`) → T3 (add-refresh ordering + Add-player control disabled with no team selected, `7859f2c`). Verifier found one real gap — PREF-04.3's "updated in the list" half had no test editing a list-visible field (`name`/`shirtNumber`); the only edit test changed `age`, which the Players list never renders — fixed with one added test (commit `b0ecf5b`) and confirmed load-bearing by mutation (reverting `refreshAndResyncPlayer`'s `setSelectedTeam` call made it fail). Re-verified: 702 tests green, all mutations killed. See `.specs/features/12-player-list-refresh/validation.md`.
+- **Completed**: T1–T3 plus the post-Verifier fix, all committed individually on `feature/12-player-list-refresh`.
+- **In-progress** (file:line): none — feature closed out.
+- **Next step**: `feature/12-player-list-refresh` is not yet merged to `main`. Per the README's suggested order, `13-popup-shell` is next — it should land before `20`, `21` and `24` so their new popups inherit the shell rather than copy the old overlay markup.
 - **Blockers**: none.
-- **Uncommitted files**: `.specs/features/12-…` through `24-…` (26 new files), plus this file and `.specs/README.md`.
-- **Branch**: `main`, clean before this planning round. Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking.
+- **Uncommitted files**: none — everything for `12` is committed.
+- **Branch**: `feature/12-player-list-refresh` (not yet merged to `main`). Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking.
+- **Remaining round-two features**: `13`–`24` are specified (`spec.md` + `tasks.md`) but not started.
 - **Open items carried forward**: the `11-dashboard` handoff asked whether `ratingService` should gain a batch aggregation method now that a second consumer exists. Still unanswered; `18-dashboard-grid` does not touch data, so it does not force the question.
 
 ---
