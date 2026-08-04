@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 7,
+  "next_id": 8,
   "lessons": [
     {
       "id": "L-001",
@@ -112,6 +112,24 @@
       ],
       "created": "2026-08-01T08:33:48Z",
       "last_seen": "2026-08-01T08:33:48Z"
+    },
+    {
+      "id": "L-007",
+      "key": "ac_gap::when an ac requires an unchanged element to remain readable add a classname assertion for it not just a text presence assertion symmetric elements e g two empty state messages fixed by the same feature can end up with asymmetric test coverage",
+      "text": "When an AC requires an unchanged element to remain readable, add a className assertion for it, not just a text-presence assertion — symmetric elements (e.g. two empty-state messages fixed by the same feature) can end up with asymmetric test coverage.",
+      "signal": "ac_gap",
+      "scope": "components",
+      "status": "candidate",
+      "features": [
+        "14-ratings-contrast"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/components/__tests__/SquadRanking.test.jsx:173,190,199 (components)"
+      ],
+      "created": "2026-08-04T16:32:42Z",
+      "last_seen": "2026-08-04T16:32:42Z"
     }
   ]
 }

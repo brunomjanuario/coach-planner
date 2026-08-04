@@ -257,6 +257,61 @@ test("a rating whose event no longer exists still renders instead of crashing (e
   expect(await screen.findByText("No ratings recorded yet.")).toBeInTheDocument();
 });
 
+test("a history row carries a dark text colour on the light row background (AC CONTR-03.1)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameAt(player.teamId, new Date("2030-01-01T10:00:00Z"));
+  await ratingService.setRating({ playerId: player.id, eventType: "game", eventId: game.id, value: 6 });
+
+  render(<PlayerRatingHistory playerId={player.id} onChange={() => {}} />);
+
+  const items = await waitFor(() => {
+    const found = entryList();
+    expect(found).toHaveLength(1);
+    return found;
+  });
+  expect(items[0].className).toContain("bg-gray-100");
+  expect(items[0].className).toContain("text-gray-900");
+});
+
+test("the delete control is styled distinguishably from the row text (AC CONTR-03.2)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameAt(player.teamId, new Date("2030-01-01T10:00:00Z"));
+  await ratingService.setRating({ playerId: player.id, eventType: "game", eventId: game.id, value: 6 });
+
+  render(<PlayerRatingHistory playerId={player.id} onChange={() => {}} />);
+  const deleteButton = await screen.findByRole("button", { name: /Delete game rating of 6/ });
+  const row = deleteButton.closest("li");
+
+  expect(deleteButton.className).not.toContain("text-gray-900");
+  expect(deleteButton.className).not.toBe(row.className);
+});
+
+test("the empty-history message stays on the dark surface without being darkened (AC CONTR-03.3)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+
+  render(<PlayerRatingHistory playerId={player.id} onChange={() => {}} />);
+
+  const message = await screen.findByText("No ratings recorded yet.");
+  expect(message.className).not.toContain("text-gray-900");
+  expect(message.className).toContain("text-gray-500");
+});
+
+test("the delete control keeps a readable colour on hover and focus (edge case)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+  const game = await seedGameAt(player.teamId, new Date("2030-01-01T10:00:00Z"));
+  await ratingService.setRating({ playerId: player.id, eventType: "game", eventId: game.id, value: 6 });
+
+  render(<PlayerRatingHistory playerId={player.id} onChange={() => {}} />);
+  const deleteButton = await screen.findByRole("button", { name: /Delete game rating of 6/ });
+
+  expect(deleteButton.className).toContain("hover:text-red-600");
+  expect(deleteButton.className).toContain("focus:text-red-600");
+});
+
 test("logs an error and still renders when loading history fails", async () => {
   const teams = await teamService.getAll();
   const player = teams[0].players[1];

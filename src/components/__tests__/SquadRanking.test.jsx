@@ -226,6 +226,106 @@ test("numbers each row by rank position", async () => {
   expect(items[1]).toHaveTextContent(/^2\./);
 });
 
+test("ranking rows carry a dark text colour on the light row background (AC CONTR-01.1)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length >= 1);
+  const [p1] = team.players;
+  const game = await seedGame(team.id);
+  await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 7 });
+
+  render(<SquadRanking team={team} />);
+
+  const items = await waitFor(() => {
+    const found = rankingItems();
+    expect(found.length).toBeGreaterThan(0);
+    return found;
+  });
+  const row = items[0];
+  expect(row.className).toContain("bg-gray-100");
+  expect(row.className).toContain("text-gray-900");
+});
+
+test("unselected filter buttons carry a dark text colour on their light background (AC CONTR-02.1)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length > 0);
+
+  render(<SquadRanking team={team} />);
+
+  const trainingButton = await screen.findByRole("button", { name: "Training" });
+  const gameButton = screen.getByRole("button", { name: "Game" });
+  expect(trainingButton.className).toContain("bg-gray-200");
+  expect(trainingButton.className).toContain("text-gray-900");
+  expect(gameButton.className).toContain("bg-gray-200");
+  expect(gameButton.className).toContain("text-gray-900");
+});
+
+test("the selected filter button keeps white text on blue, not the dark colour (AC CONTR-01.3)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length > 0);
+
+  render(<SquadRanking team={team} />);
+
+  const combinedButton = await screen.findByRole("button", { name: "Combined" });
+  expect(combinedButton.className).toContain("bg-blue-600");
+  expect(combinedButton.className).toContain("text-white");
+  expect(combinedButton.className).not.toContain("text-gray-900");
+});
+
+test("the empty-ranking message stays readable on the page background (AC CONTR-01.4)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length > 0);
+
+  render(<SquadRanking team={team} />);
+
+  const message = await screen.findByText("No rated players yet.");
+  expect(message.className).toContain("text-gray-500");
+  expect(message.className).not.toContain("text-gray-900");
+});
+
+test("an unrated player's — placeholder sits inside the darkened row (edge case)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length >= 2);
+  const unrated = team.players[team.players.length - 1];
+  const rest = team.players.slice(0, -1);
+  const game = await seedGame(team.id);
+  for (const player of rest) {
+    await ratingService.setRating({ playerId: player.id, eventType: "game", eventId: game.id, value: 5 });
+  }
+
+  render(<SquadRanking team={team} />);
+
+  const items = await waitFor(() => {
+    const found = rankingItems();
+    expect(found).toHaveLength(team.players.length);
+    return found;
+  });
+  const last = items[items.length - 1];
+  expect(last).toHaveTextContent(`#${unrated.shirtNumber}`);
+  expect(within(last).getByText("—")).toBeInTheDocument();
+  expect(last.className).toContain("text-gray-900");
+});
+
+test("a wrapping long player name is coloured on the row, not on a fixed-width span (edge case)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length > 0);
+  const player = team.players[0];
+  player.name = "A Very Long Player Name That Should Wrap Across Multiple Lines In The Row";
+  const game = await seedGame(team.id);
+  await ratingService.setRating({ playerId: player.id, eventType: "game", eventId: game.id, value: 6 });
+
+  render(<SquadRanking team={team} />);
+
+  const items = await waitFor(() => {
+    const found = rankingItems();
+    expect(found.length).toBeGreaterThan(0);
+    return found;
+  });
+  const row = items.find((item) => item.textContent.includes(player.name));
+  expect(row.className).toContain("text-gray-900");
+  const nameSpan = within(row).getByText(new RegExp(player.name));
+  expect(nameSpan.className).not.toContain("text-gray-900");
+});
+
 test("logs an error and still renders when loading ratings fails", async () => {
   const teams = await teamService.getAll();
   const team = teams.find((t) => t.players.length > 0);

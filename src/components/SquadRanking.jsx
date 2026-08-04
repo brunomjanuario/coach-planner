@@ -53,7 +53,7 @@ export default function SquadRanking({ team }) {
             type="button"
             aria-pressed={filter === undefined}
             className={`px-2 py-1 text-xs rounded ${
-              filter === undefined ? "bg-blue-600 text-white" : "bg-gray-200"
+              filter === undefined ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
             }`}
             onClick={() => setFilter(undefined)}
           >
@@ -63,7 +63,7 @@ export default function SquadRanking({ team }) {
             type="button"
             aria-pressed={filter === "training"}
             className={`px-2 py-1 text-xs rounded ${
-              filter === "training" ? "bg-blue-600 text-white" : "bg-gray-200"
+              filter === "training" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
             }`}
             onClick={() => setFilter("training")}
           >
@@ -73,7 +73,7 @@ export default function SquadRanking({ team }) {
             type="button"
             aria-pressed={filter === "game"}
             className={`px-2 py-1 text-xs rounded ${
-              filter === "game" ? "bg-blue-600 text-white" : "bg-gray-200"
+              filter === "game" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
             }`}
             onClick={() => setFilter("game")}
           >
@@ -88,7 +88,7 @@ export default function SquadRanking({ team }) {
           {ranking.map((entry, index) => (
             <li
               key={entry.player.id}
-              className="flex items-center justify-between gap-2 bg-gray-100 rounded px-2 py-1"
+              className="flex items-center justify-between gap-2 bg-gray-100 text-gray-900 rounded px-2 py-1"
             >
               <span className="break-words">
                 {index + 1}. #{entry.player.shirtNumber} {entry.player.name}
