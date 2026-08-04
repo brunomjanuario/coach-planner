@@ -15,6 +15,10 @@ function isValidValue(value) {
 }
 
 export const ratingService = {
+  getAll: async () => {
+    return getRatings();
+  },
+
   getByEvent: async (eventType, eventId) => {
     return getRatings().filter(
       (rating) => rating.eventType === eventType && rating.eventId === eventId
