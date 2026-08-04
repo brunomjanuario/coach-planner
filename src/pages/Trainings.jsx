@@ -6,6 +6,7 @@ import { IconPlus } from "@tabler/icons-react";
 import TrainingSavePopup from "../components/TrainingSavePopup";
 import TrainingDetailsPopup from "../components/TrainingDetailsPopup";
 import SelectableListItem from "../components/SelectableListItem";
+import TrainingCard from "../components/TrainingCard";
 
 function isValidDay(day) {
   const date = day instanceof Date ? day : new Date(day);
@@ -25,16 +26,10 @@ function splitTrainings(trainings) {
   };
 }
 
-/** Locale-formats a training's day, falling back to "Invalid date" (AC TNUM-04.3). */
-function formatDay(day) {
-  const date = day instanceof Date ? day : new Date(day);
-  return isNaN(date.getTime()) ? "Invalid date" : date.toLocaleString();
-}
-
-/** Readable row label: `Training #N`, formatted date/time, duration in minutes. */
-function trainingRowLabel(training) {
-  const number = training.number ?? "—";
-  return `Training #${number} · ${formatDay(training.day)} · ${training.duration} min`;
+/** Resolves a training's teamId to "Club Name", or null for a missing/dangling team. */
+function teamNameFor(teamId, teams) {
+  const team = teams.find((t) => t.id === teamId);
+  return team ? `${team.club} ${team.name}` : null;
 }
 
 export default function Trainings() {
@@ -192,11 +187,14 @@ export default function Trainings() {
           <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
           <ul>
             {unassignedTrainings.map((training) => (
-              <li
-                key={training.id}
-                className="flex items-center justify-between gap-2 p-2 border rounded mb-2"
-              >
-                <span>{trainingRowLabel(training)}</span>
+              <li key={training.id} className="flex items-center gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <TrainingCard
+                    training={training}
+                    teamName={teamNameFor(training.teamId, teams)}
+                    onSelect={() => selectTraining(training)}
+                  />
+                </div>
                 <select
                   className="border px-2 py-1 rounded"
                   value=""
@@ -242,12 +240,12 @@ export default function Trainings() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {futureTrainings.map((training) => (
-                  <li
-                    key={training.id}
-                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                    onClick={() => selectTraining(training)}
-                  >
-                    {trainingRowLabel(training)}
+                  <li key={training.id} className="p-1">
+                    <TrainingCard
+                      training={training}
+                      teamName={teamNameFor(training.teamId, teams)}
+                      onSelect={() => selectTraining(training)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -261,12 +259,13 @@ export default function Trainings() {
             ) : (
               <ul className="flex-1 overflow-y-auto">
                 {pastTrainings.map((training) => (
-                  <li
-                    key={training.id}
-                    className={`p-3 rounded cursor-pointer hover:bg-lightblack`}
-                    onClick={() => selectTraining(training)}
-                  >
-                    {trainingRowLabel(training)}
+                  <li key={training.id} className="p-1">
+                    <TrainingCard
+                      training={training}
+                      teamName={teamNameFor(training.teamId, teams)}
+                      past
+                      onSelect={() => selectTraining(training)}
+                    />
                   </li>
                 ))}
               </ul>

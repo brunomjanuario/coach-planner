@@ -50,7 +50,7 @@ function getPastList() {
 }
 
 function getUnassignedList() {
-  return screen.getByText("Unassigned").nextElementSibling;
+  return screen.getByRole("heading", { name: "Unassigned" }).nextElementSibling;
 }
 
 function getFormFor(headingText) {
@@ -79,7 +79,7 @@ async function selectTeamInForm(user, form, label) {
 test("renders teams returned by teamService.getAll on mount", async () => {
   const { container } = renderTrainings();
 
-  expect(await screen.findByText("Amadora Sub-11")).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: "Amadora Sub-11" })).toBeInTheDocument();
   expect(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
   ).toBeInTheDocument();
@@ -104,7 +104,7 @@ test("logs an error and does not crash when teamService.getAll rejects", async (
 
 test("loads and splits all trainings into past and future buckets on mount when no team is selected", async () => {
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
@@ -115,7 +115,7 @@ test("loads and splits all trainings into past and future buckets on mount when 
 test("selecting a team filters both trainings lists to that team's trainings only", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -133,7 +133,7 @@ test("selecting a team filters both trainings lists to that team's trainings onl
 test("deselecting the selected team reverts to showing all trainings", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -157,7 +157,7 @@ test("deselecting the selected team reverts to showing all trainings", async () 
 test("creating a training with a future date refreshes the Next Trainings list without a manual reload", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await openCreatePopup(user, container);
 
@@ -176,7 +176,7 @@ test("creating a training with a future date refreshes the Next Trainings list w
 test("creating a training with a past date immediately places it under Past Trainings", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -197,7 +197,7 @@ test("creating a training with a past date immediately places it under Past Trai
 test("creating a training while a team filter is active preserves the filter and does not leak other teams' trainings", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
@@ -223,7 +223,7 @@ test("creating a training while a team filter is active preserves the filter and
 test("canceling the create-training popup does not add a training and preserves the current team filter", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -247,7 +247,7 @@ test("canceling the create-training popup does not add a training and preserves 
 test("renders no React key warnings for the team filter and training lists", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -260,7 +260,7 @@ test("renders no React key warnings for the team filter and training lists", asy
 
 test("renders an empty-state message for Next Trainings when there are none", async () => {
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   expect(await screen.findByText("No upcoming trainings.")).toBeInTheDocument();
 });
@@ -268,7 +268,7 @@ test("renders an empty-state message for Next Trainings when there are none", as
 test("renders an empty-state message for Past Trainings when the filtered team has none", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
@@ -282,7 +282,7 @@ test("renders an empty-state message for Past Trainings when the filtered team h
 test("marks the selected team row with aria-current", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -296,7 +296,7 @@ test("marks the selected team row with aria-current", async () => {
 test("clicking the selected team again clears aria-current from its row", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
@@ -313,7 +313,7 @@ test("clicking the selected team again clears aria-current from its row", async 
 test("creating a future training removes the Next Trainings empty-state message", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await screen.findByText("No upcoming trainings.");
 
   await openCreatePopup(user, container);
@@ -348,7 +348,7 @@ test("disables the create-training button with a message pointing at Teams when 
 test("keeps the create-training button enabled once teams have loaded", async () => {
   const { container } = renderTrainings();
 
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   expect(container.querySelector(".bg-blue-500")).toBeEnabled();
 });
@@ -356,7 +356,7 @@ test("keeps the create-training button enabled once teams have loaded", async ()
 test("creating a training for a different team than the active filter keeps the filter and names the target team (AC TTA-04.3)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
   );
@@ -383,7 +383,7 @@ test("creating a training for a different team than the active filter keeps the 
 test("opening the create popup again clears a previous different-team message", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Areias Sub-19")
   );
@@ -405,9 +405,9 @@ test("opening the create popup again clears a previous different-team message", 
 
 test("does not render the Unassigned bucket when every training has a valid team (AC TTA-05.2)", async () => {
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
-  expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Unassigned" })).not.toBeInTheDocument();
 });
 
 test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.1)", async () => {
@@ -420,7 +420,7 @@ test("renders a training with a null teamId in the Unassigned bucket (AC TTA-05.
 
   renderTrainings();
 
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   expect(within(getUnassignedList()).getByText(/45 min/)).toBeInTheDocument();
 });
 
@@ -434,7 +434,7 @@ test("renders a training with a dangling teamId in the Unassigned bucket (edge c
 
   renderTrainings();
 
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   expect(within(getUnassignedList()).getByText(/46 min/)).toBeInTheDocument();
 });
 
@@ -447,7 +447,7 @@ test("the Unassigned bucket's assign control lists teams formatted as club + nam
   });
 
   const { container } = renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
 
   const assignSelect = container.querySelector("li select");
   expect(
@@ -467,7 +467,7 @@ test("assigning a team to an unassigned training persists it and removes it from
   });
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   const row = within(getUnassignedList()).getByText(/48 min/).closest("li");
 
   await user.selectOptions(
@@ -476,7 +476,7 @@ test("assigning a team to an unassigned training persists it and removes it from
   );
 
   await waitFor(() => {
-    expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Unassigned" })).not.toBeInTheDocument();
   });
 });
 
@@ -489,7 +489,7 @@ test("a training reassigned to the active filter's team appears in its filtered 
   });
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
@@ -504,6 +504,43 @@ test("a training reassigned to the active filter's team appears in its filtered 
     expect(within(getFutureList()).getByText(/49 min/)).toBeInTheDocument();
   });
   expect(created.teamId).toBeNull();
+});
+
+test("the unassigned list renders each training as a TrainingCard with the assign-to-team select beside it (AC TCARD-04.3)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 67,
+    exercises: [],
+  });
+
+  renderTrainings();
+  await screen.findByRole("heading", { name: "Unassigned" });
+
+  const row = within(getUnassignedList()).getByText(/67 min/).closest("li");
+  expect(within(row).getByRole("button")).toBeInTheDocument();
+  expect(within(row).getByRole("combobox")).toBeInTheDocument();
+});
+
+test("operating the assign-to-team select does not open the details popup (edge case)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 68,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("heading", { name: "Unassigned" });
+  const row = within(getUnassignedList()).getByText(/68 min/).closest("li");
+
+  await user.selectOptions(
+    within(row).getByRole("combobox"),
+    "Amadora Sub-11"
+  );
+
+  expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /Training #/ })).not.toBeInTheDocument();
 });
 
 async function addExerciseInForm(user, form, { description, duration, players, repetitions } = {}) {
@@ -521,7 +558,7 @@ async function addExerciseInForm(user, form, { description, duration, players, r
 test("a training with three fully-populated exercises survives create and reload with every field unchanged (AC TFORM-02.4)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await openCreatePopup(user, container);
   const form = getFormFor("Create Training");
@@ -582,7 +619,7 @@ test("a training with three fully-populated exercises survives create and reload
 test("null numeric fields survive the round trip as null, not 0 or undefined (AC TFORM-01.3)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await openCreatePopup(user, container);
   const form = getFormFor("Create Training");
@@ -609,7 +646,7 @@ test("null numeric fields survive the round trip as null, not 0 or undefined (AC
 test("exercise ids are unique across two exercises added in the same tick (AC TFORM-02.5)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await openCreatePopup(user, container);
   const form = getFormFor("Create Training");
@@ -634,7 +671,7 @@ test("exercise ids are unique across two exercises added in the same tick (AC TF
 test("training.day is still a Date after the round trip (regression guard on 01 PERSIST-05)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await openCreatePopup(user, container);
   const form = getFormFor("Create Training");
@@ -664,7 +701,7 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
 
   const keyWarning = errorSpy.mock.calls.find((call) =>
     String(call[0]).includes('unique "key" prop')
@@ -672,15 +709,190 @@ test("renders no React key warnings for the Unassigned bucket", async () => {
   expect(keyWarning).toBeUndefined();
 });
 
-test("renders a row with Training #N, a locale-formatted date and the duration in minutes (AC TNUM-04.1)", async () => {
+test("renders a card with Training #N, a formatted date and the duration in minutes (AC TNUM-04.1, superseded by TCARD-01/05's structured card)", async () => {
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
 
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  expect(row.textContent).toMatch(/^Training #\d+ · .+ · \d+ min$/);
+  expect(row.textContent).toMatch(/^Training #\d+/);
+  expect(row.textContent).toMatch(/\d+ min/);
+});
+
+test("the past list renders each training as a TrainingCard button (AC TCARD-04.2)", async () => {
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const buttons = within(getPastList()).getAllByRole("button");
+  expect(buttons).toHaveLength(2);
+});
+
+test("the future list renders each training as a TrainingCard button (AC TCARD-04.1)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-01-01T10:00");
+  await typeInto(user, form, "duration", "61");
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(() => {
+    expect(within(getFutureList()).getAllByRole("button")).toHaveLength(1);
+  });
+});
+
+test("past cards render the muted treatment; upcoming cards do not", async () => {
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  await openCreatePopup(user, container);
+  const form = getFormFor("Create Training");
+  await selectTeamInForm(user, form, "Amadora Sub-11");
+  await typeInto(user, form, "day", "2027-01-01T10:00");
+  await typeInto(user, form, "duration", "61");
+  await user.click(screen.getByRole("button", { name: "Create" }));
+  await waitFor(() => {
+    expect(within(getFutureList()).getAllByRole("button")).toHaveLength(1);
+  });
+
+  const pastButton = within(getPastList()).getAllByRole("button")[0];
+  const futureButton = within(getFutureList()).getAllByRole("button")[0];
+  expect(pastButton.className).toContain("bg-lightgrey");
+  expect(futureButton.className).toContain("bg-lightblack");
+});
+
+test("a training with a dangling teamId resolves to 'Unassigned' on its card", async () => {
+  await trainingService.create({
+    teamId: "no-such-team",
+    day: new Date("2020-06-01T10:00:00Z"),
+    duration: 64,
+    exercises: [],
+  });
+
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getByText(/64 min/)).toBeInTheDocument();
+  });
+
+  const row = within(getPastList()).getByText(/64 min/).closest("li");
+  expect(within(row).getByText("Unassigned")).toBeInTheDocument();
+});
+
+test("clicking a card opens the details popup for that exact training, by id (regression guard on 06 TEDIT-04)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  const created = await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date("2020-05-01T10:00:00Z"),
+    duration: 65,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  const row = await within(getPastList()).findByText(/65 min/);
+
+  await user.click(row.closest("button"));
+
+  const heading = await screen.findByRole("heading", { name: /Training #/ });
+  const allTrainings = await trainingService.getAllNumbered();
+  const opened = allTrainings.find(
+    (t) => `Training #${t.number ?? "—"}` === heading.textContent
+  );
+  expect(opened.id).toBe(created.id);
+});
+
+test("a training with a valid teamId resolves to the team's club + name on its card", async () => {
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  expect(within(row).getByText("Amadora Sub-11")).toBeInTheDocument();
+});
+
+test("clicking a card in the future list opens the details popup for that exact training, by id", async () => {
+  const [seedTeam] = await teamService.getAll();
+  const created = await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10),
+    duration: 66,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  const row = await within(getFutureList()).findByText(/66 min/);
+
+  await user.click(row.closest("button"));
+
+  const heading = await screen.findByRole("heading", { name: /Training #/ });
+  const allTrainings = await trainingService.getAllNumbered();
+  const opened = allTrainings.find(
+    (t) => `Training #${t.number ?? "—"}` === heading.textContent
+  );
+  expect(opened.id).toBe(created.id);
+});
+
+test("a past card's accessible name identifies it by number, date and team (AC TCARD-03.5)", async () => {
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("button")).toHaveLength(2);
+  });
+
+  const button = within(getPastList()).getAllByRole("button")[0];
+  expect(button).toHaveAccessibleName(/Training #/);
+  expect(button).toHaveAccessibleName(/Amadora Sub-11/);
+});
+
+test("renders no React key warnings for the future and past lists across a team-filter change (edge case)", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const user = userEvent.setup();
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  const keyWarning = errorSpy.mock.calls.find((call) =>
+    String(call[0]).includes('unique "key" prop')
+  );
+  expect(keyWarning).toBeUndefined();
+});
+
+test("keyboard activation (Enter) opens the details popup for the focused card (AC TCARD-03.2)", async () => {
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const button = within(getPastList()).getAllByRole("button")[0];
+
+  button.focus();
+  await user.keyboard("{Enter}");
+
+  expect(await screen.findByRole("button", { name: "Close" })).toBeInTheDocument();
 });
 
 test("no row renders a raw UUID id (AC TNUM-04.2)", async () => {
@@ -692,7 +904,7 @@ test("no row renders a raw UUID id (AC TNUM-04.2)", async () => {
   });
 
   renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -711,7 +923,7 @@ test("no row renders a Date.toString() form — the string 'GMT' is absent", asy
   });
 
   renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -726,7 +938,7 @@ test("renders 'Invalid date' rather than crashing when a training's day is inval
   ]);
 
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   expect(await screen.findByText(/Invalid date/)).toBeInTheDocument();
 });
@@ -740,7 +952,7 @@ test("renders '—' for the number of an unassigned training (AC TNUM-01.5)", as
   });
 
   renderTrainings();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: "Unassigned" });
 
   const row = within(getUnassignedList()).getByText(/53 min/).closest("li");
   expect(row).toHaveTextContent("Training #—");
@@ -759,23 +971,23 @@ test("future-only and past-only filtered views keep team-wide numbers instead of
   expect(expectedNumber).toBe(3);
 
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
-  const futureRow = await within(getFutureList()).findByText(/54 min/);
+  const futureRow = (await within(getFutureList()).findByText(/54 min/)).closest("li");
   expect(futureRow.textContent).toContain(`Training #${expectedNumber}`);
 });
 
 test("the number shown in the details popup matches the number on the row that opened it (edge case)", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
 
   const row = within(getPastList()).getAllByRole("listitem")[0];
   const rowNumber = row.textContent.match(/Training #(\d+|—)/)[1];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
 
   expect(
     await screen.findByRole("heading", { name: `Training #${rowNumber}` })
@@ -785,12 +997,12 @@ test("the number shown in the details popup matches the number on the row that o
 test("clicking Edit in the details popup closes the details popup and opens the form in edit mode for that training (AC TEDIT-04.1)", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await screen.findByRole("button", { name: "Edit" });
 
   await user.click(screen.getByRole("button", { name: "Edit" }));
@@ -804,14 +1016,14 @@ test("clicking Edit in the details popup closes the details popup and opens the 
 test("the edit form receives the same training the details popup was showing, by id not index", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
 
   const rows = within(getPastList()).getAllByRole("listitem");
   const targetRow = rows[1];
-  await user.click(targetRow);
+  await user.click(within(targetRow).getByRole("button"));
   const detailsHeading = await screen.findByRole("heading", { name: /Training #/ });
   const trainingNumber = detailsHeading.textContent.match(/Training #(\d+|—)/)[1];
   const allTrainings = await trainingService.getAllNumbered();
@@ -839,13 +1051,13 @@ test("deleting a training removes it and renumbers the remaining team trainings 
   });
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(3);
   });
 
   const rows = within(getPastList()).getAllByRole("listitem");
-  await user.click(rows[0]);
+  await user.click(within(rows[0]).getByRole("button"));
   await screen.findByRole("button", { name: "Delete" });
   await user.click(screen.getByRole("button", { name: "Delete" }));
   await user.click(screen.getByRole("button", { name: "Submit" }));
@@ -862,12 +1074,12 @@ test("deleting a training removes it and renumbers the remaining team trainings 
 test("deleting a training closes both the details popup and the confirmation dialog", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Delete" }));
 
   await user.click(screen.getByRole("button", { name: "Submit" }));
@@ -881,12 +1093,12 @@ test("deleting a training closes both the details popup and the confirmation dia
 test("cancelling a delete leaves the training list unchanged", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Delete" }));
 
   await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -897,12 +1109,12 @@ test("cancelling a delete leaves the training list unchanged", async () => {
 test("reopening the details popup after an edit shows the updated values (edge case)", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
 
   const form = getFormFor("Edit Training");
@@ -922,12 +1134,12 @@ test("reopening the details popup after an edit shows the updated values (edge c
 test("editing refreshes both training lists without a page reload (AC TEDIT-06.1)", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   const form = getFormFor("Edit Training");
   await typeInto(user, form, "duration", "81");
@@ -943,12 +1155,12 @@ test("editing refreshes both training lists without a page reload (AC TEDIT-06.1
 test("an edit that moves a training from past to future jumps it to Next Trainings (AC TEDIT-06.2)", async () => {
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   const form = getFormFor("Edit Training");
   await typeInto(user, form, "day", "2030-01-01T10:00");
@@ -964,7 +1176,7 @@ test("an edit that moves a training from past to future jumps it to Next Trainin
 test("an edit that changes a training's team re-applies the active filter, removing it from the filtered list (AC TEDIT-06.3)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
@@ -972,7 +1184,7 @@ test("an edit that changes a training's team re-applies the active filter, remov
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   const form = getFormFor("Edit Training");
   await selectTeamInForm(user, form, "Areias Sub-19");
@@ -987,7 +1199,7 @@ test("an edit that changes a training's team re-applies the active filter, remov
 test("editing a training out of the active team filter keeps the filter and reports where it went (edge case, same as AC TTA-04.3)", async () => {
   const user = userEvent.setup();
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
@@ -995,7 +1207,7 @@ test("editing a training out of the active team filter keeps the filter and repo
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   const form = getFormFor("Edit Training");
   await selectTeamInForm(user, form, "Areias Sub-19");
@@ -1014,12 +1226,12 @@ test("editing a training deleted in another tab fails with a clear message and d
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   const user = userEvent.setup();
   renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   await waitFor(() => {
     expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
   });
   const row = within(getPastList()).getAllByRole("listitem")[0];
-  await user.click(row);
+  await user.click(within(row).getByRole("button"));
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   await screen.findByRole("heading", { name: "Edit Training" });
   const beforeCount = (await trainingService.getAll()).length;
@@ -1090,7 +1302,7 @@ test("clears the team filter when it would hide the deep-linked training (edge c
   });
 
   const { container } = renderTrainings();
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
 
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
@@ -1116,7 +1328,7 @@ test("clears the team filter when it would hide the deep-linked training (edge c
 test("arriving with no deep-link param behaves exactly as before (regression guard)", async () => {
   const { container } = renderTrainings();
 
-  await screen.findByText("Amadora Sub-11");
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
   expect(
     screen.queryByRole("button", { name: "Close" })
   ).not.toBeInTheDocument();

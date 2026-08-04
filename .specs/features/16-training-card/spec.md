@@ -124,11 +124,11 @@ can find the right one quickly.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TCARD-01 | P1: Card content and formatting | Tasks | Pending |
-| TCARD-02 | P1: Exercise count and planned-minutes hint | Tasks | Pending |
-| TCARD-03 | P1: Keyboard-operable card | Tasks | Pending |
-| TCARD-04 | P2: Used by all three lists | Tasks | Pending |
-| TCARD-05 | P2: String-concatenation helper removed | Tasks | Pending |
+| TCARD-01 | P1: Card content and formatting | Verified | ✅ Verified |
+| TCARD-02 | P1: Exercise count and planned-minutes hint | Verified | ✅ Verified |
+| TCARD-03 | P1: Keyboard-operable card | Verified | ✅ Verified |
+| TCARD-04 | P2: Used by all three lists | Verified | ✅ Verified |
+| TCARD-05 | P2: String-concatenation helper removed | Verified | ✅ Verified |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
