@@ -1,3 +1,38 @@
+/**
+ * Event-type chip styles, keyed by `type`. The only place these class
+ * strings appear — day cells and the legend both read from here so a new
+ * event type only needs an entry added here (AC CALCOL-03).
+ */
+export const EVENT_STYLES = {
+  game: {
+    label: "Game",
+    background: "bg-orange-200",
+    border: "border-orange-600",
+    text: "text-orange-900",
+  },
+  training: {
+    label: "Training",
+    background: "bg-blue-200",
+    border: "border-blue-600",
+    text: "text-blue-900",
+  },
+};
+
+const FALLBACK_STYLE = {
+  label: "Event",
+  background: "bg-gray-200",
+  border: "border-gray-400",
+  text: "text-gray-900",
+};
+
+/**
+ * Never returns undefined: an unrecognised type degrades to the neutral
+ * fallback style instead of crashing or rendering unstyled (AC CALCOL-03).
+ */
+export function eventStyle(type) {
+  return EVENT_STYLES[type] ?? FALLBACK_STYLE;
+}
+
 function toDate(value) {
   const date = value instanceof Date ? value : new Date(value);
   return isNaN(date.getTime()) ? null : date;
