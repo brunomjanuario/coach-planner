@@ -271,6 +271,17 @@ test("the selected filter button keeps white text on blue, not the dark colour (
   expect(combinedButton.className).not.toContain("text-gray-900");
 });
 
+test("the empty-ranking message stays readable on the page background (AC CONTR-01.4)", async () => {
+  const teams = await teamService.getAll();
+  const team = teams.find((t) => t.players.length > 0);
+
+  render(<SquadRanking team={team} />);
+
+  const message = await screen.findByText("No rated players yet.");
+  expect(message.className).toContain("text-gray-500");
+  expect(message.className).not.toContain("text-gray-900");
+});
+
 test("an unrated player's — placeholder sits inside the darkened row (edge case)", async () => {
   const teams = await teamService.getAll();
   const team = teams.find((t) => t.players.length >= 2);
