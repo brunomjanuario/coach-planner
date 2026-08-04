@@ -98,10 +98,10 @@ not have to infer them.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| CALCOL-01 | P1: Games orange, trainings blue | Tasks | Pending |
-| CALCOL-02 | P1: Non-chromatic type indicator + accessible name | Tasks | Pending |
-| CALCOL-03 | P1: Mapping centralised with a neutral fallback | Tasks | Pending |
-| CALCOL-04 | P1: Legend derived from the mapping | Tasks | Pending |
+| CALCOL-01 | P1: Games orange, trainings blue | Verified | ✅ Verified |
+| CALCOL-02 | P1: Non-chromatic type indicator + accessible name | Verified | ✅ Verified |
+| CALCOL-03 | P1: Mapping centralised with a neutral fallback | Verified | ✅ Verified |
+| CALCOL-04 | P1: Legend derived from the mapping | Verified | ✅ Verified |
 
 **Coverage:** 4 total, 4 mapped to tasks, 0 unmapped
 

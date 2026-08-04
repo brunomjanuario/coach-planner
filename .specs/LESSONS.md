@@ -56,6 +56,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/components/__tests__/SquadRanking.test.jsx:173,190,199 (components)
 - last seen: 2026-08-04T16:32:42Z
 
+### L-008 — When a spec AC names a visual attribute (e.g. a colour swatch), assert that attribute's class/value directly in the test, not just the presence of adjacent text.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `calendar` · harmful: 0
+- features: 15-calendar-event-colours
+- evidence: AC CALCOL-04.1 / src/pages/__tests__/Calendar.test.jsx:360-370 (calendar)
+- last seen: 2026-08-04T17:01:33Z
+
+### L-009 — Write one test per listed spec Edge Case, even when the underlying implementation is a static class already covered by another test — an untested static class is still an unverified requirement.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: 15-calendar-event-colours
+- evidence: spec.md Edge Cases (hover/focus, long-title truncation) — no test in src/pages/__tests__/Calendar.test.jsx (testing)
+- last seen: 2026-08-04T17:01:38Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
