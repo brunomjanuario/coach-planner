@@ -228,6 +228,29 @@ test("editing the selected player's details updates the displayed player without
   });
 });
 
+test("editing a player's shirt number updates both the Players list and the open card (AC PREF-04.3)", async () => {
+  const user = userEvent.setup();
+  render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+  await selectTeamByName(user, "Amadora Sub-11");
+  await user.click(within(getColumn("Players")).getByText("1 João"));
+
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-edit"));
+  const form = getFormFor("Player Form");
+  await typeInto(user, form, "shirtNumber", "23");
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(
+      within(getColumn("Players")).getByText("23 João")
+    ).toBeInTheDocument();
+  });
+  expect(within(getColumn("Players")).queryByText("1 João")).not.toBeInTheDocument();
+  expect(
+    within(getColumn("Edit")).getByText("23 João")
+  ).toBeInTheDocument();
+});
+
 test("deleting the selected team clears the selection and removes it from the team list", async () => {
   const user = userEvent.setup();
   render(<Teams />);
