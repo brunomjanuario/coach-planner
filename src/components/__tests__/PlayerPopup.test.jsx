@@ -28,6 +28,15 @@ async function fillRequiredFields(user, container) {
   await user.type(container.querySelector('[name="position"]'), "ST");
 }
 
+test("renders through PopupShell as an accessible dialog at natural height (AC POPUP-03)", () => {
+  render(<PlayerPopup player={null} teamId={1} onClose={() => {}} />);
+
+  const dialog = screen.getByRole("dialog");
+  expect(dialog).toHaveAttribute("aria-modal", "true");
+  expect(dialog.className).toMatch(/max-h-\[85vh\]/);
+  expect(screen.getByText("Player Form")).toBeInTheDocument();
+});
+
 test("creating a player awaits teamService.addPlayer before calling onClose (AC PREF-03.1)", async () => {
   const { promise, resolve } = deferred();
   const addPlayerSpy = vi.spyOn(teamService, "addPlayer").mockReturnValue(promise);
