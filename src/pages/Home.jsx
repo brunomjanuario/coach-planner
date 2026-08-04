@@ -100,57 +100,65 @@ export default function Home() {
           ))}
         </select>
       </label>
-      <div className="grid grid-cols-3 gap-10">
-        <StatTile
-          label="Teams"
-          value={stats.teams}
-          loading={loading}
-          emptyHref="/teams"
-        />
-        <StatTile
-          label="Training"
-          value={stats.trainings.total}
-          breakdown={`${stats.trainings.past} past · ${stats.trainings.upcoming} upcoming`}
-          loading={loading}
-          emptyHref="/trainings"
-        />
-        <StatTile
-          label="Games"
-          value={stats.games.total}
-          breakdown={`${stats.games.played} played · ${stats.games.upcoming} upcoming`}
-          loading={loading}
-          emptyHref="/games"
-        />
-        <LeaderTile label="Most Goals" data={scorers} loading={loading} />
-        <LeaderTile
-          label="Most Games"
-          note="Team appearances, not individual"
-          data={teamGames}
-          loading={loading}
-        />
-        <LeaderTile
-          label="Most Cards"
-          data={carded}
-          renderValue={renderCardValue}
-          loading={loading}
-        />
-        <StatTile
-          label="Next Event"
-          value={upcoming ? upcoming.date.toLocaleString() : null}
-          breakdown={upcoming ? `${upcoming.title} · ${upcoming.teamName}` : undefined}
-          href={nextEventHref}
-          loading={loading}
-          emptyHref="/calendar"
-          emptyLabel="No upcoming events"
-          emptyLinkLabel="View calendar"
-        />
-        <LeaderTile
-          label="Top Rated"
-          data={rated}
-          renderValue={renderRatingValue}
-          loading={loading}
-        />
-      </div>
+      <section>
+        <h2 className="text-lg font-semibold mb-2">Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">
+          <StatTile
+            label="Teams"
+            value={stats.teams}
+            loading={loading}
+            emptyHref="/teams"
+          />
+          <StatTile
+            label="Training"
+            value={stats.trainings.total}
+            breakdown={`${stats.trainings.past} past · ${stats.trainings.upcoming} upcoming`}
+            loading={loading}
+            emptyHref="/trainings"
+          />
+          <StatTile
+            label="Games"
+            value={stats.games.total}
+            breakdown={`${stats.games.played} played · ${stats.games.upcoming} upcoming`}
+            loading={loading}
+            emptyHref="/games"
+          />
+          <StatTile
+            label="Next Event"
+            value={upcoming ? upcoming.date.toLocaleString() : null}
+            breakdown={upcoming ? `${upcoming.title} · ${upcoming.teamName}` : undefined}
+            href={nextEventHref}
+            loading={loading}
+            emptyHref="/calendar"
+            emptyLabel="No upcoming events"
+            emptyLinkLabel="View calendar"
+          />
+        </div>
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold mb-2">Leaders</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">
+          <LeaderTile label="Most Goals" data={scorers} loading={loading} />
+          <LeaderTile
+            label="Most Games"
+            note="Team appearances, not individual"
+            data={teamGames}
+            loading={loading}
+          />
+          <LeaderTile
+            label="Most Cards"
+            data={carded}
+            renderValue={renderCardValue}
+            loading={loading}
+          />
+          <LeaderTile
+            label="Top Rated"
+            data={rated}
+            renderValue={renderRatingValue}
+            loading={loading}
+          />
+        </div>
+      </section>
     </div>
   );
 }

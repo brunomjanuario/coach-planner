@@ -125,11 +125,11 @@ types cannot drift apart again.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| DGRID-01 | P1: Equal-height tiles | Tasks | Pending |
-| DGRID-02 | P1: Responsive 4/2/1 columns, no holes | Tasks | Pending |
-| DGRID-03 | P1: Overview and Leaders sections | Tasks | Pending |
-| DGRID-04 | P1: Shared tile surface | Tasks | Pending |
-| DGRID-05 | P1: Loading and empty states hold the same height | Tasks | Pending |
+| DGRID-01 | P1: Equal-height tiles | Verified | ✅ Verified |
+| DGRID-02 | P1: Responsive 4/2/1 columns, no holes | Verified | ✅ Verified |
+| DGRID-03 | P1: Overview and Leaders sections | Verified | ✅ Verified |
+| DGRID-04 | P1: Shared tile surface | Verified | ✅ Verified |
+| DGRID-05 | P1: Loading and empty states hold the same height | Verified | ✅ Verified |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 

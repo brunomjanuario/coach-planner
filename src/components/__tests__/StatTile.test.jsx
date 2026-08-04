@@ -89,3 +89,42 @@ test("renders as a plain, non-interactive tile when neither href nor onClick is 
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
+
+test("renders through the shared Tile surface (h-full present) when populated (AC DGRID-04.1)", () => {
+  renderTile({ value: 4 });
+
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/\bh-full\b/);
+});
+
+test("the loading skeleton occupies the same surface class as the populated state (AC DGRID-05.2)", () => {
+  const { unmount } = renderTile({ value: 4 });
+  const populatedClass = screen.getByText("Teams").parentElement.className;
+  unmount();
+
+  renderTile({ value: 4, loading: true });
+  const loadingClass = screen.getByText("Teams").parentElement.className;
+
+  expect(loadingClass).toBe(populatedClass);
+});
+
+test("the empty state occupies the same surface class as the populated state (AC DGRID-05.3)", () => {
+  const { unmount } = renderTile({ value: 4 });
+  const populatedClass = screen.getByText("Teams").parentElement.className;
+  unmount();
+
+  renderTile({ value: 0 });
+  const emptyClass = screen.getByText("Teams").parentElement.className;
+
+  expect(emptyClass).toBe(populatedClass);
+});
+
+test("an interactive tile's surface class matches the plain tile's surface class (AC DGRID-04.4)", () => {
+  const { unmount } = renderTile({ value: 4 });
+  const plainClass = screen.getByText("Teams").parentElement.className;
+  unmount();
+
+  renderTile({ value: 4, href: "/calendar" });
+  const linkClass = screen.getByText("Teams").parentElement.className;
+
+  expect(linkClass).toContain(plainClass);
+});

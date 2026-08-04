@@ -92,13 +92,77 @@ test("revisiting after a record is created elsewhere shows the updated count (AC
   expect(within(getTile("Teams")).getByText("3")).toBeInTheDocument();
 });
 
-test("preserves the 3-column grid layout, grown to fit the added tiles", async () => {
+test("Overview holds exactly Teams, Training, Games and Next Event, in an Overview section (AC DGRID-03.1)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewHeading = screen.getByRole("heading", { name: "Overview" });
+  const overviewGrid = overviewHeading.nextElementSibling;
+  const labels = ["Teams", "Training", "Games", "Next Event"];
+  for (const label of labels) {
+    expect(within(overviewGrid).getByText(label)).toBeInTheDocument();
+  }
+  for (const label of ["Most Goals", "Most Games", "Most Cards", "Top Rated"]) {
+    expect(within(overviewGrid).queryByText(label)).not.toBeInTheDocument();
+  }
+  expect(overviewGrid.children).toHaveLength(4);
+});
+
+test("Leaders holds exactly Most Goals, Most Games, Most Cards and Top Rated, in a Leaders section (AC DGRID-03.2)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const leadersHeading = screen.getByRole("heading", { name: "Leaders" });
+  const leadersGrid = leadersHeading.nextElementSibling;
+  const labels = ["Most Goals", "Most Games", "Most Cards", "Top Rated"];
+  for (const label of labels) {
+    expect(within(leadersGrid).getByText(label)).toBeInTheDocument();
+  }
+  for (const label of ["Teams", "Training", "Games", "Next Event"]) {
+    expect(within(leadersGrid).queryByText(label)).not.toBeInTheDocument();
+  }
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("the page exposes exactly two section headings (AC DGRID-03.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.getAllByRole("heading")).toHaveLength(2);
+});
+
+test("selecting a team recomputes tiles in both Overview and Leaders sections (regression guard on 11 DASH, AC DGRID-03.4)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
+  const goalsTile = within(getTile("Most Goals"));
+  expect(goalsTile.getByText("1. Ana")).toBeInTheDocument();
+  expect(goalsTile.queryByText(/Beatriz/)).not.toBeInTheDocument();
+});
+
+test("both section headings are real heading elements (AC DGRID-03.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.getByRole("heading", { name: "Overview" }).tagName).toMatch(/^H[1-6]$/);
+  expect(screen.getByRole("heading", { name: "Leaders" }).tagName).toMatch(/^H[1-6]$/);
+});
+
+test("the team filter sits above both sections and its label is reachable regardless of section order (AC DGRID-03.4)", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
-  const grid = container.querySelector(".grid");
-  expect(grid.className).toContain("grid-cols-3");
-  expect(grid.children).toHaveLength(8);
+  const filterLabel = screen.getByText("Team").closest("label");
+  const overviewHeading = screen.getByRole("heading", { name: "Overview" });
+  expect(
+    filterLabel.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
+  expect(container).toBeTruthy();
 });
 
 test("renders a loading placeholder rather than 0 before the initial load resolves (edge case)", () => {
@@ -555,4 +619,160 @@ test("excludes a player whose team has been deleted from the leader tiles (edge 
   expect(within(getTile("Most Goals")).getByText("1. Ana")).toBeInTheDocument();
   expect(within(getTile("Most Cards")).getByText("No data yet")).toBeInTheDocument();
   expect(within(getTile("Top Rated")).getByText("No data yet")).toBeInTheDocument();
+});
+
+test("each section's grid carries auto-rows-fr and the 1/2/4 responsive column classes (AC DGRID-01.1, DGRID-02)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  for (const grid of [overviewGrid, leadersGrid]) {
+    expect(grid.className).toMatch(/\bauto-rows-fr\b/);
+    expect(grid.className).toMatch(/\bgrid-cols-1\b/);
+    expect(grid.className).toMatch(/\bmd:grid-cols-2\b/);
+    expect(grid.className).toMatch(/\blg:grid-cols-4\b/);
+  }
+});
+
+test("each section holds exactly four tiles, so no cell is empty at four columns (AC DGRID-02.3)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("gap-10 is replaced with a gap consistent with the tiles' padding (AC DGRID-01.5)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  expect(overviewGrid.className).not.toMatch(/\bgap-10\b/);
+  expect(overviewGrid.className).toMatch(/\bgap-4\b/);
+});
+
+test("a fresh install with no data renders all eight tiles in their empty states with signpost links intact (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await waitFor(() => {
+    expect(screen.getAllByText("No data yet")).toHaveLength(7);
+  });
+  expect(screen.getByText("No upcoming events")).toBeInTheDocument();
+  expect(
+    within(getTile("Teams")).getByRole("link", { name: "Add one" })
+  ).toHaveAttribute("href", "/teams");
+  expect(
+    within(getTile("Next Event")).getByRole("link", { name: "View calendar" })
+  ).toHaveAttribute("href", "/calendar");
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+});
+
+test("the grid does not reflow between loading and loaded (edge case)", () => {
+  vi.spyOn(teamService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(trainingService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(gameService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(cardService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(ratingService, "getAll").mockReturnValue(new Promise(() => {}));
+
+  renderHome();
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+  expect(overviewGrid.className).toMatch(/\bauto-rows-fr\b/);
+});
+
+test("a leader tile with three entries and its neighbour with one both fill the row height via the shared surface (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      club: "Amadora",
+      name: "Sub-11",
+      players: [
+        { id: 1, name: "Ana", goals: 10 },
+        { id: 2, name: "Beatriz", goals: 5 },
+        { id: 3, name: "Carla", goals: 1 },
+      ],
+    },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, usScore: 1, themScore: 0 },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  const goalsTile = within(getTile("Most Goals"));
+  await goalsTile.findByText("1. Ana");
+  expect(goalsTile.getAllByRole("listitem")).toHaveLength(3);
+  const gamesTile = within(getTile("Most Games"));
+  await gamesTile.findByText("1. Amadora Sub-11");
+  expect(gamesTile.getAllByRole("listitem")).toHaveLength(1);
+
+  const goalsSurfaceClass = screen.getByText("Most Goals").parentElement.className;
+  const gamesSurfaceClass = screen.getByText("Most Games").parentElement.className;
+  expect(goalsSurfaceClass).toContain("h-full");
+  expect(gamesSurfaceClass).toBe(goalsSurfaceClass);
+});
+
+test("filtering to a team with no data keeps the grid's shape and shows empty states (edge case)", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana", goals: 5 }] },
+    { id: 2, club: "Zero", name: "Team", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "2");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  expect(overviewGrid.children).toHaveLength(4);
+  expect(leadersGrid.children).toHaveLength(4);
+  expect(within(getTile("Training")).getByText("No data yet")).toBeInTheDocument();
+});
+
+test("a long Next Event value wraps inside its tile rather than widening the column (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora Football Club Sporting Association", name: "Sub-11 Under Eleven Squad", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    {
+      id: 1,
+      teamId: 1,
+      opponent: "A Very Long Opponent Club Name Written Out In Full",
+      date: new Date(Date.now() + 86_400_000),
+    },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+
+  await screen.findByText(/vs A Very Long Opponent/);
+  const nextEventTile = within(getTile("Next Event"));
+  const value = nextEventTile.getByText(/\d{1,2}\/\d{1,2}\/\d{4}/);
+  const breakdown = nextEventTile.getByText(/vs A Very Long Opponent/);
+  expect(value.className).toMatch(/\bbreak-words\b/);
+  expect(breakdown.className).toMatch(/\bbreak-words\b/);
 });

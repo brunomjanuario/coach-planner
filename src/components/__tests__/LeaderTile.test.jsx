@@ -1,5 +1,10 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { render, screen, within } from "@testing-library/react";
 import LeaderTile from "../LeaderTile";
+
+const componentsDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 test("renders up to 3 entries with rank, name and value (AC DASH-05.1)", () => {
   render(
@@ -121,4 +126,57 @@ test("renders a loading placeholder rather than an empty state while loading", (
 
   expect(screen.queryByText("No data yet")).not.toBeInTheDocument();
   expect(screen.getByText("—")).toBeInTheDocument();
+});
+
+test("renders through the shared Tile surface (h-full present) when populated (AC DGRID-04.1)", () => {
+  render(
+    <LeaderTile
+      label="Most Goals"
+      data={{ entries: [{ id: 1, name: "Ana", value: 3, rank: 1 }], overflow: 0 }}
+    />
+  );
+
+  expect(screen.getByText("Most Goals").parentElement.className).toMatch(/\bh-full\b/);
+});
+
+test("the loading skeleton occupies the same surface class as the populated state (AC DGRID-05.2)", () => {
+  const { unmount } = render(
+    <LeaderTile
+      label="Most Goals"
+      data={{ entries: [{ id: 1, name: "Ana", value: 3, rank: 1 }], overflow: 0 }}
+    />
+  );
+  const populatedClass = screen.getByText("Most Goals").parentElement.className;
+  unmount();
+
+  render(<LeaderTile label="Most Goals" loading data={{ entries: [], overflow: 0 }} />);
+  const loadingClass = screen.getByText("Most Goals").parentElement.className;
+
+  expect(loadingClass).toBe(populatedClass);
+});
+
+test("the empty state occupies the same surface class as the populated state (AC DGRID-05.3)", () => {
+  const { unmount } = render(
+    <LeaderTile
+      label="Most Goals"
+      data={{ entries: [{ id: 1, name: "Ana", value: 3, rank: 1 }], overflow: 0 }}
+    />
+  );
+  const populatedClass = screen.getByText("Most Goals").parentElement.className;
+  unmount();
+
+  render(<LeaderTile label="Most Goals" data={{ entries: [], overflow: 0 }} />);
+  const emptyClass = screen.getByText("Most Goals").parentElement.className;
+
+  expect(emptyClass).toBe(populatedClass);
+});
+
+test("TILE_CLASS is declared in exactly one module — StatTile and LeaderTile no longer define their own copy (AC DGRID-04.5)", () => {
+  const statTileSrc = fs.readFileSync(path.join(componentsDir, "StatTile.jsx"), "utf-8");
+  const leaderTileSrc = fs.readFileSync(path.join(componentsDir, "LeaderTile.jsx"), "utf-8");
+  const tileSrc = fs.readFileSync(path.join(componentsDir, "Tile.jsx"), "utf-8");
+
+  expect(statTileSrc).not.toMatch(/\bTILE_CLASS\s*=/);
+  expect(leaderTileSrc).not.toMatch(/\bTILE_CLASS\s*=/);
+  expect(tileSrc).toMatch(/\bTILE_CLASS\s*=/);
 });
