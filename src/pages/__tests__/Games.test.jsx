@@ -41,15 +41,15 @@ function getTeamsColumn(container) {
 }
 
 function getUpcomingList() {
-  return screen.getByText("Upcoming").nextElementSibling;
+  return screen.getByRole("heading", { name: /^Upcoming/ }).nextElementSibling;
 }
 
 function getPlayedList() {
-  return screen.getByText("Played").nextElementSibling;
+  return screen.getByRole("heading", { name: /^Played/ }).nextElementSibling;
 }
 
 function getUnassignedList() {
-  return screen.getByText("Unassigned").nextElementSibling;
+  return screen.getByRole("heading", { name: /^Unassigned/ }).nextElementSibling;
 }
 
 function getFormFor(headingText) {
@@ -261,7 +261,7 @@ test("renders a game with a null teamId in the Unassigned bucket (edge case)", a
 
   renderGames();
 
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   expect(
     within(getUnassignedList()).getByText(/Unassigned FC/)
   ).toBeInTheDocument();
@@ -278,7 +278,7 @@ test("renders a game with a dangling teamId in the Unassigned bucket (edge case)
 
   renderGames();
 
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   expect(
     within(getUnassignedList()).getByText(/Dangling FC/)
   ).toBeInTheDocument();
@@ -294,7 +294,7 @@ test("assigning a team to an unassigned game persists it and removes it from the
   });
   const user = userEvent.setup();
   renderGames();
-  await screen.findByText("Unassigned");
+  await screen.findByRole("heading", { name: /^Unassigned/ });
   const row = within(getUnassignedList())
     .getByText(/Assign Me FC/)
     .closest("li");
@@ -305,7 +305,7 @@ test("assigning a team to an unassigned game persists it and removes it from the
   );
 
   await waitFor(() => {
-    expect(screen.queryByText("Unassigned")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /^Unassigned/ })).not.toBeInTheDocument();
   });
 });
 
@@ -644,7 +644,7 @@ test("renders three regions in source order teams, fixtures, table (AC GLAY-01.1
   const row = getTeamsColumn(container).parentElement;
   const [teamsCol, fixturesCol, tableCol] = row.children;
   expect(within(teamsCol).getByText("Amadora Sub-11")).toBeInTheDocument();
-  expect(within(fixturesCol).getByText("Upcoming")).toBeInTheDocument();
+  expect(within(fixturesCol).getByText(/^Upcoming/)).toBeInTheDocument();
   expect(within(tableCol).getByText("League Table")).toBeInTheDocument();
 });
 
@@ -823,4 +823,177 @@ test("adding a rival row still works from the new layout (regression guard on 07
   await waitFor(() => {
     expect(screen.getByText("Benfica B")).toBeInTheDocument();
   });
+});
+
+test("twelve upcoming games all render with no per-section cap (AC GLAY-05.1)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  for (let i = 0; i < 12; i++) {
+    await gameService.create({
+      teamId: seedTeam.id,
+      opponent: `Rival ${i}`,
+      date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000),
+      isHome: true,
+      competition: "League",
+    });
+  }
+
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    // 1 seeded upcoming game + 12 newly created ones.
+    expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(13);
+  });
+});
+
+test("twelve played games all render with no per-section cap (AC GLAY-05.1)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  for (let i = 0; i < 12; i++) {
+    const game = await gameService.create({
+      teamId: seedTeam.id,
+      opponent: `Rival ${i}`,
+      date: new Date("2020-01-01T10:00:00Z").getTime() + i * 24 * 60 * 60 * 1000,
+      isHome: true,
+      competition: "League",
+    });
+    await gameService.recordResult(game.id, { us: 1, them: 0 });
+  }
+
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    // 1 seeded played game + 12 newly created ones.
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(13);
+  });
+});
+
+test("the page contains no h-screen or per-list overflow-y-auto container (AC GLAY-05.3)", async () => {
+  const { container } = renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});
+
+test("each fixture heading renders its count, not just its label (AC GLAY-05.2)", async () => {
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  expect(screen.getByRole("heading", { name: "Upcoming (1)" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Played (1)" })).toBeInTheDocument();
+});
+
+test("the played section is ordered most-recent-first (AC GLAY-05.4)", async () => {
+  const [seedTeam] = await teamService.getAll();
+  const older = await gameService.create({
+    teamId: seedTeam.id,
+    opponent: "Older Rival",
+    date: new Date("2019-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await gameService.recordResult(older.id, { us: 1, them: 0 });
+  const newer = await gameService.create({
+    teamId: seedTeam.id,
+    opponent: "Newer Rival",
+    date: new Date("2024-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+  await gameService.recordResult(newer.id, { us: 1, them: 0 });
+
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(3);
+  });
+  const rows = within(getPlayedList()).getAllByRole("listitem");
+  expect(rows[0]).toHaveTextContent("Newer Rival");
+  expect(rows[rows.length - 1]).toHaveTextContent("Older Rival");
+});
+
+test("the unassigned section keeps its place and assignment controls, with a count (edge case)", async () => {
+  await gameService.create({
+    teamId: null,
+    opponent: "Unassigned FC",
+    date: new Date("2030-06-01T10:00:00Z"),
+    isHome: true,
+    competition: "Cup",
+  });
+
+  renderGames();
+
+  const heading = await screen.findByRole("heading", { name: "Unassigned (1)" });
+  expect(heading).toBeInTheDocument();
+  expect(within(getUnassignedList()).getByRole("combobox")).toBeInTheDocument();
+});
+
+test("a played game with an invalid date renders in the played section without crashing (edge case)", async () => {
+  vi.spyOn(gameService, "getPlayed").mockResolvedValueOnce([
+    {
+      id: "bad-date",
+      teamId: 1,
+      opponent: "Ghost FC",
+      date: new Date("not-a-date"),
+      isHome: true,
+      usScore: 1,
+      themScore: 0,
+    },
+  ]);
+
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  expect(await within(getPlayedList()).findByText(/Ghost FC/)).toBeInTheDocument();
+});
+
+test("filtering to a team with no games shows zero counts in both fixture headings (edge case)", async () => {
+  const user = userEvent.setup();
+  const { container } = renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await user.click(
+    within(getTeamsColumn(container)).getByText("Areias Sub-19")
+  );
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Upcoming (0)" })).toBeInTheDocument();
+  });
+  expect(screen.getByRole("heading", { name: "Played (0)" })).toBeInTheDocument();
+});
+
+test("deleting a game updates the fixture counts with no page reload (edge case)", async () => {
+  const user = userEvent.setup();
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Played (1)" })).toBeInTheDocument();
+  });
+
+  await user.click(within(getPlayedList()).getByText(/Sporting/));
+  await screen.findByRole("button", { name: "Delete Game" });
+  await user.click(screen.getByRole("button", { name: "Delete Game" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await waitFor(() => {
+    expect(screen.getByRole("heading", { name: "Played (0)" })).toBeInTheDocument();
+  });
+});
+
+test("the rendered card count in each fixture section equals the data length (AC GLAY-05.1)", async () => {
+  renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  await waitFor(() => {
+    expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
+  });
+  expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
 });

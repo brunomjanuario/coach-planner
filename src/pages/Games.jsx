@@ -12,7 +12,7 @@ import NextGameCard from "../components/NextGameCard";
 import SelectableListItem from "../components/SelectableListItem";
 import LeagueTable from "../components/LeagueTable";
 import RivalRowPopup from "../components/RivalRowPopup";
-import { nextGame } from "../lib/gameSchedule";
+import { nextGame, sortPlayed } from "../lib/gameSchedule";
 
 /** Resolves a game's teamId to "Club Name", or null for a missing/dangling team. */
 function teamNameFor(teamId, teams) {
@@ -59,7 +59,7 @@ export default function Games() {
       gameService.getPlayed(teamId),
     ]);
     setUpcomingGames(scheduled);
-    setPlayedGames(played);
+    setPlayedGames(sortPlayed(played));
   };
 
   /**
@@ -147,7 +147,7 @@ export default function Games() {
   }, []);
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full flex flex-col">
       <div className="flex justify-between items-center h-20 flex-shrink-0">
         <h1 className="text-lg font-semibold mb-4 p-4">Games</h1>
         <button
@@ -202,7 +202,9 @@ export default function Games() {
       )}
       {unassignedGames.length > 0 && (
         <div className="px-4 pb-4 flex-shrink-0">
-          <h2 className="text-lg font-semibold mb-2">Unassigned</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Unassigned ({unassignedGames.length})
+          </h2>
           <ul>
             {unassignedGames.map((game) => (
               <li
@@ -254,7 +256,9 @@ export default function Games() {
             onSelect={selectGame}
           />
 
-          <h2 className="text-lg font-semibold">Upcoming</h2>
+          <h2 className="text-lg font-semibold">
+            Upcoming ({upcomingGames.length})
+          </h2>
           <div className="flex flex-col rounded border">
             {upcomingGames.length === 0 ? (
               <p className="p-3">No upcoming games.</p>
@@ -267,7 +271,9 @@ export default function Games() {
             )}
           </div>
 
-          <h2 className="text-lg font-semibold">Played</h2>
+          <h2 className="text-lg font-semibold">
+            Played ({playedGames.length})
+          </h2>
           <div className="flex flex-col rounded border">
             {playedGames.length === 0 ? (
               <p className="p-3">No played games.</p>
