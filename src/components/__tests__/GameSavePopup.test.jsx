@@ -274,16 +274,19 @@ test("the opponent field is a select populated from opponentService.getAll, alph
   const options = within(opponentSelect())
     .getAllByRole("option")
     .map((o) => o.textContent);
-  expect(options).toEqual(["Select an opponent", "Benfica", "Sporting"]);
+  expect(options).toEqual(["Select an opponent", "Benfica", "Sporting", "Add new…"]);
 });
 
-test("an empty opponents list disables the select and points at the manager (AC GSEL-01.4)", async () => {
+test("an empty opponents list offers only the placeholder and 'Add new…', and points at the manager (AC GSEL-01.4)", async () => {
   mockLists({ opponents: [] });
 
   renderPopup();
 
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  expect(opponentSelect()).toBeDisabled();
+  const options = within(opponentSelect())
+    .getAllByRole("option")
+    .map((o) => o.textContent);
+  expect(options).toEqual(["Select an opponent", "Add new…"]);
   expect(
     screen.getByText(/No opponents yet\. Add one from the Opponents manager/)
   ).toBeInTheDocument();
@@ -332,7 +335,7 @@ test("the competition field is a select populated from competitionService.getAll
   const options = within(competitionSelect())
     .getAllByRole("option")
     .map((o) => o.textContent);
-  expect(options).toEqual(["None", "Cup", "League"]);
+  expect(options).toEqual(["None", "Cup", "League", "Add new…"]);
 });
 
 test("selecting 'None' stores an empty competition (AC GSEL-02.2, GSEL-02.3)", async () => {
@@ -400,10 +403,118 @@ test("an empty competitions list offers only 'None' and points at the manager (A
   const options = within(competitionSelect())
     .getAllByRole("option")
     .map((o) => o.textContent);
-  expect(options).toEqual(["None"]);
+  expect(options).toEqual(["None", "Add new…"]);
   expect(
     screen.getByText(/No competitions yet\. Add one from the Competitions manager/)
   ).toBeInTheDocument();
+});
+
+test("choosing 'Add new…' on the opponent select opens the opponents manager over the form (AC GSEL-01.6)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+
+  const dialogs = screen.getAllByRole("dialog");
+  expect(dialogs).toHaveLength(2);
+  expect(within(dialogs[1]).getByText("Opponents")).toBeInTheDocument();
+});
+
+test("choosing 'Add new…' on the competition select opens the competitions manager over the form (AC GSEL-01.6)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(competitionSelect(), "Add new…");
+
+  const dialogs = screen.getAllByRole("dialog");
+  expect(dialogs).toHaveLength(2);
+  expect(within(dialogs[1]).getByText("Competitions")).toBeInTheDocument();
+});
+
+test("the stacked manager is interactive above the form (regression guard on 13's nested-popup edge case)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+  const dialog = screen.getAllByRole("dialog")[1];
+  const input = within(dialog).getByLabelText("New opponent");
+  await user.type(input, "Porto");
+
+  expect(input).toHaveValue("Porto");
+});
+
+test("closing the opponents manager without adding anything leaves every form value untouched, including the date field (edge case)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  const { container } = renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
+  await user.selectOptions(opponentSelect(), "Benfica");
+  await user.type(container.querySelector('[name="date"]'), "2027-01-01T10:15");
+  await user.click(screen.getByLabelText(/home game/i));
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+  const dialog = screen.getAllByRole("dialog")[1];
+  await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+  expect(teamSelect()).toHaveValue("1");
+  expect(opponentSelect()).toHaveValue("Benfica");
+  expect(container.querySelector('[name="date"]')).toHaveValue("2027-01-01T10:15");
+  expect(screen.getByLabelText(/home game/i)).not.toBeChecked();
+});
+
+test("closing the opponents manager re-reads the list and selects a name added there with no second interaction (edge case)", async () => {
+  mockLists({ opponents: [{ id: "1", name: "Benfica" }] });
+  let opponentsData = [{ id: "1", name: "Benfica" }];
+  vi.spyOn(opponentService, "getAll").mockImplementation(async () => [...opponentsData]);
+  vi.spyOn(opponentService, "create").mockImplementation(async (name) => {
+    const created = { id: "new", name };
+    opponentsData = [...opponentsData, created];
+    return created;
+  });
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+  const dialog = screen.getAllByRole("dialog")[1];
+  await user.type(within(dialog).getByLabelText("New opponent"), "Porto");
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  await within(dialog).findByText("Porto");
+  await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+  expect(opponentSelect()).toHaveValue("Porto");
+});
+
+test("closing the competitions manager re-reads the list and selects a name added there with no second interaction (edge case)", async () => {
+  mockLists({ competitions: [{ id: "1", name: "Cup" }] });
+  let competitionsData = [{ id: "1", name: "Cup" }];
+  vi.spyOn(competitionService, "getAll").mockImplementation(async () => [
+    ...competitionsData,
+  ]);
+  vi.spyOn(competitionService, "create").mockImplementation(async (name) => {
+    const created = { id: "new", name };
+    competitionsData = [...competitionsData, created];
+    return created;
+  });
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(competitionSelect(), "Add new…");
+  const dialog = screen.getAllByRole("dialog")[1];
+  await user.type(within(dialog).getByLabelText("New competition"), "Taça");
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  await within(dialog).findByText("Taça");
+  await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+  expect(competitionSelect()).toHaveValue("Taça");
 });
 
 test("the form contains no type=\"text\" input for opponent or competition", async () => {

@@ -1218,3 +1218,75 @@ describe("Opponents manager (feature 21)", () => {
     ).toBeDefined();
   });
 });
+
+describe("Game form selects (feature 22)", () => {
+  test("creating a game end to end, choosing both an opponent and a competition, stores the expected record (AC GSEL-01.2, GSEL-02.4)", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+    await selectTeamInForm(user, form, "Amadora Sub-11");
+    await user.selectOptions(within(form).getByLabelText(/^opponent$/i), "Sporting");
+    await user.selectOptions(
+      within(form).getByLabelText(/^competition$/i),
+      "District League"
+    );
+    await typeInto(user, form, "date", "2027-01-01T10:00");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(2);
+    });
+    const games = await gameService.getAll();
+    const created = games.find(
+      (g) => g.opponent === "Sporting" && g.competition === "District League"
+    );
+    expect(created).toBeDefined();
+  });
+
+  test("choosing 'Add new…' on the opponent select opens the opponents manager over the game form, and adding a club there selects it with no second interaction", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+    await selectTeamInForm(user, form, "Amadora Sub-11");
+    await user.selectOptions(within(form).getByLabelText(/^opponent$/i), "Add new…");
+
+    const dialogs = screen.getAllByRole("dialog");
+    const managerDialog = dialogs[dialogs.length - 1];
+    await user.type(within(managerDialog).getByLabelText("New opponent"), "Braga");
+    await user.click(within(managerDialog).getByRole("button", { name: "Add" }));
+    await within(managerDialog).findByText("Braga");
+    await user.click(within(managerDialog).getByRole("button", { name: "Close" }));
+
+    expect(within(form).getByLabelText(/^opponent$/i)).toHaveValue("Braga");
+  });
+
+  test("with long lists, both selects stay reachable inside the popup's scroll region (edge case)", async () => {
+    for (let i = 0; i < 20; i++) {
+      await opponentService.create(`Opponent ${i}`);
+      await competitionService.create(`Competition ${i}`);
+    }
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+
+    const shellBody = screen
+      .getByRole("dialog")
+      .querySelector(".overflow-y-auto.min-h-0");
+    const opponentSelectEl = within(form).getByLabelText(/^opponent$/i);
+    const competitionSelectEl = within(form).getByLabelText(/^competition$/i);
+
+    expect(shellBody).toContainElement(opponentSelectEl);
+    expect(shellBody).toContainElement(competitionSelectEl);
+    await user.selectOptions(opponentSelectEl, "Opponent 5");
+    expect(opponentSelectEl).toHaveValue("Opponent 5");
+  });
+});
