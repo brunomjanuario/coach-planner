@@ -5,6 +5,7 @@ import Games from "../Games";
 import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
 import { competitionService } from "../../services/competitionService";
+import { opponentService } from "../../services/opponentService";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -1120,5 +1121,100 @@ describe("Competitions manager (feature 20)", () => {
     expect(
       screen.getByRole("heading", { name: "Played (0)" })
     ).toBeInTheDocument();
+  });
+});
+
+describe("Opponents manager (feature 21)", () => {
+  test("the Opponents button in the header opens the manager (AC OPP-03.1)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await user.click(screen.getByRole("button", { name: "Opponents" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Benfica")).toBeInTheDocument();
+  });
+
+  test("both the Competitions and Opponents controls coexist without disturbing the add-game button or layout (AC OPP-05, regression on 19/20)", async () => {
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    expect(
+      screen.getByRole("button", { name: "Competitions" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Opponents" })).toBeInTheDocument();
+    expect(container.querySelector(".bg-blue-500")).toBeInTheDocument();
+  });
+
+  test("requesting a delete opens a confirmation naming how many games use that opponent (AC OPP-05.4)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Opponents" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("Benfica");
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
+
+    expect(
+      await screen.findByText(/Delete "Benfica"\? 1 game use this opponent\./)
+    ).toBeInTheDocument();
+  });
+
+  test("an opponent used by zero games states zero in the confirmation, not a blank", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Opponents" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("Benfica");
+
+    await user.type(within(dialog).getByLabelText("New opponent"), "Braga");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+    await within(dialog).findByText("Braga");
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete Braga" }));
+
+    expect(
+      await screen.findByText(/Delete "Braga"\? 0 games use this opponent\./)
+    ).toBeInTheDocument();
+  });
+
+  test("confirming a delete removes the opponent and leaves the games' stored opponent untouched (AC OPP-05.5)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Opponents" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("Benfica");
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(async () => {
+      expect(
+        (await opponentService.getAll()).find((o) => o.name === "Benfica")
+      ).toBeUndefined();
+    });
+    const games = await gameService.getAll();
+    expect(games.filter((g) => g.opponent === "Benfica")).toHaveLength(1);
+  });
+
+  test("cancelling a delete changes nothing (AC OPP-05.6)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Opponents" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("Benfica");
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(within(dialog).getByText("Benfica")).toBeInTheDocument();
+    expect(
+      (await opponentService.getAll()).find((o) => o.name === "Benfica")
+    ).toBeDefined();
   });
 });
