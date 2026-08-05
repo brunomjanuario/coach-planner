@@ -1,8 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { opponentService } from "../opponentService";
+import { gameService } from "../gameService";
+import { teamService } from "../teamService";
+import { standingsService } from "../standingsService";
 import { getCollection, setCollection, reset } from "../store";
 import { createSeed } from "../../model/seed";
 import { NotFoundError, ValidationError } from "../../lib/errors";
+
+async function seedGame({ teamId, opponent }) {
+  return gameService.create({
+    teamId,
+    opponent,
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition: "League",
+  });
+}
 
 describe("opponentService", () => {
   describe("seeding and reset (AC OPP-01.1, OPP-01.6)", () => {
@@ -121,6 +134,72 @@ describe("opponentService", () => {
       await expect(
         opponentService.update({ id: "no-such-id", name: "Porto" })
       ).rejects.toThrow(NotFoundError);
+    });
+
+    describe("cascade to games (AC OPP-04.3)", () => {
+      it("updates every game whose opponent matches the old name, and leaves a non-matching game alone", async () => {
+        const [team] = await teamService.getAll();
+        const porto = await opponentService.create("Porto");
+        const matchA = await seedGame({ teamId: team.id, opponent: "Porto" });
+        const matchB = await seedGame({ teamId: team.id, opponent: "Porto" });
+        const other = await seedGame({ teamId: team.id, opponent: "Braga" });
+
+        await opponentService.update({ id: porto.id, name: "FC Porto" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === matchA.id).opponent).toBe("FC Porto");
+        expect(games.find((g) => g.id === matchB.id).opponent).toBe("FC Porto");
+        expect(games.find((g) => g.id === other.id).opponent).toBe("Braga");
+      });
+
+      it("does not touch a standings rival row sharing the old name (edge case)", async () => {
+        const [team] = await teamService.getAll();
+        const porto = await opponentService.create("Porto");
+        await seedGame({ teamId: team.id, opponent: "Porto" });
+        await standingsService.create({
+          name: "Porto",
+          played: 1,
+          won: 1,
+          drawn: 0,
+          lost: 0,
+          goalsFor: 2,
+          goalsAgainst: 0,
+        });
+        const standingsBefore = await standingsService.getAll();
+
+        await opponentService.update({ id: porto.id, name: "FC Porto" });
+
+        const standingsAfter = await standingsService.getAll();
+        expect(standingsAfter).toEqual(standingsBefore);
+        expect(standingsAfter.find((r) => r.name === "Porto")).toBeDefined();
+      });
+
+      it("rejects a colliding rename before writing anything, leaving the games collection unchanged (edge case)", async () => {
+        const [team] = await teamService.getAll();
+        const porto = await opponentService.create("Porto");
+        await opponentService.create("Braga");
+        const game = await seedGame({ teamId: team.id, opponent: "Porto" });
+        const gamesBefore = await gameService.getAll();
+
+        await expect(
+          opponentService.update({ id: porto.id, name: "Braga" })
+        ).rejects.toThrow(ValidationError);
+
+        const gamesAfter = await gameService.getAll();
+        expect(gamesAfter).toEqual(gamesBefore);
+        expect(gamesAfter.find((g) => g.id === game.id).opponent).toBe("Porto");
+      });
+
+      it("a pure case change cascades to matching games (edge case)", async () => {
+        const [team] = await teamService.getAll();
+        const porto = await opponentService.create("Porto");
+        const game = await seedGame({ teamId: team.id, opponent: "Porto" });
+
+        await opponentService.update({ id: porto.id, name: "PORTO" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === game.id).opponent).toBe("PORTO");
+      });
     });
   });
 

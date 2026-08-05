@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { IconEdit } from "@tabler/icons-react";
 import { opponentService } from "../services/opponentService";
 import PopupShell from "./PopupShell";
 
@@ -8,6 +9,9 @@ export default function OpponentsPopup({ onClose }) {
   const [loaded, setLoaded] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editError, setEditError] = useState("");
 
   const load = async () => {
     const data = await opponentService.getAll();
@@ -39,6 +43,33 @@ export default function OpponentsPopup({ onClose }) {
       await load();
     } catch (err) {
       setError(err.message || "Failed to create the opponent. Please try again.");
+    }
+  };
+
+  const startEdit = (opponent) => {
+    setEditingId(opponent.id);
+    setEditName(opponent.name);
+    setEditError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditError("");
+  };
+
+  const handleEditSubmit = async (e, id) => {
+    e.preventDefault();
+    try {
+      await opponentService.update({ id, name: editName });
+      setEditingId(null);
+      setEditName("");
+      setEditError("");
+      await load();
+    } catch (err) {
+      setEditError(
+        err.message || "Failed to rename the opponent. Please try again."
+      );
     }
   };
 
@@ -85,14 +116,64 @@ export default function OpponentsPopup({ onClose }) {
         <p>No opponents yet. Add your first one below.</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {opponents.map((opponent) => (
-            <li
-              key={opponent.id}
-              className="border rounded px-3 py-2 break-words"
-            >
-              {opponent.name}
-            </li>
-          ))}
+          {opponents.map((opponent) =>
+            editingId === opponent.id ? (
+              <li key={opponent.id} className="border rounded px-3 py-2">
+                <form
+                  onSubmit={(e) => handleEditSubmit(e, opponent.id)}
+                  className="flex gap-2"
+                >
+                  <label
+                    htmlFor={`${nameInputId}-edit-${opponent.id}`}
+                    className="sr-only"
+                  >
+                    Rename {opponent.name}
+                  </label>
+                  <input
+                    id={`${nameInputId}-edit-${opponent.id}`}
+                    type="text"
+                    value={editName}
+                    onChange={(e) => {
+                      if (editError) setEditError("");
+                      setEditName(e.target.value);
+                    }}
+                    className="flex-1 border px-3 py-2 rounded"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-2 bg-blue-600 text-white rounded"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-2 bg-gray-300 text-white rounded"
+                    onClick={cancelEdit}
+                  >
+                    Cancel
+                  </button>
+                </form>
+                {editError && (
+                  <p className="text-sm text-red-500 mt-1">{editError}</p>
+                )}
+              </li>
+            ) : (
+              <li
+                key={opponent.id}
+                className="border rounded px-3 py-2 flex items-center justify-between gap-2"
+              >
+                <span className="break-words">{opponent.name}</span>
+                <button
+                  type="button"
+                  aria-label={`Rename ${opponent.name}`}
+                  className="cursor-pointer rounded hover:bg-lightgrey p-1"
+                  onClick={() => startEdit(opponent)}
+                >
+                  <IconEdit size={18} />
+                </button>
+              </li>
+            )
+          )}
         </ul>
       )}
     </PopupShell>

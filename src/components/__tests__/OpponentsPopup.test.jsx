@@ -191,6 +191,72 @@ test("typing after a rejected submission clears the inline error", async () => {
   ).not.toBeInTheDocument();
 });
 
+test("renaming an opponent calls opponentService.update, awaits it, then re-reads the list (AC OPP-04.3, AD-004)", async () => {
+  const getAllSpy = vi
+    .spyOn(opponentService, "getAll")
+    .mockResolvedValueOnce([{ id: "1", name: "Porto" }])
+    .mockResolvedValueOnce([{ id: "1", name: "FC Porto" }]);
+  const updateSpy = vi
+    .spyOn(opponentService, "update")
+    .mockResolvedValue({ id: "1", name: "FC Porto" });
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Porto");
+
+  await user.click(screen.getByRole("button", { name: "Rename Porto" }));
+  const input = screen.getByLabelText("Rename Porto");
+  await user.clear(input);
+  await user.type(input, "FC Porto");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(await screen.findByText("FC Porto")).toBeInTheDocument();
+  expect(updateSpy).toHaveBeenCalledWith({ id: "1", name: "FC Porto" });
+  expect(getAllSpy).toHaveBeenCalledTimes(2);
+});
+
+test("a rejected rename renders the reason and keeps the typed value", async () => {
+  vi.spyOn(opponentService, "getAll").mockResolvedValue([
+    { id: "1", name: "Porto" },
+    { id: "2", name: "Braga" },
+  ]);
+  vi.spyOn(opponentService, "update").mockRejectedValue(
+    new Error('An opponent named "Braga" already exists.')
+  );
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Porto");
+
+  await user.click(screen.getByRole("button", { name: "Rename Porto" }));
+  const input = screen.getByLabelText("Rename Porto");
+  await user.clear(input);
+  await user.type(input, "Braga");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText('An opponent named "Braga" already exists.')
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText("Rename Porto")).toHaveValue("Braga");
+});
+
+test("cancelling a rename discards the change and does not call update", async () => {
+  const updateSpy = vi.spyOn(opponentService, "update");
+  vi.spyOn(opponentService, "getAll").mockResolvedValue([
+    { id: "1", name: "Porto" },
+  ]);
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Porto");
+
+  await user.click(screen.getByRole("button", { name: "Rename Porto" }));
+  const input = screen.getByLabelText("Rename Porto");
+  await user.clear(input);
+  await user.type(input, "Something Else");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(screen.getByText("Porto")).toBeInTheDocument();
+  expect(updateSpy).not.toHaveBeenCalled();
+});
+
 test("a 20-item list scrolls inside the shell with the create form still reachable (regression guard on POPUP-02)", async () => {
   const many = Array.from({ length: 20 }, (_, i) => ({
     id: String(i),

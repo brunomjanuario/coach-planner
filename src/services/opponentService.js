@@ -1,6 +1,7 @@
 import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError, ValidationError } from "../lib/errors";
+import { gameService } from "./gameService";
 
 function getOpponents() {
   return getCollection("opponents");
@@ -47,6 +48,13 @@ export const opponentService = {
     return newOpponent;
   },
 
+  /**
+   * Renames an opponent and cascades to every game carrying the old name
+   * (AC OPP-04.3). The cascade match is case-insensitive on the trimmed
+   * name, mirroring the v-migration's dedup. Only the `games` collection is
+   * touched — a same-named standings rival row is a separate model (AD-010)
+   * and is never written here.
+   */
   update: async ({ id, name }) => {
     assertValidName(name);
     const trimmed = name.trim();
@@ -57,8 +65,23 @@ export const opponentService = {
     }
     assertNoDuplicate(opponents, trimmed, id);
 
+    const oldName = opponents[index].name;
     opponents[index] = { ...opponents[index], name: trimmed };
     saveOpponents(opponents);
+
+    if (trimmed !== oldName) {
+      const normalizedOld = normalize(oldName);
+      const games = await gameService.getAll();
+      const affected = games.filter(
+        (game) =>
+          typeof game.opponent === "string" &&
+          normalize(game.opponent) === normalizedOld
+      );
+      await Promise.all(
+        affected.map((game) => gameService.update({ ...game, opponent: trimmed }))
+      );
+    }
+
     return opponents[index];
   },
 
