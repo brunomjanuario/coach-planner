@@ -231,5 +231,6 @@ export function createSeed() {
       { id: 1, playerId: 1, gameId: 2, type: "yellow" },
     ],
     ratings: [],
+    competitions: [{ id: 1, name: "District League" }],
   };
 }
