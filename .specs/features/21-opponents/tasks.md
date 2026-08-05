@@ -70,17 +70,17 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `opponents` is added to `DATE_FIELDS` (empty array) so `COLLECTION_NAMES` and therefore `reset()` cover it (AC OPP-01.6) — assert reset clears and re-seeds it
-- [ ] `createSeed()` returns an `opponents` array matching the seed games' opponents ("Benfica", "Sporting") (AC OPP-01.1)
-- [ ] `getAll` returns a copy — mutating the result does not affect a later read (AC OPP-01.2)
-- [ ] `create` assigns `newId()` (AC OPP-01.3), trims the name, returns the record
-- [ ] `create` rejects case-insensitive and whitespace-variant duplicates (AC OPP-01.4) — assert exact, case and whitespace variants separately
-- [ ] `create` rejects empty and whitespace-only names (AC OPP-01.5)
-- [ ] `update` rejects a collision but allows a pure case change of the record's own name
-- [ ] `update` on a missing id throws `NotFoundError`
-- [ ] `delete` removes only the named record
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 18+ tests pass
+- [x] `opponents` is added to `DATE_FIELDS` (empty array) so `COLLECTION_NAMES` and therefore `reset()` cover it (AC OPP-01.6) — assert reset clears and re-seeds it
+- [x] `createSeed()` returns an `opponents` array matching the seed games' opponents ("Benfica", "Sporting") (AC OPP-01.1)
+- [x] `getAll` returns a copy — mutating the result does not affect a later read (AC OPP-01.2)
+- [x] `create` assigns `newId()` (AC OPP-01.3), trims the name, returns the record
+- [x] `create` rejects case-insensitive and whitespace-variant duplicates (AC OPP-01.4) — assert exact, case and whitespace variants separately
+- [x] `create` rejects empty and whitespace-only names (AC OPP-01.5)
+- [x] `update` rejects a collision but allows a pure case change of the record's own name
+- [x] `update` on a missing id throws `NotFoundError`
+- [x] `delete` removes only the named record
+- [x] Gate passes: `npm test`
+- [x] Test count: 18+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -100,15 +100,15 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The migration is registered under the next unused schema version and `SCHEMA_VERSION` is bumped to match (AC OPP-02.6) — state in the commit body which version it took and why
-- [ ] One opponent per distinct non-empty `game.opponent`; case and whitespace variants collapse (AC OPP-02.1, OPP-02.2) — assert the resulting count
-- [ ] Games with a null, undefined or empty opponent contribute nothing (AC OPP-02.3)
-- [ ] No game record is modified (AC OPP-02.4) — assert the games collection is identical before and after
-- [ ] A second load does not re-run the migration or duplicate records (AC OPP-02.5)
-- [ ] A store two versions behind runs both migrations in order and ends at the current version — the case the `while` loop in `runMigrations` exists for, and the one nobody tests until it breaks
-- [ ] A fresh install seeds directly without running any migration
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] The migration is registered under the next unused schema version and `SCHEMA_VERSION` is bumped to match (AC OPP-02.6) — state in the commit body which version it took and why
+- [x] One opponent per distinct non-empty `game.opponent`; case and whitespace variants collapse (AC OPP-02.1, OPP-02.2) — assert the resulting count
+- [x] Games with a null, undefined or empty opponent contribute nothing (AC OPP-02.3)
+- [x] No game record is modified (AC OPP-02.4) — assert the games collection is identical before and after
+- [x] A second load does not re-run the migration or duplicate records (AC OPP-02.5)
+- [x] A store two versions behind runs both migrations in order and ends at the current version — the case the `while` loop in `runMigrations` exists for, and the one nobody tests until it breaks
+- [x] A fresh install seeds directly without running any migration
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -128,15 +128,15 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The popup renders through `PopupShell` (dependency on `13`)
-- [ ] Every stored opponent is listed (AC OPP-03.1)
-- [ ] Submitting a name adds it and the list re-reads from the service without a reload (AC OPP-03.2)
-- [ ] An empty list renders the invitation state (AC OPP-03.7)
-- [ ] A rejected name renders the reason and keeps the typed value (AC OPP-03.8)
-- [ ] A 20-item list scrolls inside the shell with the create form still reachable (regression guard on `13` POPUP-02)
-- [ ] A storage-quota failure surfaces an error (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/OpponentsPopup.test.jsx`
-- [ ] Test count: 12+ tests pass
+- [x] The popup renders through `PopupShell` (dependency on `13`)
+- [x] Every stored opponent is listed (AC OPP-03.1)
+- [x] Submitting a name adds it and the list re-reads from the service without a reload (AC OPP-03.2)
+- [x] An empty list renders the invitation state (AC OPP-03.7)
+- [x] A rejected name renders the reason and keeps the typed value (AC OPP-03.8)
+- [x] A 20-item list scrolls inside the shell with the create form still reachable (regression guard on `13` POPUP-02)
+- [x] A storage-quota failure surfaces an error (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/OpponentsPopup.test.jsx`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -156,13 +156,13 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Renaming updates every matching game (AC OPP-04.3) — assert with two matching and one non-matching game
-- [ ] A standings rival row with the same name is **not** touched (edge case) — assert the standings collection is unchanged; this is the boundary the spec draws between the two models
-- [ ] A colliding rename is rejected before anything is written (edge case) — assert the games collection is unchanged after the rejection
-- [ ] A pure case change is allowed and cascades
-- [ ] The rename is awaited before the list re-reads (AD-004)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 10+ tests pass
+- [x] Renaming updates every matching game (AC OPP-04.3) — assert with two matching and one non-matching game
+- [x] A standings rival row with the same name is **not** touched (edge case) — assert the standings collection is unchanged; this is the boundary the spec draws between the two models
+- [x] A colliding rename is rejected before anything is written (edge case) — assert the games collection is unchanged after the rejection
+- [x] A pure case change is allowed and cascades
+- [x] The rename is awaited before the list re-reads (AD-004)
+- [x] Gate passes: `npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: unit + component
 **Gate**: full
@@ -182,14 +182,14 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] An "Opponents" control in the Games page header opens the manager (AC OPP-03.1)
-- [ ] The confirmation names how many games use that opponent (AC OPP-05.4) — assert the number
-- [ ] Confirming removes the opponent and leaves every game's stored `opponent` string untouched (AC OPP-05.5)
-- [ ] Cancelling changes nothing (AC OPP-05.6)
-- [ ] An opponent used by zero games states zero, not a blank
-- [ ] The Games page header holds both this control and `20`'s without disturbing the add-game button or the page layout from `19`
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 12+ tests pass
+- [x] An "Opponents" control in the Games page header opens the manager (AC OPP-03.1)
+- [x] The confirmation names how many games use that opponent (AC OPP-05.4) — assert the number
+- [x] Confirming removes the opponent and leaves every game's stored `opponent` string untouched (AC OPP-05.5)
+- [x] Cancelling changes nothing (AC OPP-05.6)
+- [x] An opponent used by zero games states zero, not a blank
+- [x] The Games page header holds both this control and `20`'s without disturbing the add-game button or the page layout from `19`
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: build

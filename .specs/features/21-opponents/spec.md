@@ -14,9 +14,9 @@ often.
 
 ## Goals
 
-- [ ] A coach can create, rename and delete the opponents they play
-- [ ] Existing games' opponent names become that list, without data loss
-- [ ] The list is available for the game form to consume
+- [x] A coach can create, rename and delete the opponents they play
+- [x] Existing games' opponent names become that list, without data loss
+- [x] The list is available for the game form to consume
 
 ## Out of Scope
 
@@ -125,11 +125,11 @@ matches my division.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| OPP-01 | P1: Collection, service and validation | Tasks | Pending |
-| OPP-02 | P1: Schema migration from existing game strings | Tasks | Pending |
-| OPP-03 | P1: Manager popup — list and create | Tasks | Pending |
-| OPP-04 | P1: Rename with cascade to games | Tasks | Pending |
-| OPP-05 | P1: Delete with a counted confirmation | Tasks | Pending |
+| OPP-01 | P1: Collection, service and validation | Tasks | Done |
+| OPP-02 | P1: Schema migration from existing game strings | Tasks | Done |
+| OPP-03 | P1: Manager popup — list and create | Tasks | Done |
+| OPP-04 | P1: Rename with cascade to games | Tasks | Done |
+| OPP-05 | P1: Delete with a counted confirmation | Tasks | Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -137,6 +137,6 @@ matches my division.
 
 ## Success Criteria
 
-- [ ] A coach never types the same club name twice
-- [ ] An existing install opens the manager and sees the clubs it already played
-- [ ] Renaming a club is reflected on every affected fixture, and on no rival row
+- [x] A coach never types the same club name twice
+- [x] An existing install opens the manager and sees the clubs it already played
+- [x] Renaming a club is reflected on every affected fixture, and on no rival row
