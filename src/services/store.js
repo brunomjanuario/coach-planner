@@ -1,8 +1,9 @@
 import * as storage from "../lib/storage";
 import { createSeed } from "../model/seed";
+import { newId } from "../lib/id";
 
 const SCHEMA_KEY = "schemaVersion";
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DATE_FIELDS = {
   teams: [],
   trainings: ["day"],
@@ -10,13 +11,34 @@ const DATE_FIELDS = {
   standings: [],
   cards: [],
   ratings: [],
+  competitions: [],
 };
 const COLLECTION_NAMES = Object.keys(DATE_FIELDS);
 
 // Migration registry: keyed by the version a stored payload migrates *to*.
-// Empty today — v1 is the first schema version, so there is nothing to
-// migrate from. A future v2 adds `{ 2: (data) => ... }` here.
-const MIGRATIONS = {};
+// v2 derives the `competitions` collection from the distinct competition
+// names already sitting on stored games (AC COMP-02.1).
+const MIGRATIONS = {
+  2: () => {
+    const games = storage.read("games", DATE_FIELDS.games) ?? [];
+    const canonicalByKey = new Map();
+
+    for (const game of games) {
+      const raw = game.competition;
+      if (typeof raw !== "string" || raw.trim() === "") continue;
+
+      const trimmed = raw.trim();
+      const key = trimmed.toLowerCase();
+      if (!canonicalByKey.has(key)) canonicalByKey.set(key, trimmed);
+    }
+
+    const competitions = [...canonicalByKey.values()].map((name) => ({
+      id: newId(),
+      name,
+    }));
+    storage.write("competitions", competitions);
+  },
+};
 
 function runMigrations(storedVersion) {
   let version = storedVersion;
@@ -31,7 +53,10 @@ function ensureSeeded() {
   const storedVersion = storage.read(SCHEMA_KEY);
 
   if (storedVersion !== null) {
-    runMigrations(storedVersion);
+    if (storedVersion < SCHEMA_VERSION) {
+      runMigrations(storedVersion);
+      storage.write(SCHEMA_KEY, SCHEMA_VERSION);
+    }
     return;
   }
 

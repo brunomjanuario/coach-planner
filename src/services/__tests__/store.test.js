@@ -11,7 +11,7 @@ describe("store", () => {
 
   it("writes a schema-version key on first run", () => {
     getCollection("teams");
-    expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("1");
+    expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("2");
   });
 
   it("does not re-seed when data is already present", () => {
@@ -57,11 +57,115 @@ describe("store", () => {
     expect(typeof team.createdAt).toBe("string");
   });
 
-  it("runs the identity migration hook without altering already-current (v1) data", () => {
-    getCollection("teams"); // establish schema version 1
+  it("leaves already-current (v2) data untouched on a subsequent load", () => {
+    getCollection("teams"); // establish schema version 2
     setCollection("teams", [{ id: "same", name: "Unchanged" }]);
-    getCollection("teams"); // ensureSeeded runs the migration-check path (no-op at v1)
+    getCollection("teams"); // ensureSeeded runs the migration-check path (no-op at v2)
     expect(getCollection("teams")).toEqual([{ id: "same", name: "Unchanged" }]);
+  });
+
+  describe("v1 -> v2 migration: competitions derived from stored games (AC COMP-02)", () => {
+    function seedV1Store(games) {
+      localStorage.setItem("coachplanner:v1:schemaVersion", "1");
+      localStorage.setItem("coachplanner:v1:games", JSON.stringify(games));
+    }
+
+    it("derives one competition per distinct non-empty game.competition value (AC COMP-02.1)", () => {
+      seedV1Store([
+        { id: 1, competition: "District League" },
+        { id: 2, competition: "Cup" },
+      ]);
+
+      const competitions = getCollection("competitions");
+
+      expect(competitions.map((c) => c.name).sort()).toEqual(["Cup", "District League"]);
+    });
+
+    it("collapses names differing only by case or surrounding whitespace into one competition (AC COMP-02.2)", () => {
+      seedV1Store([
+        { id: 1, competition: "District League" },
+        { id: 2, competition: "district league" },
+        { id: 3, competition: "  District League  " },
+      ]);
+
+      const competitions = getCollection("competitions");
+
+      expect(competitions).toHaveLength(1);
+      expect(competitions[0].name).toBe("District League");
+    });
+
+    it("games with a null, undefined or empty competition contribute nothing (AC COMP-02.3)", () => {
+      seedV1Store([
+        { id: 1, competition: null },
+        { id: 2, competition: undefined },
+        { id: 3, competition: "" },
+        { id: 4, competition: "   " },
+        { id: 5, competition: "Cup" },
+      ]);
+
+      const competitions = getCollection("competitions");
+
+      expect(competitions.map((c) => c.name)).toEqual(["Cup"]);
+    });
+
+    it("does not modify any game record (AC COMP-02.4)", () => {
+      const games = [
+        { id: 1, competition: "District League" },
+        { id: 2, competition: "Cup" },
+      ];
+      seedV1Store(games);
+
+      getCollection("competitions"); // triggers the migration
+
+      expect(getCollection("games")).toEqual(games);
+    });
+
+    it("stores schema version 2 after migrating, and a second load does not re-run or duplicate (AC COMP-02.5)", () => {
+      seedV1Store([{ id: 1, competition: "Cup" }]);
+
+      getCollection("competitions"); // first load: runs the migration
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("2");
+
+      const afterFirstLoad = getCollection("competitions");
+      const afterSecondLoad = getCollection("competitions"); // second load: must not re-run
+
+      expect(afterSecondLoad).toEqual(afterFirstLoad);
+      expect(afterSecondLoad).toHaveLength(1);
+    });
+
+    it("a fresh install (no stored version) seeds directly and does not run the migration", () => {
+      // No localStorage.setItem call — this is a genuinely empty store.
+      const competitions = getCollection("competitions");
+      const seed = createSeed();
+
+      expect(competitions).toEqual(seed.competitions);
+    });
+
+    it("a store already at v2 is left alone", () => {
+      localStorage.setItem("coachplanner:v1:schemaVersion", "2");
+      localStorage.setItem(
+        "coachplanner:v1:games",
+        JSON.stringify([{ id: 1, competition: "Cup" }])
+      );
+      localStorage.setItem(
+        "coachplanner:v1:competitions",
+        JSON.stringify([{ id: "existing", name: "Already Stored" }])
+      );
+
+      const competitions = getCollection("competitions");
+
+      expect(competitions).toEqual([{ id: "existing", name: "Already Stored" }]);
+    });
+
+    it("is exercised through getCollection, the real entry point", () => {
+      seedV1Store([{ id: 1, competition: "Cup" }]);
+
+      // Calling getCollection (not the migration function directly) must be
+      // sufficient to trigger the migration and populate the collection.
+      const competitions = getCollection("competitions");
+
+      expect(competitions).toEqual([{ id: expect.any(String), name: "Cup" }]);
+    });
   });
 
   it("reset() clears all coachplanner:v1:* keys and re-seeds", () => {

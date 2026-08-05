@@ -103,16 +103,16 @@
 
 ## Handoff
 
-- **Feature**: `13-popup-shell` — done and verified (PASS, one fix→re-verify iteration for a moderate coverage gap).
-- **Phase / Task**: All 5 tasks complete — T1 (new `PopupShell` component: 85vh cap, scrollable body via `overflow-y-auto`+`min-h-0`, pinned title/footer, dialog a11y, `31a5593`) → T2 (small popups migrated: `ConfirmationPopup`, `TeamPopup`, `PlayerPopup`, `3560297`) → T3 (training popups migrated — the two that motivated the feature, `e21371f`) → T4 (game/rating popups migrated: `GameSavePopup`, `GameResultPopup`, `RivalRowPopup`, `SquadRatingPopup`, `147836c`) → T5 (invariant test proving the overlay markup exists only in `PopupShell.jsx`, `e76cc00`). Every migrated popup keeps its submit button in the shell's footer (a DOM sibling of the scrollable body) by linking it to the form via the HTML `form` attribute + `useId()`, rather than nesting it inside the `<form>`. Verifier found one real gap — the footer/body DOM-separation invariant (submit stays outside the scroll region) was only test-enforced for 3 of 9 popups (`TrainingSavePopup`, `TrainingDetailsPopup`, `SquadRatingPopup`); a mutation re-nesting `GameSavePopup`'s submit button inside its form went undetected. Fixed by adding the same containment test to the other six popups (commit `bc4c571`), confirmed load-bearing by re-running the exact mutation. Re-verified: 735 tests green. See `.specs/features/13-popup-shell/validation.md`.
-- **Completed**: T1–T5 plus the post-Verifier fix, all committed individually on `feature/13-popup-shell`.
+- **Feature**: `20-competitions` — done and verified (PASS, no fix iterations needed — clean first pass).
+- **Phase / Task**: All 5 tasks complete — T1 (`competitionService` + `competitions` collection + seed, `8ce3a75`) → T2 (v1→v2 schema migration deriving competitions from stored games, `ff55ecb`) → T3 (`CompetitionsPopup` list + create, `35d247d`) → T4 (rename cascades to every game carrying the old name, case-insensitive match mirroring the migration's dedup, `08d806d`) → T5 (delete behind a counted `ConfirmationPopup`, wired into a "Competitions" header button on `Games.jsx`, `15d2d63`). Games keep their existing `competition` string (AD-010: managed reference list, not a foreign key) — a delete leaves games' stored names untouched by design. Verifier: 21/21 ACs spec-matched, 3/3 discrimination-sensor mutations killed, 975 tests green, 0 regressions. See `.specs/features/20-competitions/validation.md`.
+- **Completed**: T1–T5, all committed individually on `feature/20-competitions`, plus a docs commit marking tasks.md/spec.md status and the Verifier's validation.md.
 - **In-progress** (file:line): none — feature closed out.
-- **Next step**: `feature/13-popup-shell` is not yet merged to `main`. Per the README's suggested order, `16-training-card` → `17-trainings-page-layout` is next, or `20`/`21`/`22` (competitions/opponents/game-form-selects) now that the shell exists for their new popups to build on.
+- **Next step**: `feature/20-competitions` is not yet merged to `main`. `21-opponents` is the natural next pick — same shape (managed reference list, AD-010) — followed by `22-game-form-selects`, which is the feature that makes the game form actually consume the competitions/opponents lists (this feature deliberately left that out of scope).
 - **Blockers**: none.
-- **Uncommitted files**: none — everything for `13` is committed.
-- **Branch**: `feature/13-popup-shell` (not yet merged to `main`). Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking. `feature/12-player-list-refresh` was merged via PR #14 (`d945e78`) before this branch was cut from `main`.
-- **Remaining round-two features**: `14`–`24` are specified (`spec.md` + `tasks.md`) but not started.
-- **Open items carried forward**: the `11-dashboard` handoff asked whether `ratingService` should gain a batch aggregation method now that a second consumer exists. Still unanswered; `18-dashboard-grid` does not touch data, so it does not force the question.
+- **Uncommitted files**: none — everything for `20` is committed.
+- **Branch**: `feature/20-competitions` (cut from `main`, not yet merged). Branches for this project are merged outside the session via GitHub PRs — don't assume `main` is current without checking. `main` already includes features up through `19-games-three-column` (commit `afdecb8`) as of this branch's creation.
+- **Remaining round-two features**: `21`–`24` are specified (`spec.md` + `tasks.md`) but not started.
+- **Open items carried forward**: the `11-dashboard` handoff asked whether `ratingService` should gain a batch aggregation method now that a second consumer exists. Still unanswered — no feature since has forced the question.
 
 ---
 
