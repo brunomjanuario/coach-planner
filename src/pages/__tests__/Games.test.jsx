@@ -146,14 +146,14 @@ test("creating a game refreshes the Upcoming list without a manual reload", asyn
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Amadora Sub-11");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(2);
   });
-  expect(within(getUpcomingList()).getByText(/Porto/)).toBeInTheDocument();
+  expect(within(getUpcomingList()).getByText(/Sporting/)).toBeInTheDocument();
 });
 
 test("creating a game outside the active filter keeps the filter and reports where it went (same contract as 03 TTA-04.3)", async () => {
@@ -170,7 +170,7 @@ test("creating a game outside the active filter keeps the filter and reports whe
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Amadora Sub-11");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -726,7 +726,7 @@ test("creating a game updates the next-game card with no page reload (AC GLAY-04
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Areias Sub-19");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -734,7 +734,7 @@ test("creating a game updates the next-game card with no page reload (AC GLAY-04
     expect(screen.getByRole("button", { name: /Next Game/ })).toBeInTheDocument();
   });
   const card = screen.getByRole("button", { name: /Next Game/ });
-  expect(within(card).getByText(/Porto/)).toBeInTheDocument();
+  expect(within(card).getByText(/Sporting/)).toBeInTheDocument();
 });
 
 test("deleting the next game updates the next-game card with no page reload (AC GLAY-04.6)", async () => {
@@ -1216,5 +1216,77 @@ describe("Opponents manager (feature 21)", () => {
     expect(
       (await opponentService.getAll()).find((o) => o.name === "Benfica")
     ).toBeDefined();
+  });
+});
+
+describe("Game form selects (feature 22)", () => {
+  test("creating a game end to end, choosing both an opponent and a competition, stores the expected record (AC GSEL-01.2, GSEL-02.4)", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+    await selectTeamInForm(user, form, "Amadora Sub-11");
+    await user.selectOptions(within(form).getByLabelText(/^opponent$/i), "Sporting");
+    await user.selectOptions(
+      within(form).getByLabelText(/^competition$/i),
+      "District League"
+    );
+    await typeInto(user, form, "date", "2027-01-01T10:00");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => {
+      expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(2);
+    });
+    const games = await gameService.getAll();
+    const created = games.find(
+      (g) => g.opponent === "Sporting" && g.competition === "District League"
+    );
+    expect(created).toBeDefined();
+  });
+
+  test("choosing 'Add new…' on the opponent select opens the opponents manager over the game form, and adding a club there selects it with no second interaction", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+    await selectTeamInForm(user, form, "Amadora Sub-11");
+    await user.selectOptions(within(form).getByLabelText(/^opponent$/i), "Add new…");
+
+    const dialogs = screen.getAllByRole("dialog");
+    const managerDialog = dialogs[dialogs.length - 1];
+    await user.type(within(managerDialog).getByLabelText("New opponent"), "Braga");
+    await user.click(within(managerDialog).getByRole("button", { name: "Add" }));
+    await within(managerDialog).findByText("Braga");
+    await user.click(within(managerDialog).getByRole("button", { name: "Close" }));
+
+    expect(within(form).getByLabelText(/^opponent$/i)).toHaveValue("Braga");
+  });
+
+  test("with long lists, both selects stay reachable inside the popup's scroll region (edge case)", async () => {
+    for (let i = 0; i < 20; i++) {
+      await opponentService.create(`Opponent ${i}`);
+      await competitionService.create(`Competition ${i}`);
+    }
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await openCreatePopup(user, container);
+    const form = getFormFor("Create Game");
+
+    const shellBody = screen
+      .getByRole("dialog")
+      .querySelector(".overflow-y-auto.min-h-0");
+    const opponentSelectEl = within(form).getByLabelText(/^opponent$/i);
+    const competitionSelectEl = within(form).getByLabelText(/^competition$/i);
+
+    expect(shellBody).toContainElement(opponentSelectEl);
+    expect(shellBody).toContainElement(competitionSelectEl);
+    await user.selectOptions(opponentSelectEl, "Opponent 5");
+    expect(opponentSelectEl).toHaveValue("Opponent 5");
   });
 });

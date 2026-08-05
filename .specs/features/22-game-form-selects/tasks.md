@@ -63,14 +63,14 @@ T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `toOptions(items, currentValue)` returns the list alphabetically, case-insensitively (AC GSEL-01.1)
-- [ ] A `currentValue` absent from the list is appended as an extra option flagged as not-in-list (AC GSEL-03) — assert the flag, since it is what the UI renders the marker from
-- [ ] A `currentValue` matching a list entry case-insensitively does **not** produce a duplicate option (edge case) — the case that makes a naive `includes` check wrong
-- [ ] An empty or null `currentValue` adds nothing
-- [ ] An empty list with a legacy value returns exactly that one flagged option
-- [ ] The input array is not mutated
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/selectOptions.test.js`
-- [ ] Test count: 10+ tests pass
+- [x] `toOptions(items, currentValue)` returns the list alphabetically, case-insensitively (AC GSEL-01.1)
+- [x] A `currentValue` absent from the list is appended as an extra option flagged as not-in-list (AC GSEL-03) — assert the flag, since it is what the UI renders the marker from
+- [x] A `currentValue` matching a list entry case-insensitively does **not** produce a duplicate option (edge case) — the case that makes a naive `includes` check wrong
+- [x] An empty or null `currentValue` adds nothing
+- [x] An empty list with a legacy value returns exactly that one flagged option
+- [x] The input array is not mutated
+- [x] Gate passes: `npx vitest run src/lib/__tests__/selectOptions.test.js`
+- [x] Test count: 10+ tests pass
 
 **Tests**: unit
 **Gate**: quick
@@ -90,15 +90,15 @@ T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The opponent field is a `<select>` populated from `opponentService.getAll`, alphabetically (AC GSEL-01.1)
-- [ ] Submitting stores the selected name in the game's `opponent` string field (AC GSEL-01.2) — assert the submitted payload, not the DOM
-- [ ] Submitting with nothing selected is rejected with a message and no service call (AC GSEL-01.3)
-- [ ] An empty opponents list disables the select and points at the manager (AC GSEL-01.4)
-- [ ] Editing a game whose opponent is not in the list shows it marked and preserves it through an untouched save (AC GSEL-01.5) — assert the saved value equals the original string exactly
-- [ ] A stored opponent matching a list entry only by case renders as that entry, not as a second option (edge case)
-- [ ] The `07` GameSavePopup tests still pass; assertions that typed into the opponent input are rewritten to select
-- [ ] Gate passes: `npm test`
-- [ ] Test count: existing counts hold, 12+ new tests pass
+- [x] The opponent field is a `<select>` populated from `opponentService.getAll`, alphabetically (AC GSEL-01.1)
+- [x] Submitting stores the selected name in the game's `opponent` string field (AC GSEL-01.2) — assert the submitted payload, not the DOM
+- [x] Submitting with nothing selected is rejected with a message and no service call (AC GSEL-01.3)
+- [x] An empty opponents list disables the select and points at the manager (AC GSEL-01.4) — superseded by T4: once "Add new…" exists the select stays enabled instead; see spec.md's updated AC GSEL-01.4
+- [x] Editing a game whose opponent is not in the list shows it marked and preserves it through an untouched save (AC GSEL-01.5) — assert the saved value equals the original string exactly
+- [x] A stored opponent matching a list entry only by case renders as that entry, not as a second option (edge case)
+- [x] The `07` GameSavePopup tests still pass; assertions that typed into the opponent input are rewritten to select
+- [x] Gate passes: `npm test`
+- [x] Test count: existing counts hold, 12+ new tests pass
 
 **Tests**: component
 **Gate**: full
@@ -118,14 +118,14 @@ T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The competition field is a `<select>` populated from `competitionService.getAll`, alphabetically (AC GSEL-02.1)
-- [ ] An explicit "None" option exists and stores an empty competition (AC GSEL-02.2, GSEL-02.3) — assert the stored value is the same empty value an untyped field produced before, so nothing downstream changes shape
-- [ ] Selecting a competition stores its name (AC GSEL-02.4)
-- [ ] A legacy stored competition is shown marked and preserved through an untouched save (AC GSEL-02.5)
-- [ ] An empty competitions list offers only "None" and points at the manager (AC GSEL-02.6)
-- [ ] The form contains no `type="text"` input for opponent or competition
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] The competition field is a `<select>` populated from `competitionService.getAll`, alphabetically (AC GSEL-02.1)
+- [x] An explicit "None" option exists and stores an empty competition (AC GSEL-02.2, GSEL-02.3) — assert the stored value is the same empty value an untyped field produced before, so nothing downstream changes shape
+- [x] Selecting a competition stores its name (AC GSEL-02.4)
+- [x] A legacy stored competition is shown marked and preserved through an untouched save (AC GSEL-02.5)
+- [x] An empty competitions list offers only "None" and points at the manager (AC GSEL-02.6)
+- [x] The form contains no `type="text"` input for opponent or competition
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: full
@@ -145,14 +145,14 @@ T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Choosing "Add new…" on either select opens the matching manager over the form (AC GSEL-01.6)
-- [ ] Closing the manager re-reads the list, and a name added there becomes the selected value with no second interaction (edge case) — assert the select's value, not just the option's presence
-- [ ] Closing the manager without adding anything leaves every form value untouched, including a half-typed date (edge case) — assert each field
-- [ ] The stacked manager is interactive above the form (regression guard on `13`'s nested-popup edge case)
-- [ ] Creating a game end to end from the Games page, choosing both values, stores the expected record (AC GSEL-01.2, GSEL-02.4)
-- [ ] With long lists, both selects stay reachable inside the popup's scroll region (edge case)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 10+ tests pass
+- [x] Choosing "Add new…" on either select opens the matching manager over the form (AC GSEL-01.6)
+- [x] Closing the manager re-reads the list, and a name added there becomes the selected value with no second interaction (edge case) — assert the select's value, not just the option's presence
+- [x] Closing the manager without adding anything leaves every form value untouched, including a half-typed date (edge case) — assert each field
+- [x] The stacked manager is interactive above the form (regression guard on `13`'s nested-popup edge case)
+- [x] Creating a game end to end from the Games page, choosing both values, stores the expected record (AC GSEL-01.2, GSEL-02.4)
+- [x] With long lists, both selects stay reachable inside the popup's scroll region (edge case)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: integration
 **Gate**: build
