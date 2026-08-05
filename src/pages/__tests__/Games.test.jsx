@@ -4,6 +4,7 @@ import { MemoryRouter, useSearchParams } from "react-router-dom";
 import Games from "../Games";
 import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
+import { competitionService } from "../../services/competitionService";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -996,4 +997,128 @@ test("the rendered card count in each fixture section equals the data length (AC
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(1);
   });
   expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
+});
+
+describe("Competitions manager (feature 20)", () => {
+  test("the Competitions button in the header opens the manager (AC COMP-03.1)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("District League")).toBeInTheDocument();
+  });
+
+  test("requesting a delete opens a confirmation naming how many games use that competition (AC COMP-05.4)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("District League");
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete District League" })
+    );
+
+    expect(
+      await screen.findByText(/Delete "District League"\? 2 games use this competition\./)
+    ).toBeInTheDocument();
+  });
+
+  test("a competition used by zero games states zero in the confirmation, not a blank", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("District League");
+
+    await user.type(within(dialog).getByLabelText("New competition"), "Cup");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+    await within(dialog).findByText("Cup");
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete Cup" })
+    );
+
+    expect(
+      await screen.findByText(/Delete "Cup"\? 0 games use this competition\./)
+    ).toBeInTheDocument();
+  });
+
+  test("confirming a delete removes the competition and leaves the games' stored competition untouched (AC COMP-05.5)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("District League");
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete District League" })
+    );
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(async () => {
+      expect(
+        (await competitionService.getAll()).find(
+          (c) => c.name === "District League"
+        )
+      ).toBeUndefined();
+    });
+    const games = await gameService.getAll();
+    expect(
+      games.filter((g) => g.competition === "District League")
+    ).toHaveLength(2);
+  });
+
+  test("cancelling a delete changes nothing (AC COMP-05.6)", async () => {
+    const user = userEvent.setup();
+    renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByText("District League");
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Delete District League" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(within(dialog).getByText("District League")).toBeInTheDocument();
+    expect(
+      (await competitionService.getAll()).find(
+        (c) => c.name === "District League"
+      )
+    ).toBeDefined();
+  });
+
+  test("closing the manager returns to the page with no other state disturbed", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(
+      within(getTeamsColumn(container)).getByText("Areias Sub-19")
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Upcoming (0)" })
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Competitions" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Upcoming (0)" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Played (0)" })
+    ).toBeInTheDocument();
+  });
 });

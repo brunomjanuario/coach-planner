@@ -1,6 +1,8 @@
 import { useEffect, useId, useState } from "react";
-import { IconEdit } from "@tabler/icons-react";
+import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { competitionService } from "../services/competitionService";
+import { gameService } from "../services/gameService";
+import ConfirmationPopup from "./ConfirmationPopup";
 import PopupShell from "./PopupShell";
 
 export default function CompetitionsPopup({ onClose }) {
@@ -12,6 +14,8 @@ export default function CompetitionsPopup({ onClose }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editError, setEditError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteCount, setDeleteCount] = useState(0);
 
   const load = async () => {
     const data = await competitionService.getAll();
@@ -73,6 +77,30 @@ export default function CompetitionsPopup({ onClose }) {
         err.message || "Failed to rename the competition. Please try again."
       );
     }
+  };
+
+  const requestDelete = async (competition) => {
+    const games = await gameService.getAll();
+    const normalized = competition.name.trim().toLowerCase();
+    const count = games.filter(
+      (game) =>
+        typeof game.competition === "string" &&
+        game.competition.trim().toLowerCase() === normalized
+    ).length;
+    setDeleteCount(count);
+    setDeleteTarget(competition);
+  };
+
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+    setDeleteCount(0);
+  };
+
+  const confirmDelete = async () => {
+    await competitionService.delete(deleteTarget.id);
+    setDeleteTarget(null);
+    setDeleteCount(0);
+    await load();
   };
 
   return (
@@ -165,18 +193,35 @@ export default function CompetitionsPopup({ onClose }) {
                 className="border rounded px-3 py-2 flex items-center justify-between gap-2"
               >
                 <span className="break-words">{competition.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Rename ${competition.name}`}
-                  className="cursor-pointer rounded hover:bg-lightgrey p-1"
-                  onClick={() => startEdit(competition)}
-                >
-                  <IconEdit size={18} />
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    aria-label={`Rename ${competition.name}`}
+                    className="cursor-pointer rounded hover:bg-lightgrey p-1"
+                    onClick={() => startEdit(competition)}
+                  >
+                    <IconEdit size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${competition.name}`}
+                    className="cursor-pointer rounded hover:bg-lightgrey p-1"
+                    onClick={() => requestDelete(competition)}
+                  >
+                    <IconTrash size={18} />
+                  </button>
+                </div>
               </li>
             )
           )}
         </ul>
+      )}
+      {deleteTarget && (
+        <ConfirmationPopup
+          message={`Delete "${deleteTarget.name}"? ${deleteCount} game${deleteCount === 1 ? "" : "s"} use this competition.`}
+          onSubmit={confirmDelete}
+          onClose={cancelDelete}
+        />
       )}
     </PopupShell>
   );
