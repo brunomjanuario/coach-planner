@@ -93,7 +93,7 @@ T4
 - [x] The opponent field is a `<select>` populated from `opponentService.getAll`, alphabetically (AC GSEL-01.1)
 - [x] Submitting stores the selected name in the game's `opponent` string field (AC GSEL-01.2) — assert the submitted payload, not the DOM
 - [x] Submitting with nothing selected is rejected with a message and no service call (AC GSEL-01.3)
-- [x] An empty opponents list disables the select and points at the manager (AC GSEL-01.4)
+- [x] An empty opponents list disables the select and points at the manager (AC GSEL-01.4) — superseded by T4: once "Add new…" exists the select stays enabled instead; see spec.md's updated AC GSEL-01.4
 - [x] Editing a game whose opponent is not in the list shows it marked and preserves it through an untouched save (AC GSEL-01.5) — assert the saved value equals the original string exactly
 - [x] A stored opponent matching a list entry only by case renders as that entry, not as a second option (edge case)
 - [x] The `07` GameSavePopup tests still pass; assertions that typed into the opponent input are rewritten to select
