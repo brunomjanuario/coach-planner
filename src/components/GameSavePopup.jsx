@@ -1,6 +1,7 @@
 import { useId, useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { opponentService } from "../services/opponentService";
+import { competitionService } from "../services/competitionService";
 import { toInputValue, fromInputValue } from "../lib/datetime";
 import { toOptions } from "../lib/selectOptions";
 import PopupShell from "./PopupShell";
@@ -11,6 +12,8 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [opponents, setOpponents] = useState([]);
   const [loadingOpponents, setLoadingOpponents] = useState(true);
+  const [competitions, setCompetitions] = useState([]);
+  const [loadingCompetitions, setLoadingCompetitions] = useState(true);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState(() => ({
     id: game?.id,
@@ -52,8 +55,19 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
       }
     }
 
+    async function loadCompetitions() {
+      try {
+        setCompetitions(await competitionService.getAll());
+      } catch (err) {
+        console.error("Failed to load competitions:", err);
+      } finally {
+        setLoadingCompetitions(false);
+      }
+    }
+
     loadTeams();
     loadOpponents();
+    loadCompetitions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,6 +136,12 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
     opponentOptions.find(
       (option) => option.value.toLowerCase() === formData.opponent.toLowerCase()
     )?.value ?? formData.opponent;
+
+  const competitionOptions = toOptions(competitions, formData.competition);
+  const competitionSelectValue =
+    competitionOptions.find(
+      (option) => option.value.toLowerCase() === formData.competition.toLowerCase()
+    )?.value ?? formData.competition;
 
   return (
     <PopupShell
@@ -225,14 +245,26 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
           <label htmlFor="competition" className="block text-sm font-medium">
             Competition
           </label>
-          <input
+          <select
             id="competition"
-            type="text"
             name="competition"
-            value={formData.competition}
+            value={competitionSelectValue}
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded"
-          />
+          >
+            <option value="">None</option>
+            {competitionOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.inList ? option.label : `${option.label} (not in list)`}
+              </option>
+            ))}
+          </select>
+          {!loadingCompetitions && competitions.length === 0 && (
+            <p className="text-sm text-red-500">
+              No competitions yet. Add one from the Competitions manager on
+              the Games page first.
+            </p>
+          )}
         </div>
       </form>
     </PopupShell>

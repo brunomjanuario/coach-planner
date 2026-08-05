@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import GameSavePopup from "../GameSavePopup";
 import { teamService } from "../../services/teamService";
 import { opponentService } from "../../services/opponentService";
+import { competitionService } from "../../services/competitionService";
 import { gameService } from "../../services/gameService";
 
 afterEach(() => {
@@ -19,9 +20,19 @@ const sampleOpponents = [
   { id: "o2", name: "Sporting" },
 ];
 
-function mockLists({ teams = sampleTeams, opponents = sampleOpponents } = {}) {
+const sampleCompetitions = [
+  { id: "c1", name: "District League" },
+  { id: "c2", name: "Cup" },
+];
+
+function mockLists({
+  teams = sampleTeams,
+  opponents = sampleOpponents,
+  competitions = sampleCompetitions,
+} = {}) {
   vi.spyOn(teamService, "getAll").mockResolvedValue(teams);
   vi.spyOn(opponentService, "getAll").mockResolvedValue(opponents);
+  vi.spyOn(competitionService, "getAll").mockResolvedValue(competitions);
 }
 
 function renderPopup(props = {}) {
@@ -34,6 +45,10 @@ function teamSelect() {
 
 function opponentSelect() {
   return screen.getByLabelText(/^opponent$/i);
+}
+
+function competitionSelect() {
+  return screen.getByLabelText(/^competition$/i);
 }
 
 async function fillRequiredFields(user, container, { opponent = "Benfica" } = {}) {
@@ -128,7 +143,7 @@ test("submitting persists team, opponent, date, home/away and competition (AC GA
   await user.selectOptions(teamSelect(), "Areias Sub-19");
   await fillRequiredFields(user, container, { opponent: "Benfica" });
   await user.click(screen.getByLabelText(/home game/i));
-  await user.type(screen.getByLabelText(/competition/i), "District League");
+  await user.selectOptions(competitionSelect(), "District League");
 
   await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -219,7 +234,7 @@ test("an optional game prop opens the popup in edit mode, pre-filling every fiel
     "2027-06-15T14:30"
   );
   expect(screen.getByLabelText(/home game/i)).not.toBeChecked();
-  expect(screen.getByLabelText(/competition/i)).toHaveValue("Cup");
+  expect(competitionSelect()).toHaveValue("Cup");
 });
 
 test("the heading reads 'Edit Game' and the action button 'Save' in edit mode", async () => {
@@ -301,4 +316,103 @@ test("a stored opponent matching a list entry only by case renders as that entry
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   const options = within(opponentSelect()).getAllByRole("option");
   expect(options.filter((o) => o.textContent.toLowerCase() === "benfica")).toHaveLength(1);
+});
+
+test("the competition field is a select populated from competitionService.getAll, alphabetically (AC GSEL-02.1)", async () => {
+  mockLists({
+    competitions: [
+      { id: "1", name: "League" },
+      { id: "2", name: "Cup" },
+    ],
+  });
+
+  renderPopup();
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const options = within(competitionSelect())
+    .getAllByRole("option")
+    .map((o) => o.textContent);
+  expect(options).toEqual(["None", "Cup", "League"]);
+});
+
+test("selecting 'None' stores an empty competition (AC GSEL-02.2, GSEL-02.3)", async () => {
+  mockLists();
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
+  await fillRequiredFields(user, container);
+  await user.selectOptions(competitionSelect(), "District League");
+  await user.selectOptions(competitionSelect(), "None");
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ competition: "" })
+  );
+});
+
+test("selecting a competition stores its name (AC GSEL-02.4)", async () => {
+  mockLists();
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  const { container } = renderPopup({ onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
+  await fillRequiredFields(user, container);
+  await user.selectOptions(competitionSelect(), "Cup");
+
+  await user.click(screen.getByRole("button", { name: "Create" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ competition: "Cup" })
+  );
+});
+
+test("a legacy stored competition is shown marked and preserved through an untouched save (AC GSEL-02.5)", async () => {
+  mockLists({ competitions: [{ id: "1", name: "Cup" }] });
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ game: { ...sampleGame, competition: "Legacy League" }, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  expect(competitionSelect()).toHaveValue("Legacy League");
+  expect(
+    within(competitionSelect()).getByRole("option", {
+      name: "Legacy League (not in list)",
+    })
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ competition: "Legacy League" })
+  );
+});
+
+test("an empty competitions list offers only 'None' and points at the manager (AC GSEL-02.6)", async () => {
+  mockLists({ competitions: [] });
+
+  renderPopup();
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const options = within(competitionSelect())
+    .getAllByRole("option")
+    .map((o) => o.textContent);
+  expect(options).toEqual(["None"]);
+  expect(
+    screen.getByText(/No competitions yet\. Add one from the Competitions manager/)
+  ).toBeInTheDocument();
+});
+
+test("the form contains no type=\"text\" input for opponent or competition", async () => {
+  mockLists();
+  const { container } = renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  expect(container.querySelector('input[name="opponent"]')).toBeNull();
+  expect(container.querySelector('input[name="competition"]')).toBeNull();
+  expect(opponentSelect().tagName).toBe("SELECT");
+  expect(competitionSelect().tagName).toBe("SELECT");
 });
