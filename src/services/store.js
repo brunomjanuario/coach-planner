@@ -12,6 +12,7 @@ const DATE_FIELDS = {
   cards: [],
   ratings: [],
   competitions: [],
+  opponents: [],
 };
 const COLLECTION_NAMES = Object.keys(DATE_FIELDS);
 
