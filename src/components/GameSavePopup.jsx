@@ -1,12 +1,16 @@
 import { useId, useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
+import { opponentService } from "../services/opponentService";
 import { toInputValue, fromInputValue } from "../lib/datetime";
+import { toOptions } from "../lib/selectOptions";
 import PopupShell from "./PopupShell";
 
 export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
   const formId = useId();
   const [teams, setTeams] = useState([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
+  const [opponents, setOpponents] = useState([]);
+  const [loadingOpponents, setLoadingOpponents] = useState(true);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState(() => ({
     id: game?.id,
@@ -38,7 +42,18 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
       }
     }
 
+    async function loadOpponents() {
+      try {
+        setOpponents(await opponentService.getAll());
+      } catch (err) {
+        console.error("Failed to load opponents:", err);
+      } finally {
+        setLoadingOpponents(false);
+      }
+    }
+
     loadTeams();
+    loadOpponents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,7 +83,7 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
       return;
     }
 
-    if (!formData.opponent.trim()) {
+    if (!formData.opponent) {
       setError("Please enter the opponent.");
       return;
     }
@@ -85,7 +100,7 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
         await onSubmit({
           id: formData.id,
           teamId: formData.teamId,
-          opponent: formData.opponent.trim(),
+          opponent: formData.opponent,
           date,
           isHome: Boolean(formData.isHome),
           competition: formData.competition,
@@ -97,6 +112,16 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
       setError("Failed to save the game. Please try again.");
     }
   };
+
+  const opponentOptions = toOptions(opponents, formData.opponent);
+  // A case-only-different legacy value must render as its list entry, not a
+  // blank selection — the <select>'s displayed value is the matching
+  // option's exact casing, while formData.opponent (what gets submitted)
+  // stays untouched until the coach actually changes the selection.
+  const opponentSelectValue =
+    opponentOptions.find(
+      (option) => option.value.toLowerCase() === formData.opponent.toLowerCase()
+    )?.value ?? formData.opponent;
 
   return (
     <PopupShell
@@ -122,8 +147,11 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Team</label>
+          <label htmlFor="teamId" className="block text-sm font-medium">
+            Team
+          </label>
           <select
+            id="teamId"
             name="teamId"
             value={formData.teamId ?? ""}
             onChange={handleChange}
@@ -148,14 +176,27 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
           <label htmlFor="opponent" className="block text-sm font-medium">
             Opponent
           </label>
-          <input
+          <select
             id="opponent"
-            type="text"
             name="opponent"
-            value={formData.opponent}
+            value={opponentSelectValue}
             onChange={handleChange}
+            disabled={loadingOpponents || opponents.length === 0}
             className="w-full border px-3 py-2 rounded"
-          />
+          >
+            <option value="">Select an opponent</option>
+            {opponentOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.inList ? option.label : `${option.label} (not in list)`}
+              </option>
+            ))}
+          </select>
+          {!loadingOpponents && opponents.length === 0 && (
+            <p className="text-sm text-red-500">
+              No opponents yet. Add one from the Opponents manager on the
+              Games page first.
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium">Date & Time</label>

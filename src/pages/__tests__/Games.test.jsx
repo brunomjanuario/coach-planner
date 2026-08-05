@@ -146,14 +146,14 @@ test("creating a game refreshes the Upcoming list without a manual reload", asyn
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Amadora Sub-11");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
   await waitFor(() => {
     expect(within(getUpcomingList()).getAllByRole("listitem")).toHaveLength(2);
   });
-  expect(within(getUpcomingList()).getByText(/Porto/)).toBeInTheDocument();
+  expect(within(getUpcomingList()).getByText(/Sporting/)).toBeInTheDocument();
 });
 
 test("creating a game outside the active filter keeps the filter and reports where it went (same contract as 03 TTA-04.3)", async () => {
@@ -170,7 +170,7 @@ test("creating a game outside the active filter keeps the filter and reports whe
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Amadora Sub-11");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -726,7 +726,7 @@ test("creating a game updates the next-game card with no page reload (AC GLAY-04
   await openCreatePopup(user, container);
   const form = getFormFor("Create Game");
   await selectTeamInForm(user, form, "Areias Sub-19");
-  await user.type(within(form).getByLabelText(/opponent/i), "Porto");
+  await user.selectOptions(within(form).getByLabelText(/opponent/i), "Sporting");
   await typeInto(user, form, "date", "2027-01-01T10:00");
   await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -734,7 +734,7 @@ test("creating a game updates the next-game card with no page reload (AC GLAY-04
     expect(screen.getByRole("button", { name: /Next Game/ })).toBeInTheDocument();
   });
   const card = screen.getByRole("button", { name: /Next Game/ });
-  expect(within(card).getByText(/Porto/)).toBeInTheDocument();
+  expect(within(card).getByText(/Sporting/)).toBeInTheDocument();
 });
 
 test("deleting the next game updates the next-game card with no page reload (AC GLAY-04.6)", async () => {

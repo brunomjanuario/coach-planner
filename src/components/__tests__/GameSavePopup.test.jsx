@@ -2,6 +2,7 @@ import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GameSavePopup from "../GameSavePopup";
 import { teamService } from "../../services/teamService";
+import { opponentService } from "../../services/opponentService";
 import { gameService } from "../../services/gameService";
 
 afterEach(() => {
@@ -13,12 +14,30 @@ const sampleTeams = [
   { id: 2, club: "Areias", name: "Sub-19" },
 ];
 
+const sampleOpponents = [
+  { id: "o1", name: "Benfica" },
+  { id: "o2", name: "Sporting" },
+];
+
+function mockLists({ teams = sampleTeams, opponents = sampleOpponents } = {}) {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(teams);
+  vi.spyOn(opponentService, "getAll").mockResolvedValue(opponents);
+}
+
 function renderPopup(props = {}) {
   return render(<GameSavePopup onClose={() => {}} {...props} />);
 }
 
+function teamSelect() {
+  return screen.getByLabelText(/^team$/i);
+}
+
+function opponentSelect() {
+  return screen.getByLabelText(/^opponent$/i);
+}
+
 async function fillRequiredFields(user, container, { opponent = "Benfica" } = {}) {
-  await user.type(screen.getByLabelText(/opponent/i), opponent);
+  await user.selectOptions(opponentSelect(), opponent);
   await user.type(
     container.querySelector('[name="date"]'),
     "2027-01-01T10:00"
@@ -26,9 +45,8 @@ async function fillRequiredFields(user, container, { opponent = "Benfica" } = {}
 }
 
 test("loads teams via teamService.getAll rather than a teams prop", async () => {
-  const getAllSpy = vi
-    .spyOn(teamService, "getAll")
-    .mockResolvedValue(sampleTeams);
+  mockLists();
+  const getAllSpy = teamService.getAll;
 
   renderPopup();
 
@@ -37,11 +55,12 @@ test("loads teams via teamService.getAll rather than a teams prop", async () => 
 });
 
 test("renders every team as an option formatted as club + name", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
 
   renderPopup();
 
-  const select = await screen.findByRole("combobox");
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const select = teamSelect();
   expect(
     within(select).getByRole("option", { name: "Amadora Sub-11" })
   ).toBeInTheDocument();
@@ -51,7 +70,7 @@ test("renders every team as an option formatted as club + name", async () => {
 });
 
 test("the form fields sit inside the scroll region while Cancel/Create stay outside it (AC POPUP-02.4)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const { container } = renderPopup();
   await screen.findByRole("option", { name: "Amadora Sub-11" });
 
@@ -66,7 +85,7 @@ test("the form fields sit inside the scroll region while Cancel/Create stay outs
 });
 
 test("blocks submission and shows a validation message when no team is selected (AC GAME-03.2)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const createSpy = vi.spyOn(gameService, "create");
   const onSubmit = vi.fn();
   const user = userEvent.setup();
@@ -81,14 +100,14 @@ test("blocks submission and shows a validation message when no team is selected 
   expect(createSpy).not.toHaveBeenCalled();
 });
 
-test("blocks submission with a message when the opponent is empty (AC GAME-03.3)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+test("blocks submission with a message when no opponent is selected (AC GSEL-01.3)", async () => {
+  mockLists();
   const createSpy = vi.spyOn(gameService, "create");
   const onSubmit = vi.fn();
   const user = userEvent.setup();
   const { container } = renderPopup({ onSubmit });
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
   await user.type(container.querySelector('[name="date"]'), "2027-01-01T10:00");
 
   await user.click(screen.getByRole("button", { name: "Create" }));
@@ -100,31 +119,13 @@ test("blocks submission with a message when the opponent is empty (AC GAME-03.3)
   expect(createSpy).not.toHaveBeenCalled();
 });
 
-test("blocks submission with a message when the opponent is whitespace-only (AC GAME-03.3)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
-  const onSubmit = vi.fn();
-  const user = userEvent.setup();
-  const { container } = renderPopup({ onSubmit });
-  await screen.findByRole("option", { name: "Amadora Sub-11" });
-  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
-  await user.type(screen.getByLabelText(/opponent/i), "   ");
-  await user.type(container.querySelector('[name="date"]'), "2027-01-01T10:00");
-
-  await user.click(screen.getByRole("button", { name: "Create" }));
-
-  expect(
-    await screen.findByText("Please enter the opponent.")
-  ).toBeInTheDocument();
-  expect(onSubmit).not.toHaveBeenCalled();
-});
-
 test("submitting persists team, opponent, date, home/away and competition (AC GAME-03.1)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const onSubmit = vi.fn();
   const user = userEvent.setup();
   const { container } = renderPopup({ onSubmit });
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  await user.selectOptions(screen.getByRole("combobox"), "Areias Sub-19");
+  await user.selectOptions(teamSelect(), "Areias Sub-19");
   await fillRequiredFields(user, container, { opponent: "Benfica" });
   await user.click(screen.getByLabelText(/home game/i));
   await user.type(screen.getByLabelText(/competition/i), "District League");
@@ -144,13 +145,13 @@ test("submitting persists team, opponent, date, home/away and competition (AC GA
 });
 
 test("invokes the onSubmit prop instead of calling gameService.create directly", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const createSpy = vi.spyOn(gameService, "create");
   const onSubmit = vi.fn();
   const user = userEvent.setup();
   const { container } = renderPopup({ onSubmit });
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
   await fillRequiredFields(user, container);
 
   await user.click(screen.getByRole("button", { name: "Create" }));
@@ -160,7 +161,7 @@ test("invokes the onSubmit prop instead of calling gameService.create directly",
 });
 
 test("cancelling the popup calls onClose without submitting and leaves the store untouched", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const createSpy = vi.spyOn(gameService, "create");
   const onSubmit = vi.fn();
   const onClose = vi.fn();
@@ -176,13 +177,13 @@ test("cancelling the popup calls onClose without submitting and leaves the store
 });
 
 test("an invalid/empty date blocks the save with a message (edge case)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
   const onSubmit = vi.fn();
   const user = userEvent.setup();
   const { container } = renderPopup({ onSubmit });
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  await user.selectOptions(screen.getByRole("combobox"), "Amadora Sub-11");
-  await user.type(screen.getByLabelText(/opponent/i), "Benfica");
+  await user.selectOptions(teamSelect(), "Amadora Sub-11");
+  await user.selectOptions(opponentSelect(), "Benfica");
   fireEvent.change(container.querySelector('[name="date"]'), {
     target: { value: "" },
   });
@@ -207,13 +208,13 @@ const sampleGame = {
 };
 
 test("an optional game prop opens the popup in edit mode, pre-filling every field including the date via toInputValue", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
 
   const { container } = renderPopup({ game: sampleGame });
 
   await screen.findByRole("option", { name: "Amadora Sub-11" });
-  expect(screen.getByRole("combobox")).toHaveValue("2");
-  expect(screen.getByLabelText(/opponent/i)).toHaveValue("Sporting");
+  expect(teamSelect()).toHaveValue("2");
+  expect(opponentSelect()).toHaveValue("Sporting");
   expect(container.querySelector('[name="date"]')).toHaveValue(
     "2027-06-15T14:30"
   );
@@ -222,7 +223,7 @@ test("an optional game prop opens the popup in edit mode, pre-filling every fiel
 });
 
 test("the heading reads 'Edit Game' and the action button 'Save' in edit mode", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
 
   renderPopup({ game: sampleGame });
 
@@ -234,7 +235,7 @@ test("the heading reads 'Edit Game' and the action button 'Save' in edit mode", 
 });
 
 test("create mode still renders the 'Create Game' heading and 'Create' button", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  mockLists();
 
   renderPopup();
 
@@ -242,4 +243,62 @@ test("create mode still renders the 'Create Game' heading and 'Create' button", 
     await screen.findByRole("heading", { name: "Create Game" })
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+});
+
+test("the opponent field is a select populated from opponentService.getAll, alphabetically (AC GSEL-01.1)", async () => {
+  mockLists({
+    opponents: [
+      { id: "1", name: "Sporting" },
+      { id: "2", name: "Benfica" },
+    ],
+  });
+
+  renderPopup();
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const options = within(opponentSelect())
+    .getAllByRole("option")
+    .map((o) => o.textContent);
+  expect(options).toEqual(["Select an opponent", "Benfica", "Sporting"]);
+});
+
+test("an empty opponents list disables the select and points at the manager (AC GSEL-01.4)", async () => {
+  mockLists({ opponents: [] });
+
+  renderPopup();
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(opponentSelect()).toBeDisabled();
+  expect(
+    screen.getByText(/No opponents yet\. Add one from the Opponents manager/)
+  ).toBeInTheDocument();
+});
+
+test("editing a game whose opponent is not in the list shows it marked and preserves it through an untouched save (AC GSEL-01.5)", async () => {
+  mockLists({ opponents: [{ id: "1", name: "Benfica" }] });
+  const onSubmit = vi.fn();
+  const user = userEvent.setup();
+  renderPopup({ game: { ...sampleGame, opponent: "Legacy FC" }, onSubmit });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  expect(opponentSelect()).toHaveValue("Legacy FC");
+  expect(
+    within(opponentSelect()).getByRole("option", { name: "Legacy FC (not in list)" })
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ opponent: "Legacy FC" })
+  );
+});
+
+test("a stored opponent matching a list entry only by case renders as that entry, not a second option (edge case)", async () => {
+  mockLists({ opponents: [{ id: "1", name: "Benfica" }] });
+
+  renderPopup({ game: { ...sampleGame, opponent: "benfica" } });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const options = within(opponentSelect()).getAllByRole("option");
+  expect(options.filter((o) => o.textContent.toLowerCase() === "benfica")).toHaveLength(1);
 });
