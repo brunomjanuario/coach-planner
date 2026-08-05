@@ -1,8 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { competitionService } from "../competitionService";
+import { gameService } from "../gameService";
+import { teamService } from "../teamService";
 import { getCollection, setCollection, reset } from "../store";
 import { createSeed } from "../../model/seed";
 import { NotFoundError, ValidationError } from "../../lib/errors";
+
+async function seedGame({ teamId, competition }) {
+  return gameService.create({
+    teamId,
+    opponent: "Rivals FC",
+    date: new Date("2030-01-01T10:00:00Z"),
+    isHome: true,
+    competition,
+  });
+}
 
 describe("competitionService", () => {
   describe("seeding and reset (AC COMP-01.1, COMP-01.6)", () => {
@@ -134,6 +146,90 @@ describe("competitionService", () => {
       await expect(
         competitionService.update({ id: "no-such-id", name: "Cup" })
       ).rejects.toThrow(NotFoundError);
+    });
+
+    describe("cascade to games (AC COMP-04.3, AC COMP-04.4, AC COMP-04.5)", () => {
+      it("updates every game whose competition matches the old name, and leaves a non-matching game alone", async () => {
+        const [team] = await teamService.getAll();
+        const cup = await competitionService.create("Cup");
+        const matchA = await seedGame({ teamId: team.id, competition: "Cup" });
+        const matchB = await seedGame({ teamId: team.id, competition: "Cup" });
+        const other = await seedGame({ teamId: team.id, competition: "League" });
+
+        await competitionService.update({ id: cup.id, name: "Cup Renamed" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === matchA.id).competition).toBe(
+          "Cup Renamed"
+        );
+        expect(games.find((g) => g.id === matchB.id).competition).toBe(
+          "Cup Renamed"
+        );
+        expect(games.find((g) => g.id === other.id).competition).toBe(
+          "League"
+        );
+      });
+
+      it("cascades to a game whose stored name differs only by case, matching how the migration collapsed them", async () => {
+        const [team] = await teamService.getAll();
+        const cup = await competitionService.create("Cup");
+        const differentCase = await seedGame({
+          teamId: team.id,
+          competition: "cup",
+        });
+
+        await competitionService.update({ id: cup.id, name: "Cup Renamed" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === differentCase.id).competition).toBe(
+          "Cup Renamed"
+        );
+      });
+
+      it("leaves games with no competition untouched", async () => {
+        const [team] = await teamService.getAll();
+        const cup = await competitionService.create("Cup");
+        const noCompetition = await seedGame({
+          teamId: team.id,
+          competition: null,
+        });
+
+        await competitionService.update({ id: cup.id, name: "Cup Renamed" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === noCompetition.id).competition).toBe(
+          null
+        );
+      });
+
+      it("rejects a colliding rename before writing anything, leaving the games collection unchanged (edge case)", async () => {
+        const [team] = await teamService.getAll();
+        const cup = await competitionService.create("Cup");
+        await competitionService.create("League");
+        const game = await seedGame({ teamId: team.id, competition: "Cup" });
+        const gamesBefore = await gameService.getAll();
+
+        await expect(
+          competitionService.update({ id: cup.id, name: "League" })
+        ).rejects.toThrow(ValidationError);
+
+        const gamesAfter = await gameService.getAll();
+        expect(gamesAfter).toEqual(gamesBefore);
+        expect(gamesAfter.find((g) => g.id === game.id).competition).toBe(
+          "Cup"
+        );
+      });
+
+      it("a pure case change cascades to matching games (edge case)", async () => {
+        const [team] = await teamService.getAll();
+        const cup = await competitionService.create("Cup");
+        const game = await seedGame({ teamId: team.id, competition: "Cup" });
+
+        await competitionService.update({ id: cup.id, name: "CUP" });
+
+        const games = await gameService.getAll();
+        expect(games.find((g) => g.id === game.id).competition).toBe("CUP");
+      });
     });
   });
 

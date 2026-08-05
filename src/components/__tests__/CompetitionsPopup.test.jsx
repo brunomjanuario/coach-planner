@@ -191,6 +191,72 @@ test("typing after a rejected submission clears the inline error", async () => {
   ).not.toBeInTheDocument();
 });
 
+test("renaming a competition calls competitionService.update, awaits it, then re-reads the list (AC COMP-04.3, AD-004)", async () => {
+  const getAllSpy = vi
+    .spyOn(competitionService, "getAll")
+    .mockResolvedValueOnce([{ id: "1", name: "Cup" }])
+    .mockResolvedValueOnce([{ id: "1", name: "Cup Renamed" }]);
+  const updateSpy = vi
+    .spyOn(competitionService, "update")
+    .mockResolvedValue({ id: "1", name: "Cup Renamed" });
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Cup");
+
+  await user.click(screen.getByRole("button", { name: "Rename Cup" }));
+  const input = screen.getByLabelText("Rename Cup");
+  await user.clear(input);
+  await user.type(input, "Cup Renamed");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(await screen.findByText("Cup Renamed")).toBeInTheDocument();
+  expect(updateSpy).toHaveBeenCalledWith({ id: "1", name: "Cup Renamed" });
+  expect(getAllSpy).toHaveBeenCalledTimes(2);
+});
+
+test("a rejected rename renders the reason and keeps the typed value, leaving the original name shown until fixed", async () => {
+  vi.spyOn(competitionService, "getAll").mockResolvedValue([
+    { id: "1", name: "Cup" },
+    { id: "2", name: "League" },
+  ]);
+  vi.spyOn(competitionService, "update").mockRejectedValue(
+    new Error('A competition named "League" already exists.')
+  );
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Cup");
+
+  await user.click(screen.getByRole("button", { name: "Rename Cup" }));
+  const input = screen.getByLabelText("Rename Cup");
+  await user.clear(input);
+  await user.type(input, "League");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText('A competition named "League" already exists.')
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText("Rename Cup")).toHaveValue("League");
+});
+
+test("cancelling a rename discards the change and does not call update", async () => {
+  const updateSpy = vi.spyOn(competitionService, "update");
+  vi.spyOn(competitionService, "getAll").mockResolvedValue([
+    { id: "1", name: "Cup" },
+  ]);
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Cup");
+
+  await user.click(screen.getByRole("button", { name: "Rename Cup" }));
+  const input = screen.getByLabelText("Rename Cup");
+  await user.clear(input);
+  await user.type(input, "Something Else");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(screen.getByText("Cup")).toBeInTheDocument();
+  expect(updateSpy).not.toHaveBeenCalled();
+});
+
 test("a 20-item list scrolls inside the shell with the create form still reachable (regression guard on POPUP-02)", async () => {
   const many = Array.from({ length: 20 }, (_, i) => ({
     id: String(i),

@@ -1,6 +1,7 @@
 import { getCollection, setCollection } from "./store";
 import { newId } from "../lib/id";
 import { NotFoundError, ValidationError } from "../lib/errors";
+import { gameService } from "./gameService";
 
 function getCompetitions() {
   return getCollection("competitions");
@@ -50,6 +51,12 @@ export const competitionService = {
     return newCompetition;
   },
 
+  /**
+   * Renames a competition and cascades to every game carrying the old name
+   * (AC COMP-04.3). The cascade match is case-insensitive on the trimmed
+   * name, mirroring how the v1->v2 migration collapsed case/whitespace
+   * variants into a single competition (AD-010).
+   */
   update: async ({ id, name }) => {
     assertValidName(name);
     const trimmed = name.trim();
@@ -60,8 +67,25 @@ export const competitionService = {
     }
     assertNoDuplicate(competitions, trimmed, id);
 
+    const oldName = competitions[index].name;
     competitions[index] = { ...competitions[index], name: trimmed };
     saveCompetitions(competitions);
+
+    if (trimmed !== oldName) {
+      const normalizedOld = normalize(oldName);
+      const games = await gameService.getAll();
+      const affected = games.filter(
+        (game) =>
+          typeof game.competition === "string" &&
+          normalize(game.competition) === normalizedOld
+      );
+      await Promise.all(
+        affected.map((game) =>
+          gameService.update({ ...game, competition: trimmed })
+        )
+      );
+    }
+
     return competitions[index];
   },
 
