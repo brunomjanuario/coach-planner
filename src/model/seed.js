@@ -232,5 +232,9 @@ export function createSeed() {
     ],
     ratings: [],
     competitions: [{ id: 1, name: "District League" }],
+    opponents: [
+      { id: 1, name: "Benfica" },
+      { id: 2, name: "Sporting" },
+    ],
   };
 }

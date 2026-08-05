@@ -3,7 +3,7 @@ import { createSeed } from "../model/seed";
 import { newId } from "../lib/id";
 
 const SCHEMA_KEY = "schemaVersion";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DATE_FIELDS = {
   teams: [],
   trainings: ["day"],
@@ -12,31 +12,46 @@ const DATE_FIELDS = {
   cards: [],
   ratings: [],
   competitions: [],
+  opponents: [],
 };
 const COLLECTION_NAMES = Object.keys(DATE_FIELDS);
 
+/** Distinct, trimmed, case-insensitively deduped values of `field` across `games`. */
+function distinctGameFieldValues(games, field) {
+  const canonicalByKey = new Map();
+
+  for (const game of games) {
+    const raw = game[field];
+    if (typeof raw !== "string" || raw.trim() === "") continue;
+
+    const trimmed = raw.trim();
+    const key = trimmed.toLowerCase();
+    if (!canonicalByKey.has(key)) canonicalByKey.set(key, trimmed);
+  }
+
+  return [...canonicalByKey.values()];
+}
+
 // Migration registry: keyed by the version a stored payload migrates *to*.
-// v2 derives the `competitions` collection from the distinct competition
-// names already sitting on stored games (AC COMP-02.1).
 const MIGRATIONS = {
+  // Derives the `competitions` collection from the distinct competition
+  // names already sitting on stored games (AC COMP-02.1).
   2: () => {
     const games = storage.read("games", DATE_FIELDS.games) ?? [];
-    const canonicalByKey = new Map();
-
-    for (const game of games) {
-      const raw = game.competition;
-      if (typeof raw !== "string" || raw.trim() === "") continue;
-
-      const trimmed = raw.trim();
-      const key = trimmed.toLowerCase();
-      if (!canonicalByKey.has(key)) canonicalByKey.set(key, trimmed);
-    }
-
-    const competitions = [...canonicalByKey.values()].map((name) => ({
+    const competitions = distinctGameFieldValues(games, "competition").map(
+      (name) => ({ id: newId(), name })
+    );
+    storage.write("competitions", competitions);
+  },
+  // Derives the `opponents` collection from the distinct opponent names
+  // already sitting on stored games (AC OPP-02.1).
+  3: () => {
+    const games = storage.read("games", DATE_FIELDS.games) ?? [];
+    const opponents = distinctGameFieldValues(games, "opponent").map((name) => ({
       id: newId(),
       name,
     }));
-    storage.write("competitions", competitions);
+    storage.write("opponents", opponents);
   },
 };
 
