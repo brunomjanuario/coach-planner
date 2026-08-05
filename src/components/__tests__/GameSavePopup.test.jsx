@@ -277,7 +277,7 @@ test("the opponent field is a select populated from opponentService.getAll, alph
   expect(options).toEqual(["Select an opponent", "Benfica", "Sporting", "Add new…"]);
 });
 
-test("an empty opponents list offers only the placeholder and 'Add new…', and points at the manager (AC GSEL-01.4)", async () => {
+test("an empty opponents list offers only the placeholder and 'Add new…', stays enabled so 'Add new…' is reachable, and points at the manager (AC GSEL-01.4, superseded by the T4 add-new edge case)", async () => {
   mockLists({ opponents: [] });
 
   renderPopup();
@@ -287,6 +287,7 @@ test("an empty opponents list offers only the placeholder and 'Add new…', and 
     .getAllByRole("option")
     .map((o) => o.textContent);
   expect(options).toEqual(["Select an opponent", "Add new…"]);
+  expect(opponentSelect()).not.toBeDisabled();
   expect(
     screen.getByText(/No opponents yet\. Add one from the Opponents manager/)
   ).toBeInTheDocument();
@@ -319,6 +320,20 @@ test("a stored opponent matching a list entry only by case renders as that entry
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   const options = within(opponentSelect()).getAllByRole("option");
   expect(options.filter((o) => o.textContent.toLowerCase() === "benfica")).toHaveLength(1);
+  // The select must actually render as selecting the list's entry (exact
+  // casing), not sit blank because "benfica" matches no <option value>.
+  expect(opponentSelect()).toHaveValue("Benfica");
+});
+
+test("a stored competition matching a list entry only by case renders as that entry, not a second option (edge case)", async () => {
+  mockLists({ competitions: [{ id: "1", name: "Cup" }] });
+
+  renderPopup({ game: { ...sampleGame, competition: "cup" } });
+
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  const options = within(competitionSelect()).getAllByRole("option");
+  expect(options.filter((o) => o.textContent.toLowerCase() === "cup")).toHaveLength(1);
+  expect(competitionSelect()).toHaveValue("Cup");
 });
 
 test("the competition field is a select populated from competitionService.getAll, alphabetically (AC GSEL-02.1)", async () => {
@@ -456,6 +471,7 @@ test("closing the opponents manager without adding anything leaves every form va
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   await user.selectOptions(teamSelect(), "Amadora Sub-11");
   await user.selectOptions(opponentSelect(), "Benfica");
+  await user.selectOptions(competitionSelect(), "Cup");
   await user.type(container.querySelector('[name="date"]'), "2027-01-01T10:15");
   await user.click(screen.getByLabelText(/home game/i));
 
@@ -465,6 +481,7 @@ test("closing the opponents manager without adding anything leaves every form va
 
   expect(teamSelect()).toHaveValue("1");
   expect(opponentSelect()).toHaveValue("Benfica");
+  expect(competitionSelect()).toHaveValue("Cup");
   expect(container.querySelector('[name="date"]')).toHaveValue("2027-01-01T10:15");
   expect(screen.getByLabelText(/home game/i)).not.toBeChecked();
 });

@@ -39,7 +39,7 @@ beside it are the outlier.
 | Opponent required | Yes, as today | The form already rejects an empty opponent | n |
 | Competition required | No, as today | Optional field; the select carries a "None" option | n |
 | A stored value absent from the list | Rendered as an extra option, marked as not in the list, and preserved on save | Otherwise editing a game silently rewrites its opponent — the worst possible outcome for a save button | n |
-| Empty list | The select is disabled and the form points at the manager, mirroring how the team select already handles "no teams yet" | Consistency with the control beside it | n |
+| Empty list | The select stays enabled (only the loading state disables it) so "Add new…" is reachable, and the form points at the manager | Superseded during T4: an empty list can no longer be a dead end once "Add new…" exists — a fully-disabled select would contradict the "both lists are empty" edge case below, which requires the form to stay usable via Add new | n |
 | Adding without leaving the form | Each select offers an "Add new…" option opening the matching manager popup; on close the list re-reads and the new value is selected | Otherwise the coach loses a half-filled fixture to add one club | n |
 | Ordering | Alphabetical, case-insensitive | The only order that is predictable in a dropdown | n |
 
@@ -61,7 +61,7 @@ typing club names.
 1. WHEN the game form opens THEN the opponent field SHALL be a select populated from the opponents list, ordered alphabetically
 2. WHEN a game is submitted THEN the system SHALL store the selected opponent's name in the game's existing `opponent` field
 3. WHEN no opponent is selected THEN the system SHALL reject the submission with the existing "Please enter the opponent." class of message
-4. WHEN the opponents list is empty THEN the select SHALL be disabled and the form SHALL point at the opponents manager
+4. WHEN the opponents list is empty THEN the select SHALL remain enabled (only the loading state disables it) so "Add new…" is reachable, and the form SHALL point at the opponents manager — superseded by T4's add-new edge case; see the Assumptions table
 5. WHEN an existing game is edited and its stored opponent is not in the list THEN the select SHALL show that value, marked as not in the list, and SHALL preserve it on save
 6. WHEN "Add new…" is chosen THEN the system SHALL open the opponents manager, and on close SHALL re-read the list
 
@@ -82,7 +82,7 @@ typing club names.
 3. WHEN "None" is selected THEN the system SHALL store an empty competition, as an untyped field does today
 4. WHEN a game is submitted with a competition THEN the system SHALL store that competition's name in the game's existing `competition` field
 5. WHEN an existing game's stored competition is not in the list THEN the select SHALL show that value, marked as not in the list, and SHALL preserve it on save
-6. WHEN the competitions list is empty THEN the select SHALL offer only "None" and point at the competitions manager
+6. WHEN the competitions list is empty THEN the select SHALL offer only "None" plus "Add new…" and point at the competitions manager — the "Add new…" option is T4's addition, not a second competition choice
 
 **Independent Test**: Edit the seeded "District League" fixture without touching the field; the stored value is unchanged.
 
