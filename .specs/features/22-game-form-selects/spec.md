@@ -15,9 +15,9 @@ beside it are the outlier.
 
 ## Goals
 
-- [ ] Opponent and competition are chosen from the managed lists
-- [ ] A game whose stored value is not in the list can still be edited without losing it
-- [ ] Adding a new opponent or competition does not mean abandoning the form
+- [x] Opponent and competition are chosen from the managed lists
+- [x] A game whose stored value is not in the list can still be edited without losing it
+- [x] Adding a new opponent or competition does not mean abandoning the form
 
 ## Out of Scope
 
@@ -103,11 +103,11 @@ typing club names.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| GSEL-01 | P1: Opponent select populated and validated | Tasks | Pending |
-| GSEL-02 | P1: Competition select with a None option | Tasks | Pending |
-| GSEL-03 | P1: Legacy values preserved and marked | Tasks | Pending |
-| GSEL-04 | P1: Empty-list states point at the managers | Tasks | Pending |
-| GSEL-05 | P1: Add-new from inside the form | Tasks | Pending |
+| GSEL-01 | P1: Opponent select populated and validated | Tasks | Done |
+| GSEL-02 | P1: Competition select with a None option | Tasks | Done |
+| GSEL-03 | P1: Legacy values preserved and marked | Tasks | Done |
+| GSEL-04 | P1: Empty-list states point at the managers | Tasks | Done |
+| GSEL-05 | P1: Add-new from inside the form | Tasks | Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -115,6 +115,6 @@ typing club names.
 
 ## Success Criteria
 
-- [ ] The game form contains no free-text opponent or competition input
-- [ ] Editing a game and pressing Save never changes its opponent or competition
-- [ ] A coach can add a new club without losing a half-filled fixture
+- [x] The game form contains no free-text opponent or competition input
+- [x] Editing a game and pressing Save never changes its opponent or competition
+- [x] A coach can add a new club without losing a half-filled fixture
