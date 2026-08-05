@@ -13,9 +13,9 @@ competition — only a string on each game.
 
 ## Goals
 
-- [ ] A coach can create, rename and delete the competitions they play in
-- [ ] Existing games' competition names become that list, without data loss
-- [ ] The list is available for the game form to consume
+- [x] A coach can create, rename and delete the competitions they play in
+- [x] Existing games' competition names become that list, without data loss
+- [x] The list is available for the game form to consume
 
 ## Out of Scope
 
@@ -125,11 +125,11 @@ matches my season.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| COMP-01 | P1: Collection, service and validation | Tasks | Pending |
-| COMP-02 | P1: Schema migration from existing game strings | Tasks | Pending |
-| COMP-03 | P1: Manager popup — list and create | Tasks | Pending |
-| COMP-04 | P1: Rename with cascade to games | Tasks | Pending |
-| COMP-05 | P1: Delete with a counted confirmation | Tasks | Pending |
+| COMP-01 | P1: Collection, service and validation | Tasks | Done |
+| COMP-02 | P1: Schema migration from existing game strings | Tasks | Done |
+| COMP-03 | P1: Manager popup — list and create | Tasks | Done |
+| COMP-04 | P1: Rename with cascade to games | Tasks | Done |
+| COMP-05 | P1: Delete with a counted confirmation | Tasks | Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -137,6 +137,6 @@ matches my season.
 
 ## Success Criteria
 
-- [ ] A coach never types the same competition name twice
-- [ ] An existing install opens the manager and sees the competitions it already had
-- [ ] A rename is reflected on every affected game
+- [x] A coach never types the same competition name twice
+- [x] An existing install opens the manager and sees the competitions it already had
+- [x] A rename is reflected on every affected game

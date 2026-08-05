@@ -68,18 +68,18 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `competitions` is added to `DATE_FIELDS` (empty array — no date fields) so it is covered by `COLLECTION_NAMES`, and therefore by `reset()` (AC COMP-01.6) — assert reset actually clears and re-seeds it, not just that the key is listed
-- [ ] `createSeed()` returns a `competitions` array seeded to match the seed games' competition names, so a fresh install is self-consistent (AC COMP-01.1)
-- [ ] `getAll` returns a copy — mutating the result does not affect a subsequent read (AD-004, AC COMP-01.2)
-- [ ] `create` assigns `newId()` (AC COMP-01.3) and returns the created record
-- [ ] `create` trims the name before storing (edge case)
-- [ ] `create` rejects a case-insensitive duplicate of an existing trimmed name (AC COMP-01.4) — assert all three of: exact, different case, surrounding whitespace
-- [ ] `create` rejects an empty or whitespace-only name (AC COMP-01.5)
-- [ ] `update` rejects a duplicate name and allows a pure case change of the record's own name (edge case) — these two are one line apart in the implementation and must be asserted separately
-- [ ] `update` on a missing id throws `NotFoundError`
-- [ ] `delete` removes only the named record
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 18+ tests pass
+- [x] `competitions` is added to `DATE_FIELDS` (empty array — no date fields) so it is covered by `COLLECTION_NAMES`, and therefore by `reset()` (AC COMP-01.6) — assert reset actually clears and re-seeds it, not just that the key is listed
+- [x] `createSeed()` returns a `competitions` array seeded to match the seed games' competition names, so a fresh install is self-consistent (AC COMP-01.1)
+- [x] `getAll` returns a copy — mutating the result does not affect a subsequent read (AD-004, AC COMP-01.2)
+- [x] `create` assigns `newId()` (AC COMP-01.3) and returns the created record
+- [x] `create` trims the name before storing (edge case)
+- [x] `create` rejects a case-insensitive duplicate of an existing trimmed name (AC COMP-01.4) — assert all three of: exact, different case, surrounding whitespace
+- [x] `create` rejects an empty or whitespace-only name (AC COMP-01.5)
+- [x] `update` rejects a duplicate name and allows a pure case change of the record's own name (edge case) — these two are one line apart in the implementation and must be asserted separately
+- [x] `update` on a missing id throws `NotFoundError`
+- [x] `delete` removes only the named record
+- [x] Gate passes: `npm test`
+- [x] Test count: 18+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -99,16 +99,16 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `SCHEMA_VERSION` becomes 2 and `MIGRATIONS[2]` derives competitions from the stored games (AC COMP-02.1)
-- [ ] Names differing only by case or surrounding whitespace collapse to one competition (AC COMP-02.2) — assert the resulting count, not just that something was created
-- [ ] Games with a null, undefined or empty competition contribute nothing (AC COMP-02.3)
-- [ ] No game record is modified by the migration (AC COMP-02.4) — assert the games collection is byte-identical before and after
-- [ ] After migrating, the stored version is 2 and a second load does not re-run the migration or duplicate records (AC COMP-02.5)
-- [ ] A fresh install (no stored version) seeds directly and does not run the migration
-- [ ] A store already at v2 is left alone
-- [ ] The migration is exercised through `getCollection`, the real entry point, not by calling the migration function directly
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 10+ tests pass
+- [x] `SCHEMA_VERSION` becomes 2 and `MIGRATIONS[2]` derives competitions from the stored games (AC COMP-02.1)
+- [x] Names differing only by case or surrounding whitespace collapse to one competition (AC COMP-02.2) — assert the resulting count, not just that something was created
+- [x] Games with a null, undefined or empty competition contribute nothing (AC COMP-02.3)
+- [x] No game record is modified by the migration (AC COMP-02.4) — assert the games collection is byte-identical before and after
+- [x] After migrating, the stored version is 2 and a second load does not re-run the migration or duplicate records (AC COMP-02.5)
+- [x] A fresh install (no stored version) seeds directly and does not run the migration
+- [x] A store already at v2 is left alone
+- [x] The migration is exercised through `getCollection`, the real entry point, not by calling the migration function directly
+- [x] Gate passes: `npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -128,16 +128,16 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The popup renders through `PopupShell`, with the create form or actions in the footer (dependency on `13` — do not hand-roll the overlay)
-- [ ] Every stored competition is listed (AC COMP-03.1)
-- [ ] Submitting a name adds it and the list updates without a reload (AC COMP-03.2) — re-read from the service, per AD-004
-- [ ] An empty list renders the invitation state (AC COMP-03.7)
-- [ ] A rejected name renders the reason and keeps the typed value in the field (AC COMP-03.8) — assert the input value, not only the message
-- [ ] A long name wraps rather than overflowing (edge case)
-- [ ] A storage-quota failure surfaces an error rather than appearing to succeed (edge case)
-- [ ] A 20-item list scrolls inside the shell with the create form still reachable (regression guard on `13` POPUP-02)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/CompetitionsPopup.test.jsx`
-- [ ] Test count: 12+ tests pass
+- [x] The popup renders through `PopupShell`, with the create form or actions in the footer (dependency on `13` — do not hand-roll the overlay)
+- [x] Every stored competition is listed (AC COMP-03.1)
+- [x] Submitting a name adds it and the list updates without a reload (AC COMP-03.2) — re-read from the service, per AD-004
+- [x] An empty list renders the invitation state (AC COMP-03.7)
+- [x] A rejected name renders the reason and keeps the typed value in the field (AC COMP-03.8) — assert the input value, not only the message
+- [x] A long name wraps rather than overflowing (edge case)
+- [x] A storage-quota failure surfaces an error rather than appearing to succeed (edge case)
+- [x] A 20-item list scrolls inside the shell with the create form still reachable (regression guard on `13` POPUP-02)
+- [x] Gate passes: `npx vitest run src/components/__tests__/CompetitionsPopup.test.jsx`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -157,14 +157,14 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Renaming updates every game whose `competition` matches the old name (AC COMP-04.3) — assert with two matching games and one non-matching game, so a blanket update fails the test
-- [ ] The match is exact on the stored string; a game whose name differs by case is reported in the affected count and updated too, matching how the migration collapsed them
-- [ ] Games with no competition are untouched
-- [ ] A rename colliding with another competition is rejected before anything is written (edge case) — assert the games collection is unchanged after the rejection
-- [ ] A pure case change is allowed and cascades (edge case)
-- [ ] The rename is awaited before the list re-reads (AD-004; the defect class `12` fixes)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 10+ tests pass
+- [x] Renaming updates every game whose `competition` matches the old name (AC COMP-04.3) — assert with two matching games and one non-matching game, so a blanket update fails the test
+- [x] The match is exact on the stored string; a game whose name differs by case is reported in the affected count and updated too, matching how the migration collapsed them
+- [x] Games with no competition are untouched
+- [x] A rename colliding with another competition is rejected before anything is written (edge case) — assert the games collection is unchanged after the rejection
+- [x] A pure case change is allowed and cascades (edge case)
+- [x] The rename is awaited before the list re-reads (AD-004; the defect class `12` fixes)
+- [x] Gate passes: `npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: unit + component
 **Gate**: full
@@ -184,14 +184,14 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] A "Competitions" control in the Games page header opens the manager (AC COMP-03.1)
-- [ ] Requesting a delete opens a confirmation naming how many games use that competition (AC COMP-05.4) — assert the number, with a fixture of two matching games
-- [ ] Confirming removes the competition and leaves every game's stored `competition` string untouched (AC COMP-05.5) — assert the games, which is the whole point of the chosen trade-off
-- [ ] Cancelling changes nothing (AC COMP-05.6)
-- [ ] A competition used by zero games states zero in the confirmation, not a blank
-- [ ] Closing the manager returns to the page with no other state disturbed
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 12+ tests pass
+- [x] A "Competitions" control in the Games page header opens the manager (AC COMP-03.1)
+- [x] Requesting a delete opens a confirmation naming how many games use that competition (AC COMP-05.4) — assert the number, with a fixture of two matching games
+- [x] Confirming removes the competition and leaves every game's stored `competition` string untouched (AC COMP-05.5) — assert the games, which is the whole point of the chosen trade-off
+- [x] Cancelling changes nothing (AC COMP-05.6)
+- [x] A competition used by zero games states zero in the confirmation, not a blank
+- [x] Closing the manager returns to the page with no other state disturbed
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: build
