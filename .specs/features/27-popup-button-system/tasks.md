@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/27-popup-button-system/spec.md`
 **Design**: not required
-**Status**: Not started
+**Status**: Complete
 **Batches**: 5 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -67,17 +67,17 @@ T2 → T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `variant="secondary"` renders dark text on a light background with a border, and does **not** render `bg-gray-300` or `text-white` (AC BTN-01.1) — assert the absence, which is the actual bug
-- [ ] `primary`, `danger` and `ghost` each render their own distinct background/text class set (AC BTN-01.1)
-- [ ] Every variant carries a `focus-visible` outline class (AC BTN-01.2)
-- [ ] `disabled` renders a reduced-opacity and `cursor-not-allowed` class **and** the click handler does not fire (AC BTN-01.3) — assert the handler, not only the class
-- [ ] `type` defaults to `"button"` and is forwarded when given (AC BTN-01.4)
-- [ ] `form` is forwarded so `<Button type="submit" form={id}>` submits a detached form (AC BTN-01.5)
-- [ ] An unrecognised `variant` falls back to `secondary` rather than rendering unstyled (edge case) — assert with a junk value
-- [ ] A long label is not truncated (no `truncate`/`whitespace-nowrap` class) (edge case)
-- [ ] The doc comment records the hand-verified contrast ratio for each variant, since the suite cannot check it
-- [ ] Gate passes: `npx vitest run src/components/__tests__/Button.test.jsx`
-- [ ] Test count: 14+ tests pass
+- [x] `variant="secondary"` renders dark text on a light background with a border, and does **not** render `bg-gray-300` or `text-white` (AC BTN-01.1) — assert the absence, which is the actual bug
+- [x] `primary`, `danger` and `ghost` each render their own distinct background/text class set (AC BTN-01.1)
+- [x] Every variant carries a `focus-visible` outline class (AC BTN-01.2)
+- [x] `disabled` renders a reduced-opacity and `cursor-not-allowed` class **and** the click handler does not fire (AC BTN-01.3) — assert the handler, not only the class
+- [x] `type` defaults to `"button"` and is forwarded when given (AC BTN-01.4)
+- [x] `form` is forwarded so `<Button type="submit" form={id}>` submits a detached form (AC BTN-01.5)
+- [x] An unrecognised `variant` falls back to `secondary` rather than rendering unstyled (edge case) — assert with a junk value
+- [x] A long label is not truncated (no `truncate`/`whitespace-nowrap` class) (edge case)
+- [x] The doc comment records the hand-verified contrast ratio for each variant, since the suite cannot check it
+- [x] Gate passes: `npx vitest run src/components/__tests__/Button.test.jsx`
+- [x] Test count: 14+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -97,12 +97,12 @@ T2 → T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `<PopupActions destructive={…}>` puts destructive content on the left and the rest right-aligned in one flex row (AC BTN-02.1)
-- [ ] With no destructive content the row renders no empty left slot and no gap (edge case) — assert the DOM, not just the visual
-- [ ] The row carries a wrapping class so it reflows instead of overflowing (AC BTN-02.5)
-- [ ] A single "Close" child renders right-aligned and not stretched (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/PopupActions.test.jsx`
-- [ ] Test count: 6+ tests pass
+- [x] `<PopupActions destructive={…}>` puts destructive content on the left and the rest right-aligned in one flex row (AC BTN-02.1)
+- [x] With no destructive content the row renders no empty left slot and no gap (edge case) — assert the DOM, not just the visual
+- [x] The row carries a wrapping class so it reflows instead of overflowing (AC BTN-02.5)
+- [x] A single "Close" child renders right-aligned and not stretched (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/PopupActions.test.jsx`
+- [x] Test count: 6+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -122,14 +122,14 @@ T2 → T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] "Clear Result" and "Delete Game" both render as `danger` in **one** action row; the footer contains exactly one row element (AC BTN-02.2) — assert the row count, since the defect was the second row
-- [ ] Neither `bg-red-800` nor a second red shade remains (AC BTN-02.2)
-- [ ] "Rate squad" renders `secondary` and carries no green background class (AC BTN-02.3)
-- [ ] With no saved result, the destructive slot holds only "Delete Game" and leaves no gap (edge case)
-- [ ] `GameSavePopup`'s Cancel/Save row uses `secondary`/`primary`, and Save still submits the detached form by `form` id (AC BTN-01.5)
-- [ ] Every existing `GameResultPopup` and `GameSavePopup` test passes with no behavioural edit — same labels, same handlers (AC BTN-04.2)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 10+ tests pass
+- [x] "Clear Result" and "Delete Game" both render as `danger` in **one** action row; the footer contains exactly one row element (AC BTN-02.2) — assert the row count, since the defect was the second row
+- [x] Neither `bg-red-800` nor a second red shade remains (AC BTN-02.2)
+- [x] "Rate squad" renders `secondary` and carries no green background class (AC BTN-02.3)
+- [x] With no saved result, the destructive slot holds only "Delete Game" and leaves no gap (edge case)
+- [x] `GameSavePopup`'s Cancel/Save row uses `secondary`/`primary`, and Save still submits the detached form by `form` id (AC BTN-01.5)
+- [x] Every existing `GameResultPopup` and `GameSavePopup` test passes with no behavioural edit — same labels, same handlers (AC BTN-04.2)
+- [x] Gate passes: `npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: component
 **Gate**: full
@@ -149,13 +149,13 @@ T2 → T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `TrainingDetailsPopup` renders Delete as `danger`, Edit as `primary`, Close and "Rate squad" as `secondary` (AC BTN-02.4) — assert all four, since this popup had four colours
-- [ ] Every footer action button in all ten files is a `Button` (AC BTN-04.1)
-- [ ] `ConfirmationPopup`'s confirm button is `danger` and its cancel is `secondary` — it is the last line before a destructive action, so its own contrast matters most
-- [ ] The managers' inline rename Save/Cancel buttons are migrated too, not just the footer ones (they are the same grey-on-white pair)
-- [ ] Every existing test in all ten files passes with no behavioural edit (AC BTN-04.2)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: the full suite passes with no net loss
+- [x] `TrainingDetailsPopup` renders Delete as `danger`, Edit as `primary`, Close and "Rate squad" as `secondary` (AC BTN-02.4) — assert all four, since this popup had four colours
+- [x] Every footer action button in all ten files is a `Button` (AC BTN-04.1)
+- [x] `ConfirmationPopup`'s confirm button is `danger` and its cancel is `secondary` — it is the last line before a destructive action, so its own contrast matters most
+- [x] The managers' inline rename Save/Cancel buttons are migrated too, not just the footer ones (they are the same grey-on-white pair)
+- [x] Every existing test in all ten files passes with no behavioural edit (AC BTN-04.2)
+- [x] Gate passes: `npm test`
+- [x] Test count: the full suite passes with no net loss
 
 **Tests**: component
 **Gate**: full
@@ -175,11 +175,11 @@ T2 → T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] A test reads every `.jsx` under `src/` and asserts `bg-gray-300 text-white` appears zero times (AC BTN-01.6)
-- [ ] The test names the offending file(s) in its failure message, so a future regression is one line to diagnose
-- [ ] The guard is verified to actually fail by temporarily reintroducing the pair during implementation (record this in the commit body — the suite cannot prove a guard works without seeing it go red once)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 1+ test passes
+- [x] A test reads every `.jsx` under `src/` and asserts `bg-gray-300 text-white` appears zero times (AC BTN-01.6)
+- [x] The test names the offending file(s) in its failure message, so a future regression is one line to diagnose
+- [x] The guard is verified to actually fail by temporarily reintroducing the pair during implementation (record this in the commit body — the suite cannot prove a guard works without seeing it go red once)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 1+ test passes
 
 **Tests**: component
 **Gate**: build

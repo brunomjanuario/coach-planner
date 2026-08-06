@@ -86,6 +86,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/pages/Settings.jsx:65 (mutant 3, validation.md) (settings)
 - last seen: 2026-08-06T08:29:12Z
 
+### L-013 — When migrating multiple files to a shared UI primitive, add one assertion per migrated file confirming its own variant/class wiring, not just tests for the shared primitive itself.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `src/components` · harmful: 0
+- features: 27-popup-button-system
+- evidence: BTN-04.1 — validation.md Gap #1 (src/components)
+- last seen: 2026-08-06T11:07:54Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
