@@ -369,6 +369,22 @@ test("each exercise row is a focusable button whose accessible name includes its
   expect(screen.getByRole("button", { name: /SSG/ })).toBeInTheDocument();
 });
 
+test("Enter on a focused exercise row opens its details popup, same as a click (AC EXDET-01.2)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    ],
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  screen.getByRole("button", { name: /SSG/ }).focus();
+  await user.keyboard("{Enter}");
+
+  expect(screen.getByRole("heading", { name: "SSG" })).toBeInTheDocument();
+});
+
 test("clicking an exercise row opens its details popup, with the training popup still in the document (AC EXDET-01.2, EXDET-01.3)", async () => {
   const user = userEvent.setup();
   const training = {
