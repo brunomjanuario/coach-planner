@@ -1,3 +1,5 @@
+import Button from "./Button";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
 export default function ConfirmationPopup({ message, onSubmit, onClose }) {
@@ -5,22 +7,14 @@ export default function ConfirmationPopup({ message, onSubmit, onClose }) {
     <PopupShell
       title={message}
       footer={
-        <div className="flex justify-center space-x-2">
-          <button
-            type="button"
-            className="px-4 py-2 bg-red-500 text-white rounded"
-            onClick={onClose}
-          >
+        <PopupActions>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded"
-            onClick={onSubmit}
-          >
+          </Button>
+          <Button type="submit" variant="danger" onClick={onSubmit}>
             Submit
-          </button>
-        </div>
+          </Button>
+        </PopupActions>
       }
     />
   );

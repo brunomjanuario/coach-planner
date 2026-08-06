@@ -2,7 +2,9 @@ import { useEffect, useId, useState } from "react";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import { competitionService } from "../services/competitionService";
 import { gameService } from "../services/gameService";
+import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
 export default function CompetitionsPopup({ onClose }) {
@@ -122,23 +124,16 @@ export default function CompetitionsPopup({ onClose }) {
                 className="w-full border px-3 py-2 rounded"
               />
             </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
+            <Button type="submit" variant="primary">
               Add
-            </button>
+            </Button>
           </form>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
+          <PopupActions>
+            <Button variant="secondary" onClick={onClose}>
               Close
-            </button>
-          </div>
+            </Button>
+          </PopupActions>
         </div>
       }
     >
@@ -169,19 +164,12 @@ export default function CompetitionsPopup({ onClose }) {
                     }}
                     className="flex-1 border px-3 py-2 rounded"
                   />
-                  <button
-                    type="submit"
-                    className="px-3 py-2 bg-blue-600 text-white rounded"
-                  >
+                  <Button type="submit" variant="primary">
                     Save
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-2 bg-gray-300 text-white rounded"
-                    onClick={cancelEdit}
-                  >
+                  </Button>
+                  <Button variant="secondary" onClick={cancelEdit}>
                     Cancel
-                  </button>
+                  </Button>
                 </form>
                 {editError && (
                   <p className="text-sm text-red-500 mt-1">{editError}</p>

@@ -332,3 +332,27 @@ test("the existing Edit and Delete actions still work alongside the new rating a
   await user.click(screen.getByRole("button", { name: "Submit" }));
   expect(onDelete).toHaveBeenCalledWith(training);
 });
+
+test("Delete is danger, Edit is primary, and Close and Rate squad are secondary (AC BTN-02.4)", () => {
+  const training = { id: 1, teamId: 1, number: 4, day: new Date(), duration: 60, exercises: [] };
+  render(
+    <TrainingDetailsPopup
+      training={training}
+      onClose={() => {}}
+      onEdit={() => {}}
+      onDelete={() => {}}
+    />
+  );
+
+  const closeButton = screen.getByRole("button", { name: "Close" });
+  const rateButton = screen.getByRole("button", { name: "Rate squad" });
+  const editButton = screen.getByRole("button", { name: "Edit" });
+  const deleteButton = screen.getByRole("button", { name: "Delete" });
+
+  expect(deleteButton.className).toMatch(/bg-red-600/);
+  expect(editButton.className).toMatch(/bg-blue-600/);
+  expect(closeButton.className).toMatch(/border/);
+  expect(rateButton.className).toMatch(/border/);
+  expect(closeButton.className).not.toMatch(/bg-gray-300/);
+  expect(rateButton.className).not.toMatch(/bg-green-600/);
+});

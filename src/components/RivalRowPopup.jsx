@@ -1,4 +1,6 @@
 import { useId, useState } from "react";
+import Button from "./Button";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
 const NUMBER_FIELDS = [
@@ -97,22 +99,14 @@ export default function RivalRowPopup({ row, ourTeamName, onClose, onSubmit }) {
     <PopupShell
       title={row ? "Edit Rival Row" : "Add Rival Row"}
       footer={
-        <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            className="px-4 py-2 bg-gray-300 text-white rounded"
-            onClick={onClose}
-          >
+        <PopupActions>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
+          </Button>
+          <Button type="submit" form={formId} variant="primary">
             {row ? "Save" : "Add"}
-          </button>
-        </div>
+          </Button>
+        </PopupActions>
       }
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
