@@ -365,3 +365,43 @@ test("ratings are stored with the eventType passed in, keeping training and game
   const ratings = await ratingService.getByPlayer(team.players[0].id);
   expect(ratings[0]).toMatchObject({ eventType: "game", eventId: game.id, value: 6 });
 });
+
+test("Cancel is secondary and Save is primary (AC BTN-04.1)", async () => {
+  const [team] = await teamService.getAll();
+  const training = await seedTraining(team.id);
+
+  render(
+    <SquadRatingPopup
+      eventType="training"
+      eventId={training.id}
+      teamId={team.id}
+      onClose={() => {}}
+    />
+  );
+  await screen.findByLabelText(`Rate ${label(team.players[0])}`);
+
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const saveButton = screen.getByRole("button", { name: "Save" });
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+  expect(saveButton.className).toMatch(/bg-blue-600/);
+});
+
+test("Close is secondary in the empty-squad state (AC BTN-04.1)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue([
+    { id: "empty-team", club: "Empty", name: "FC", season: "23/24", players: [] },
+  ]);
+
+  render(
+    <SquadRatingPopup
+      eventType="training"
+      eventId="t2"
+      teamId="empty-team"
+      onClose={() => {}}
+    />
+  );
+
+  const closeButton = await screen.findByRole("button", { name: "Close" });
+  expect(closeButton.className).toMatch(/border/);
+  expect(closeButton.className).not.toMatch(/bg-gray-300/);
+});

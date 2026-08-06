@@ -200,3 +200,18 @@ test("clears the fields after a successful add", async () => {
   expect(screen.getByLabelText(/description/i)).toHaveValue("");
   expect(screen.getByLabelText(/duration/i)).toHaveValue(null);
 });
+
+test("Add is primary; when editing, Cancel is secondary and Save is primary (AC BTN-04.1)", () => {
+  renderFields();
+  expect(screen.getByRole("button", { name: "Add" }).className).toMatch(/bg-blue-600/);
+
+  renderFields({
+    exercise: { id: "e1", description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    onCancelEdit: () => {},
+  });
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const saveButton = screen.getByRole("button", { name: "Save" });
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+  expect(saveButton.className).toMatch(/bg-blue-600/);
+});
