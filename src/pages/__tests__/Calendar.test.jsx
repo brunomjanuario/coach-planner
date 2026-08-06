@@ -482,3 +482,20 @@ test("clicking the day cell background does not navigate", async () => {
 
   expect(screen.queryByTestId("location")).not.toBeInTheDocument();
 });
+
+test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
+  mockData();
+  const { container } = renderCalendar();
+  await screen.findByRole("heading", { level: 2 });
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
+
+test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", async () => {
+  mockData();
+  const { container } = renderCalendar();
+  await screen.findByRole("heading", { level: 2 });
+
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});

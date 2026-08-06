@@ -776,3 +776,18 @@ test("a long Next Event value wraps inside its tile rather than widening the col
   expect(value.className).toMatch(/\bbreak-words\b/);
   expect(breakdown.className).toMatch(/\bbreak-words\b/);
 });
+
+test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
+  const { container } = renderHome();
+  await screen.findByText("Teams");
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
+
+test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", async () => {
+  const { container } = renderHome();
+  await screen.findByText("Teams");
+
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});

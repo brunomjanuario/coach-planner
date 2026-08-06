@@ -584,3 +584,16 @@ test("editing the profile and then resetting demo data leaves the profile unchan
   await user.click(screen.getByRole("tab", { name: "Profile" }));
   expect(screen.getByLabelText("Name")).toHaveValue("New Name");
 });
+
+test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", () => {
+  const { container } = render(<Settings />);
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
+
+test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", () => {
+  const { container } = render(<Settings />);
+
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});

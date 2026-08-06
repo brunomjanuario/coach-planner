@@ -19,28 +19,30 @@ function PrivateRoute({ children }) {
 
 function App() {
   return (
-    <div className="flex w-screen">
-      <Routes>
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route
-          path="/*"
-          element={
-            <PrivateRoute>
+    <Routes>
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route
+        path="/*"
+        element={
+          <PrivateRoute>
+            <div className="flex w-screen h-screen overflow-hidden">
               <Sidebar></Sidebar>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/teams" element={<Teams />} />
-                <Route path="/trainings" element={<Trainings />} />
-                <Route path="/games" element={<Games />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/settings" element={<Settings />} />
-              </Routes>
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </div>
+              <main className="flex-1 min-w-0 overflow-y-auto">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/trainings" element={<Trainings />} />
+                  <Route path="/games" element={<Games />} />
+                  <Route path="/calendar" element={<Calendar />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </main>
+            </div>
+          </PrivateRoute>
+        }
+      />
+    </Routes>
   );
 }
 

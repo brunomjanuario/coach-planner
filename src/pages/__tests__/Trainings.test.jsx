@@ -1669,3 +1669,31 @@ test("selecting a team updates the future/past counts to reflect the filtered se
     expect(screen.getByRole("heading", { name: "Past Trainings (0)" })).toBeInTheDocument();
   });
 });
+
+test("does not declare its own min-h-screen — the app shell owns the viewport height (AC SHELL-03.1)", async () => {
+  const { container } = renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
+
+test("opening a training's details popup still renders the fixed, viewport-capped overlay (AC SHELL-04.1, SHELL-04.2)", async () => {
+  const seedTeam = (await teamService.getAll())[0];
+  await trainingService.create({
+    teamId: seedTeam.id,
+    day: new Date("2020-05-01T10:00:00Z"),
+    duration: 77,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  const row = await within(getPastList()).findByText(/77 min/);
+
+  await user.click(row.closest("button"));
+
+  const dialog = await screen.findByRole("dialog");
+  const overlay = dialog.parentElement;
+  expect(overlay.className).toMatch(/fixed inset-0/);
+  expect(dialog.className).toContain("max-h-[85vh]");
+});
