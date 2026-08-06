@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 12,
+  "next_id": 13,
   "lessons": [
     {
       "id": "L-001",
@@ -202,6 +202,24 @@
       ],
       "created": "2026-08-04T19:41:00Z",
       "last_seen": "2026-08-04T19:41:00Z"
+    },
+    {
+      "id": "L-012",
+      "key": "surviving_mutant::when one component has its own defensive fallback for an invalid id e g tabs jsx falling back to the first tab a caller s separate allow list guard for the same value needs its own test that can t be satisfied by the child s fallback alone",
+      "text": "When one component has its own defensive fallback for an invalid id (e.g. Tabs.jsx falling back to the first tab), a caller's separate allow-list guard for the same value needs its own test that can't be satisfied by the child's fallback alone.",
+      "signal": "surviving_mutant",
+      "scope": "settings",
+      "status": "candidate",
+      "features": [
+        "23-settings-tabs"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/pages/Settings.jsx:65 (mutant 3, validation.md) (settings)"
+      ],
+      "created": "2026-08-06T08:29:12Z",
+      "last_seen": "2026-08-06T08:29:12Z"
     }
   ]
 }

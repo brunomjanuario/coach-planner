@@ -80,6 +80,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: spec.md Edge Cases (uneven leader entry counts fill row height); Home.test.jsx (no direct pairing test) (dashboard)
 - last seen: 2026-08-04T19:41:00Z
 
+### L-012 — When one component has its own defensive fallback for an invalid id (e.g. Tabs.jsx falling back to the first tab), a caller's separate allow-list guard for the same value needs its own test that can't be satisfied by the child's fallback alone.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `settings` · harmful: 0
+- features: 23-settings-tabs
+- evidence: src/pages/Settings.jsx:65 (mutant 3, validation.md) (settings)
+- last seen: 2026-08-06T08:29:12Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
