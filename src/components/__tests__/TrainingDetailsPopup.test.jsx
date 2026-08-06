@@ -356,3 +356,98 @@ test("Delete is danger, Edit is primary, and Close and Rate squad are secondary 
   expect(closeButton.className).not.toMatch(/bg-gray-300/);
   expect(rateButton.className).not.toMatch(/bg-green-600/);
 });
+
+test("each exercise row is a focusable button whose accessible name includes its description (AC EXDET-01.1)", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    ],
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  expect(screen.getByRole("button", { name: /SSG/ })).toBeInTheDocument();
+});
+
+test("clicking an exercise row opens its details popup, with the training popup still in the document (AC EXDET-01.2, EXDET-01.3)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    ],
+    number: 4,
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: /SSG/ }));
+
+  expect(screen.getByRole("heading", { name: "SSG" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+});
+
+test("closing the exercise popup leaves the training popup open and removes the exercise popup (AC EXDET-01.4)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    ],
+    number: 4,
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+  await user.click(screen.getByRole("button", { name: /SSG/ }));
+  const exerciseDialogs = screen.getAllByRole("dialog");
+  const closeButtons = screen.getAllByRole("button", { name: "Close" });
+
+  await user.click(closeButtons[closeButtons.length - 1]);
+
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "SSG" })).not.toBeInTheDocument();
+  expect(exerciseDialogs.length).toBeGreaterThan(0);
+});
+
+test("two exercises sharing a description each open their own record (edge case)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "Passing", duration: 10, numberOfPlayers: null, repetitions: null },
+      { id: 2, description: "Passing", duration: 25, numberOfPlayers: null, repetitions: null },
+    ],
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+  const rows = screen.getAllByRole("button", { name: /Passing/ });
+
+  await user.click(rows[1]);
+
+  expect(screen.getByText("25")).toBeInTheDocument();
+});
+
+test("with no exercises, 'No exercises' renders and is not a button (edge case)", () => {
+  const training = { ...baseTraining, exercises: [] };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  expect(screen.getByText("No exercises")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "No exercises" })).not.toBeInTheDocument();
+});
+
+test("closing the training popup while an exercise popup is open removes both (edge case)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3 },
+    ],
+  };
+  const { rerender } = render(
+    <TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />
+  );
+  await user.click(screen.getByRole("button", { name: /SSG/ }));
+  expect(screen.getByRole("heading", { name: "SSG" })).toBeInTheDocument();
+
+  rerender(<TrainingDetailsPopup training={null} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  expect(screen.queryByRole("heading", { name: "SSG" })).not.toBeInTheDocument();
+  expect(screen.queryAllByRole("dialog")).toHaveLength(0);
+});
