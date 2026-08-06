@@ -2,6 +2,7 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "../Home";
+import Teams from "../Teams";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
@@ -790,4 +791,56 @@ test("has no overflow-y-auto container of its own — the shell's <main> is the 
   await screen.findByText("Teams");
 
   expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});
+
+test("with 5 teams the Teams tile shows 3 rows and a +2 more indicator (AC DTILE-01.1, DTILE-01.4)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce(
+    Array.from({ length: 5 }, (_, i) => ({
+      id: i + 1,
+      club: `Club${i + 1}`,
+      name: "FC",
+      players: [],
+    }))
+  );
+  renderHome();
+  await screen.findByText("Teams");
+
+  const teamsTile = within(getTile("Teams"));
+  expect(teamsTile.getAllByRole("link")).toHaveLength(3);
+  expect(teamsTile.getByText("+2 more")).toBeInTheDocument();
+});
+
+test("clicking a team row navigates to /teams?team=<id> with that team selected on arrival (AC DTILE-03.1)", async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/teams" element={<Teams />} />
+      </Routes>
+    </MemoryRouter>
+  );
+  await screen.findByText("Teams");
+  const link = await within(getTile("Teams")).findByRole("link", {
+    name: "Amadora Sub-11",
+  });
+
+  await user.click(link);
+
+  expect(await screen.findByRole("heading", { name: "Teams" })).toBeInTheDocument();
+  expect(await screen.findByText("1 João")).toBeInTheDocument();
+});
+
+test("with a team filter active the Teams tile lists only that team, matching its count of 1 (AC DTILE-01.6)", async () => {
+  const user = userEvent.setup();
+  mockTwoTeamsFixture();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  const teamsTile = within(getTile("Teams"));
+  expect(teamsTile.getByText("1")).toBeInTheDocument();
+  expect(teamsTile.getByRole("link", { name: "Amadora Sub-11" })).toBeInTheDocument();
+  expect(teamsTile.queryByRole("link", { name: "Areias Sub-19" })).not.toBeInTheDocument();
 });

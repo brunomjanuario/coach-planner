@@ -11,9 +11,13 @@ import {
   topTeamGames,
   topRated,
   nextEvent,
+  teamRows,
 } from "../lib/dashboardStats";
 import StatTile from "../components/StatTile";
+import ListTile from "../components/ListTile";
 import LeaderTile from "../components/LeaderTile";
+
+const DASHBOARD_LIST_LIMIT = 3;
 
 function renderCardValue(value) {
   return `${value.yellow}Y / ${value.red}R`;
@@ -71,6 +75,7 @@ export default function Home() {
   const players = scopedTeams.flatMap((team) => team.players ?? []);
 
   const stats = counts({ teams, trainings, games }, teamFilter ?? undefined);
+  const teamList = teamRows(scopedTeams, DASHBOARD_LIST_LIMIT);
   const scorers = topScorers(players, 3);
   const carded = topCarded(players, cards, 3);
   const teamGames = topTeamGames(scopedTeams, scopedGames, 3);
@@ -103,9 +108,15 @@ export default function Home() {
       <section>
         <h2 className="text-lg font-semibold mb-2">Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">
-          <StatTile
+          <ListTile
             label="Teams"
-            value={stats.teams}
+            count={stats.teams}
+            rows={teamList.entries.map((team) => ({
+              id: team.id,
+              label: team.name,
+              href: `/teams?team=${team.id}`,
+            }))}
+            overflow={teamList.overflow}
             loading={loading}
             emptyHref="/teams"
           />
