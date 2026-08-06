@@ -1,6 +1,15 @@
 import { Link } from "react-router-dom";
 
-export const TILE_CLASS = "w-full h-full border px-3 py-2 rounded-2xl block";
+/**
+ * min-h-36 (144px) is hand-measured against LeaderTile's tallest real
+ * variant — label + 3 ranked rows + an overflow line — so every tile in
+ * both dashboard sections renders at one height instead of two rows sized
+ * independently (feature 32, the gap 18-dashboard-grid's per-row
+ * auto-rows-fr didn't reach). Verified by eye in the browser at
+ * implementation; re-measure here if a tile ever grows a fourth line.
+ */
+export const TILE_CLASS =
+  "w-full h-full min-h-36 border px-3 py-2 rounded-2xl block";
 const INTERACTIVE_CLASS = "text-left hover:bg-gray-50 focus:outline-2 focus:outline-blue-500";
 
 /**

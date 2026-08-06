@@ -1061,3 +1061,16 @@ test("does not render a row for a record no longer in its own collection after a
   const remainingLinks = within(getTile("Training")).queryAllByRole("link");
   expect(remainingLinks.some((l) => l.getAttribute("href")?.includes("stale-training"))).toBe(false);
 });
+
+test("all eight dashboard tiles carry the shared minimum-height class (AC DFILT-01.1)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  const tiles = [...overviewGrid.children, ...leadersGrid.children];
+  expect(tiles).toHaveLength(8);
+  for (const tile of tiles) {
+    expect(tile.className).toMatch(/min-h-36/);
+  }
+});
