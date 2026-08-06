@@ -139,6 +139,63 @@ export function topRated(players = [], ratings = [], n) {
 }
 
 /**
+ * Rows for the Teams dashboard tile: up to `limit` teams ordered
+ * alphabetically (case-insensitively) by their full display name — the
+ * `${club} ${name}` string used everywhere else a team is shown (AC
+ * DTILE-01.1). `overflow` is the remainder beyond `limit`.
+ */
+export function teamRows(teams = [], limit) {
+  const sorted = [...teams].sort((a, b) => {
+    const an = `${a.club} ${a.name}`.toLowerCase();
+    const bn = `${b.club} ${b.name}`.toLowerCase();
+    return an < bn ? -1 : an > bn ? 1 : 0;
+  });
+
+  return {
+    entries: sorted.slice(0, limit).map((t) => ({ id: t.id, name: `${t.club} ${t.name}` })),
+    overflow: Math.max(0, sorted.length - limit),
+  };
+}
+
+/**
+ * Rows for a Trainings/Games dashboard tile: up to `limit` records, soonest
+ * upcoming first (`basis: "upcoming"`, AC DTILE-01.2/01.3). With none
+ * upcoming, falls back to the most recent past records instead (`basis:
+ * "past"`) so a tile from a finished season still shows something (edge
+ * case). Records whose date can't be parsed are excluded. `dateField` names
+ * the record's date property — trainings use `"day"`, games use `"date"`.
+ */
+export function upcomingRows(records = [], now, limit, { dateField = "date" } = {}) {
+  const dated = records
+    .map((record) => {
+      const raw = record[dateField];
+      const date = raw instanceof Date ? raw : new Date(raw);
+      return { record, date };
+    })
+    .filter(({ date }) => !isNaN(date.getTime()));
+
+  const upcoming = dated
+    .filter(({ date }) => date >= now)
+    .sort((a, b) => a.date - b.date);
+
+  if (upcoming.length > 0) {
+    return {
+      entries: upcoming.slice(0, limit).map((d) => d.record),
+      overflow: Math.max(0, upcoming.length - limit),
+      basis: "upcoming",
+    };
+  }
+
+  const past = dated.filter(({ date }) => date < now).sort((a, b) => b.date - a.date);
+
+  return {
+    entries: past.slice(0, limit).map((d) => d.record),
+    overflow: Math.max(0, past.length - limit),
+    basis: "past",
+  };
+}
+
+/**
  * The soonest future training or game across both types, or `null`
  * (AC DASH-06.1, DASH-06.2). Reuses `calendarEvents.toEvents` so an invalid
  * date is skipped exactly as it is on the calendar (edge case), and

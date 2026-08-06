@@ -6,6 +6,8 @@ import {
   topTeamGames,
   topRated,
   nextEvent,
+  teamRows,
+  upcomingRows,
   MAX_LEADER_ENTRIES,
 } from "../dashboardStats";
 
@@ -326,5 +328,116 @@ describe("nextEvent", () => {
     nextEvent(trainings, games, teams);
 
     expect(JSON.parse(JSON.stringify(trainings))).toEqual(before);
+  });
+});
+
+describe("teamRows", () => {
+  it("returns up to `limit` teams ordered alphabetically by display name, case-insensitively (AC DTILE-01.1)", () => {
+    const mixedCase = [
+      { id: 1, club: "zeta", name: "FC" },
+      { id: 2, club: "Alpha", name: "FC" },
+      { id: 3, club: "Beta", name: "FC" },
+    ];
+
+    const result = teamRows(mixedCase, 2);
+
+    expect(result.entries).toEqual([
+      { id: 2, name: "Alpha FC" },
+      { id: 3, name: "Beta FC" },
+    ]);
+  });
+
+  it("computes overflow as the count beyond `limit`", () => {
+    const fiveTeams = Array.from({ length: 5 }, (_, i) => ({
+      id: i,
+      club: `Club${i}`,
+      name: "FC",
+    }));
+
+    expect(teamRows(fiveTeams, 3).overflow).toBe(2);
+  });
+
+  it("returns overflow 0 when the total equals `limit` exactly (edge case)", () => {
+    const threeTeams = Array.from({ length: 3 }, (_, i) => ({
+      id: i,
+      club: `Club${i}`,
+      name: "FC",
+    }));
+
+    expect(teamRows(threeTeams, 3).overflow).toBe(0);
+  });
+
+  it("returns no entries and overflow 0 for an empty list", () => {
+    expect(teamRows([], 3)).toEqual({ entries: [], overflow: 0 });
+  });
+});
+
+describe("upcomingRows", () => {
+  const now = new Date("2027-06-15T12:00:00Z");
+
+  it("returns up to `limit` upcoming records, soonest first, with basis 'upcoming' (AC DTILE-01.2, DTILE-01.3)", () => {
+    const records = [
+      { id: 1, date: new Date("2027-06-20T10:00:00Z") },
+      { id: 2, date: new Date("2027-06-16T10:00:00Z") },
+      { id: 3, date: new Date("2027-06-18T10:00:00Z") },
+    ];
+
+    const result = upcomingRows(records, now, 2);
+
+    expect(result.entries.map((r) => r.id)).toEqual([2, 3]);
+    expect(result.basis).toBe("upcoming");
+    expect(result.overflow).toBe(1);
+  });
+
+  it("falls back to the most recent past records, most-recent-first, when none are upcoming, with basis 'past' (edge case)", () => {
+    const records = [
+      { id: 1, date: new Date("2027-01-01T10:00:00Z") },
+      { id: 2, date: new Date("2027-03-01T10:00:00Z") },
+      { id: 3, date: new Date("2027-02-01T10:00:00Z") },
+    ];
+
+    const result = upcomingRows(records, now, 2);
+
+    expect(result.entries.map((r) => r.id)).toEqual([2, 3]);
+    expect(result.basis).toBe("past");
+    expect(result.overflow).toBe(1);
+  });
+
+  it("returns zero entries and overflow 0 when there are neither upcoming nor past records (edge case)", () => {
+    const result = upcomingRows([], now, 3);
+
+    expect(result.entries).toEqual([]);
+    expect(result.overflow).toBe(0);
+  });
+
+  it("excludes records with an unparsable date", () => {
+    const records = [
+      { id: 1, date: "not-a-date" },
+      { id: 2, date: new Date("2027-06-20T10:00:00Z") },
+    ];
+
+    const result = upcomingRows(records, now, 3);
+
+    expect(result.entries.map((r) => r.id)).toEqual([2]);
+  });
+
+  it("reads the record's date from a custom field name (trainings use 'day')", () => {
+    const records = [
+      { id: 1, day: new Date("2027-06-20T10:00:00Z") },
+      { id: 2, day: new Date("2027-06-16T10:00:00Z") },
+    ];
+
+    const result = upcomingRows(records, now, 3, { dateField: "day" });
+
+    expect(result.entries.map((r) => r.id)).toEqual([2, 1]);
+  });
+
+  it("returns overflow 0 when the upcoming total equals `limit` exactly (edge case)", () => {
+    const records = [
+      { id: 1, date: new Date("2027-06-20T10:00:00Z") },
+      { id: 2, date: new Date("2027-06-16T10:00:00Z") },
+    ];
+
+    expect(upcomingRows(records, now, 2).overflow).toBe(0);
   });
 });
