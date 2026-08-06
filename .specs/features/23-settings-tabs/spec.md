@@ -12,9 +12,9 @@ so anything else gets put somewhere else.
 
 ## Goals
 
-- [ ] Settings has a tab structure with a place for everyday settings and a place for destructive ones
-- [ ] Reset demo data moves behind the Advanced tab
-- [ ] The tabs are keyboard-operable and linkable
+- [x] Settings has a tab structure with a place for everyday settings and a place for destructive ones
+- [x] Reset demo data moves behind the Advanced tab
+- [x] The tabs are keyboard-operable and linkable
 
 ## Out of Scope
 
@@ -113,11 +113,11 @@ button is not the first thing I see.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| SETT-01 | P1: Tab structure with Profile default | Tasks | Pending |
-| SETT-02 | P1: Advanced tab hosts the reset action unchanged | Tasks | Pending |
-| SETT-03 | P1: Read-only profile details | Tasks | Pending |
-| SETT-04 | P2: URL-linkable tabs | Tasks | Pending |
-| SETT-05 | P2: Keyboard tab navigation | Tasks | Pending |
+| SETT-01 | P1: Tab structure with Profile default | Tasks | Done |
+| SETT-02 | P1: Advanced tab hosts the reset action unchanged | Tasks | Done |
+| SETT-03 | P1: Read-only profile details | Tasks | Done |
+| SETT-04 | P2: URL-linkable tabs | Tasks | Done |
+| SETT-05 | P2: Keyboard tab navigation | Tasks | Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -125,6 +125,6 @@ button is not the first thing I see.
 
 ## Success Criteria
 
-- [ ] Reset demo data is never the first thing on the settings page
-- [ ] Reset behaves exactly as it did before the move
-- [ ] Every tab is reachable and operable by keyboard
+- [x] Reset demo data is never the first thing on the settings page
+- [x] Reset behaves exactly as it did before the move
+- [x] Every tab is reachable and operable by keyboard

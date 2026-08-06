@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/23-settings-tabs/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Complete
 **Batches**: 3 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -57,16 +57,16 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `Tabs({ tabs, active, onChange })` renders a `role="tablist"` with one `role="tab"` per entry (AC SETT-01.1)
-- [ ] Only the active tab carries `aria-selected="true"` (AC SETT-01.4) — assert the inactive one is `false`, not merely absent
-- [ ] Exactly one `role="tabpanel"` is in the document (AC SETT-01.5)
-- [ ] The active tab's panel is wired to it via `aria-controls`/`aria-labelledby`
-- [ ] Left/Right arrow keys move focus between tabs and wrap at the ends (AC SETT-05.4) — assert wrapping in both directions
-- [ ] A visible focus indicator class is present (AC SETT-05.5)
-- [ ] Clicking a tab calls `onChange` with that tab's id and does not change state on its own — the parent owns the state
-- [ ] The strip stays reachable at a narrow width (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/Tabs.test.jsx`
-- [ ] Test count: 12+ tests pass
+- [x] `Tabs({ tabs, active, onChange })` renders a `role="tablist"` with one `role="tab"` per entry (AC SETT-01.1)
+- [x] Only the active tab carries `aria-selected="true"` (AC SETT-01.4) — assert the inactive one is `false`, not merely absent
+- [x] Exactly one `role="tabpanel"` is in the document (AC SETT-01.5)
+- [x] The active tab's panel is wired to it via `aria-controls`/`aria-labelledby`
+- [x] Left/Right arrow keys move focus between tabs and wrap at the ends (AC SETT-05.4) — assert wrapping in both directions
+- [x] A visible focus indicator class is present (AC SETT-05.5)
+- [x] Clicking a tab calls `onChange` with that tab's id and does not change state on its own — the parent owns the state
+- [x] The strip stays reachable at a narrow width (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/Tabs.test.jsx`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -86,14 +86,14 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The page opens on Profile and the reset button is **not** in the document (AC SETT-01.2) — assert absence, which is the security property of the change
-- [ ] The Profile panel shows the signed-in user's name and email read-only, from `useAuth` (AC SETT-03)
-- [ ] The Advanced panel holds the reset action with a sentence explaining what it does (AC SETT-02.1, SETT-02.5)
-- [ ] Reset still confirms, still clears and re-seeds, still does nothing on cancel (AC SETT-02.2–SETT-02.4) — port the behaviour into the new test file, since none exists today
-- [ ] After a reset the page stays on Advanced (edge case)
-- [ ] Switching tabs shows one panel and hides the other (AC SETT-01.3)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] The page opens on Profile and the reset button is **not** in the document (AC SETT-01.2) — assert absence, which is the security property of the change
+- [x] The Profile panel shows the signed-in user's name and email read-only, from `useAuth` (AC SETT-03)
+- [x] The Advanced panel holds the reset action with a sentence explaining what it does (AC SETT-02.1, SETT-02.5)
+- [x] Reset still confirms, still clears and re-seeds, still does nothing on cancel (AC SETT-02.2–SETT-02.4) — port the behaviour into the new test file, since none exists today
+- [x] After a reset the page stays on Advanced (edge case)
+- [x] Switching tabs shows one panel and hides the other (AC SETT-01.3)
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -113,13 +113,13 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `/settings?tab=advanced` opens the Advanced panel (AC SETT-04.1)
-- [ ] Selecting a tab updates the URL with no page reload (AC SETT-04.2)
-- [ ] An unrecognised tab value falls back to Profile without an error (AC SETT-04.3) — assert with a junk value, not just a missing one
-- [ ] A missing `tab` param opens Profile
-- [ ] Reopening the page with the same URL restores the same tab (edge case)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 8+ tests pass
+- [x] `/settings?tab=advanced` opens the Advanced panel (AC SETT-04.1)
+- [x] Selecting a tab updates the URL with no page reload (AC SETT-04.2)
+- [x] An unrecognised tab value falls back to Profile without an error (AC SETT-04.3) — assert with a junk value, not just a missing one
+- [x] A missing `tab` param opens Profile
+- [x] Reopening the page with the same URL restores the same tab (edge case)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: integration
 **Gate**: build
