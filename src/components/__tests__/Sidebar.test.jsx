@@ -50,3 +50,18 @@ test("clicking logout calls signOut, which leaves the stored credentials in loca
     email: "user@email.com",
   });
 });
+
+test("sizes itself from its parent (h-full) instead of declaring its own viewport height (AC SHELL-01.2)", () => {
+  renderSidebar();
+
+  const root = screen.getByRole("link", { name: "Home" }).closest(".bg-lightblack");
+  expect(root.className).toMatch(/\bh-full\b/);
+  expect(root.className).not.toMatch(/\bh-screen\b/);
+});
+
+test("does not shrink when placed beside a wide main region (edge case)", () => {
+  renderSidebar();
+
+  const root = screen.getByRole("link", { name: "Home" }).closest(".bg-lightblack");
+  expect(root.className).toMatch(/flex-shrink-0/);
+});

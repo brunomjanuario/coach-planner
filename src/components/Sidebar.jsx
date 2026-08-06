@@ -21,7 +21,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="h-screen w-15 text-white flex flex-col p-4 items-center border-r bg-lightblack">
+    <div className="h-full flex-shrink-0 w-15 text-white flex flex-col p-4 items-center border-r bg-lightblack">
       <nav className="flex flex-col gap-4">
         <Link to="/" className="mt-2 p-3 group relative inline-block">
           <IconHome size={30} />
