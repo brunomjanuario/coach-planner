@@ -39,12 +39,14 @@ test("does not leak DOM state from the previous test", () => {
   expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
 });
 
-test("clicking logout calls signOut and clears the stored user", async () => {
+test("clicking logout calls signOut, which leaves the stored credentials in localStorage so a later sign-in still works (feature 24)", async () => {
   localStorage.setItem("user", JSON.stringify({ email: "user@email.com" }));
   renderSidebar();
 
   const user = userEvent.setup();
   await user.click(screen.getByText("Logout"));
 
-  expect(localStorage.getItem("user")).toBeNull();
+  expect(JSON.parse(localStorage.getItem("user"))).toEqual({
+    email: "user@email.com",
+  });
 });
