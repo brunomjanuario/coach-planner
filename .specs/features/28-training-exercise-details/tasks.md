@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/28-training-exercise-details/spec.md`
 **Design**: not required
-**Status**: Not started
+**Status**: Complete
 **Batches**: 4 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -56,12 +56,12 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `plannedShare(exercise, exercises)` returns a whole-number percent (AC EXDET-04.1)
-- [ ] It returns `null` when the total is 0, so the caller renders nothing rather than `NaN%` (AC EXDET-04.2) — assert `null`, not a rendered string
-- [ ] It returns `null` when the exercise's own duration is null (edge case)
-- [ ] Rounding is asserted at a value that is not already whole (e.g. 10 of 45 → 22), so a dropped `Math.round` fails the test
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/trainingDuration.test.js`
-- [ ] Test count: 8+ tests pass
+- [x] `plannedShare(exercise, exercises)` returns a whole-number percent (AC EXDET-04.1)
+- [x] It returns `null` when the total is 0, so the caller renders nothing rather than `NaN%` (AC EXDET-04.2) — assert `null`, not a rendered string
+- [x] It returns `null` when the exercise's own duration is null (edge case)
+- [x] Rounding is asserted at a value that is not already whole (e.g. 10 of 45 → 22), so a dropped `Math.round` fails the test
+- [x] Gate passes: `npx vitest run src/lib/__tests__/trainingDuration.test.js`
+- [x] Test count: 8+ tests pass
 
 **Tests**: unit
 **Gate**: quick
@@ -81,15 +81,15 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Description, Duration, Number of players and Repetitions each render under their own label (AC EXDET-01.5)
-- [ ] A null optional field renders an em dash under its label rather than being omitted (AC EXDET-01.6) — assert the label is present, which is the part that would silently disappear
-- [ ] The planned-time share renders when `plannedShare` returns a number and is absent when it returns `null` (AC EXDET-04.1, EXDET-04.2)
-- [ ] The popup title is the exercise's description (AC EXDET-03.5)
-- [ ] A long description wraps in the title and carries no truncation class (edge case)
-- [ ] No diagram region is rendered while `exercise.diagram` is absent (Assumptions: empty diagram slot) — `29` will assert the positive case
-- [ ] The footer uses `Button`/`PopupActions` from `27`, not hand-written classes
-- [ ] Gate passes: `npx vitest run src/components/__tests__/ExerciseDetailsPopup.test.jsx`
-- [ ] Test count: 12+ tests pass
+- [x] Description, Duration, Number of players and Repetitions each render under their own label (AC EXDET-01.5)
+- [x] A null optional field renders an em dash under its label rather than being omitted (AC EXDET-01.6) — assert the label is present, which is the part that would silently disappear
+- [x] The planned-time share renders when `plannedShare` returns a number and is absent when it returns `null` (AC EXDET-04.1, EXDET-04.2)
+- [x] The popup title is the exercise's description (AC EXDET-03.5)
+- [x] A long description wraps in the title and carries no truncation class (edge case)
+- [x] No diagram region is rendered while `exercise.diagram` is absent (Assumptions: empty diagram slot) — `29` will assert the positive case
+- [x] The footer uses `Button`/`PopupActions` from `27`, not hand-written classes
+- [x] Gate passes: `npx vitest run src/components/__tests__/ExerciseDetailsPopup.test.jsx`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -109,16 +109,16 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Each exercise row is a `button` whose accessible name includes its description (AC EXDET-01.1)
-- [ ] Clicking a row opens the exercise popup for **that** exercise (AC EXDET-01.2)
-- [ ] Enter on a focused row does the same (AC EXDET-01.2)
-- [ ] With the exercise popup open, the training popup's title is still in the document (AC EXDET-01.3)
-- [ ] Closing the exercise popup leaves the training popup open and removes the exercise popup (AC EXDET-01.4) — assert the removal, not only the survivor
-- [ ] Two exercises sharing a description each open their own record (edge case) — this is what proves rows are keyed by id
-- [ ] With no exercises, "No exercises" renders and is **not** a button (edge case)
-- [ ] Closing the training popup while an exercise popup is open removes both (edge case)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] Each exercise row is a `button` whose accessible name includes its description (AC EXDET-01.1)
+- [x] Clicking a row opens the exercise popup for **that** exercise (AC EXDET-01.2)
+- [x] Enter on a focused row does the same (AC EXDET-01.2)
+- [x] With the exercise popup open, the training popup's title is still in the document (AC EXDET-01.3)
+- [x] Closing the exercise popup leaves the training popup open and removes the exercise popup (AC EXDET-01.4) — assert the removal, not only the survivor
+- [x] Two exercises sharing a description each open their own record (edge case) — this is what proves rows are keyed by id
+- [x] With no exercises, "No exercises" renders and is **not** a button (edge case)
+- [x] Closing the training popup while an exercise popup is open removes both (edge case)
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: component
 **Gate**: full
@@ -138,13 +138,13 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Next moves to the following exercise and updates the title (AC EXDET-03.1, EXDET-03.5)
-- [ ] Previous moves to the preceding one (AC EXDET-03.2)
-- [ ] Previous is disabled on the first exercise and Next on the last (AC EXDET-03.3, EXDET-03.4) — assert both bounds, in one training, not two separate happy paths
-- [ ] With exactly one exercise both are disabled (AC EXDET-03.6)
-- [ ] Stepping does not close or remount the training popup behind it
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 8+ tests pass
+- [x] Next moves to the following exercise and updates the title (AC EXDET-03.1, EXDET-03.5)
+- [x] Previous moves to the preceding one (AC EXDET-03.2)
+- [x] Previous is disabled on the first exercise and Next on the last (AC EXDET-03.3, EXDET-03.4) — assert both bounds, in one training, not two separate happy paths
+- [x] With exactly one exercise both are disabled (AC EXDET-03.6)
+- [x] Stepping does not close or remount the training popup behind it
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: component
 **Gate**: build

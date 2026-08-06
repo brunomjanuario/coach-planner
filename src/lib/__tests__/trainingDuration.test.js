@@ -1,4 +1,4 @@
-import { totalPlannedMinutes } from "../trainingDuration";
+import { totalPlannedMinutes, plannedShare } from "../trainingDuration";
 
 test("sums duration times repetitions across all exercises (AC TFORM-06.1)", () => {
   const exercises = [
@@ -48,4 +48,40 @@ test("sums exercises with repetitions of 1 as their plain duration", () => {
   ];
 
   expect(totalPlannedMinutes(exercises)).toBe(12);
+});
+
+test("returns a whole-number percent of the training's total planned time (AC EXDET-04.1)", () => {
+  const target = { id: 1, duration: 10, repetitions: null };
+  const exercises = [target, { id: 2, duration: 35, repetitions: null }];
+
+  // 10 of 45 total = 22.22...% — asserted at a non-whole value so a dropped
+  // Math.round would fail this test.
+  expect(plannedShare(target, exercises)).toBe(22);
+});
+
+test("weighs the exercise's own repetitions into its share, not just its raw duration", () => {
+  const target = { id: 1, duration: 10, repetitions: 2 };
+  const exercises = [target, { id: 2, duration: 10, repetitions: 1 }];
+
+  // target contributes 20 of a 30 total = 66.67% → 67
+  expect(plannedShare(target, exercises)).toBe(67);
+});
+
+test("returns null when the training's total planned time is 0, not NaN or Infinity (AC EXDET-04.2)", () => {
+  const target = { id: 1, duration: 0, repetitions: null };
+
+  expect(plannedShare(target, [target])).toBeNull();
+});
+
+test("returns null when the exercise's own duration is null (edge case)", () => {
+  const target = { id: 1, duration: null, repetitions: null };
+  const exercises = [target, { id: 2, duration: 20, repetitions: null }];
+
+  expect(plannedShare(target, exercises)).toBeNull();
+});
+
+test("returns 100 for the only exercise in a training", () => {
+  const target = { id: 1, duration: 15, repetitions: null };
+
+  expect(plannedShare(target, [target])).toBe(100);
 });

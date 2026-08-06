@@ -116,9 +116,10 @@ split rather than mapped one-to-one:
 
 ## Round three — in progress
 
-`26-app-scroll-shell`, `27-popup-button-system`, `25-dashboard-tile-lists`
-and `32-dashboard-filter-ui` are implemented and verified (PASS), each on
-its own unmerged branch. The other four are planned, none implemented.
+`26-app-scroll-shell`, `27-popup-button-system`, `25-dashboard-tile-lists`,
+`32-dashboard-filter-ui` and `28-training-exercise-details` are implemented
+and verified (PASS), each on its own unmerged branch. The other three are
+planned, none implemented.
 
 ```
 26-app-scroll-shell  ──────► foundation: every page sits on it
@@ -139,7 +140,7 @@ its own unmerged branch. The other four are planned, none implemented.
 | 25 | [dashboard-tile-lists](features/25-dashboard-tile-lists/spec.md) ✅ | 2 — teams as a selectable list, and the rest | Large | 6 | 11, 18 |
 | 26 | [app-scroll-shell](features/26-app-scroll-shell/spec.md) ✅ | 3 — scrolling deforms the nav bar | Medium | 3 | — |
 | 27 | [popup-button-system](features/27-popup-button-system/spec.md) ✅ | 7 — the game popup's strange buttons | Medium | 5 | 13 |
-| 28 | [training-exercise-details](features/28-training-exercise-details/spec.md) | 5 — open exercise details from a training | Medium | 4 | 06, 13, 27 |
+| 28 | [training-exercise-details](features/28-training-exercise-details/spec.md) ✅ | 5 — open exercise details from a training | Medium | 4 | 06, 13, 27 |
 | 29 | [exercise-designer](features/29-exercise-designer/spec.md) | 4 — draw an exercise | **Complex** | 9 | 01, 04, 27, 28 |
 | 30 | [game-reference-manager](features/30-game-reference-manager/spec.md) | 6 — opponents and competitions in one popup | Medium | 5 | 20, 21, 22, 23, 27 |
 | 31 | [settings-tabs-polish](features/31-settings-tabs-polish/spec.md) | 8 — the settings tab display is ugly | Small | 3 | 23 |
