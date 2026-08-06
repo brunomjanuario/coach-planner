@@ -134,3 +134,17 @@ test("a team with an empty name renders its club alone, with no trailing space (
   const chip = screen.getByRole("button", { name: "Benfica" });
   expect(chip.textContent).toBe("Benfica");
 });
+
+test("every chip is reachable by Tab, in order (AC DFILT-04.2)", async () => {
+  const user = userEvent.setup();
+  render(<TeamFilterBar teams={teams} activeTeamId={null} onChange={() => {}} />);
+
+  await user.tab();
+  expect(screen.getByRole("button", { name: "All teams" })).toHaveFocus();
+
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Amadora Sub-11" })).toHaveFocus();
+
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Areias Sub-19" })).toHaveFocus();
+});

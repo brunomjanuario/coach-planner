@@ -1134,9 +1134,17 @@ test("when the filtered team is no longer present after a revisit, the filter fa
   await screen.findByText("Showing: Amadora Sub-11");
   unmount();
 
-  // Simulates the team having been deleted elsewhere before this revisit —
-  // Home always mounts with no filter, so the fallback is observed at the
-  // point a fresh load can no longer have carried a dangling filter forward.
+  // Simulates the team having been deleted elsewhere before this revisit.
+  // NOTE (flagged by the feature's Verifier): this passes whether or not
+  // Home.jsx's defensive useEffect exists, because a fresh mount already
+  // starts with teamFilter=null regardless — Home has no live mid-session
+  // refetch, so the guard's branch (teamFilter set AND teams changes under
+  // it) is currently unreachable within one mount. The guard's own logic
+  // was verified correct by direct source read; it stays in as harmless,
+  // spec-required, forward-looking code for if Home ever gains a refresh
+  // path. This test proves the *observable* requirement — a revisit never
+  // shows a Showing line for a team that's gone — at the level Home's
+  // current architecture actually supports.
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 2, club: "Areias", name: "Sub-19", players: [] },
   ]);
