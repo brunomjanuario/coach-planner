@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import TeamCard from "../components/TeamCard";
 import { teamService } from "../services/teamService";
 import { gameService } from "../services/gameService";
@@ -12,6 +13,7 @@ import SelectableListItem from "../components/SelectableListItem";
 import SquadRanking from "../components/SquadRanking";
 
 export default function Teams() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -66,13 +68,36 @@ export default function Teams() {
     loadTeams();
   }, []);
 
+  // Resolves the initial ?team= deep link once teams have loaded. Only runs
+  // while nothing is selected yet, so it never overrides a later manual
+  // selection or reselection after a data refresh (AC DTILE-04.1, DTILE-04.3).
+  useEffect(() => {
+    if (selectedTeam != null) return;
+    const teamParam = searchParams.get("team");
+    if (teamParam == null) return;
+
+    const match = teams.find((t) => String(t.id) === teamParam);
+    if (match) setSelectedTeam(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams]);
+
   const selectTeam = (team) => {
     setSelectedTeam(team);
     setSelectedPlayer(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("team", team.id);
+      return next;
+    });
   };
 
   const closeTeam = () => {
     setSelectedTeam(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("team");
+      return next;
+    });
     loadTeams();
   };
 
