@@ -347,6 +347,18 @@ describe("teamRows", () => {
     ]);
   });
 
+  it("compares case-insensitively even when raw ASCII order would disagree (AC DTILE-01.1) — 'Cherry' < 'banana' by code point, but 'banana' < 'cherry' case-folded", () => {
+    const crossCase = [
+      { id: 1, club: "Cherry", name: "FC" },
+      { id: 2, club: "banana", name: "FC" },
+    ];
+
+    expect(teamRows(crossCase, 2).entries).toEqual([
+      { id: 2, name: "banana FC" },
+      { id: 1, name: "Cherry FC" },
+    ]);
+  });
+
   it("computes overflow as the count beyond `limit`", () => {
     const fiveTeams = Array.from({ length: 5 }, (_, i) => ({
       id: i,
