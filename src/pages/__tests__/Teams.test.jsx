@@ -1,5 +1,6 @@
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Teams from "../Teams";
 import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
@@ -10,6 +11,19 @@ import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function renderTeams(initialEntries = ["/teams"]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Teams />
+    </MemoryRouter>
+  );
+}
+
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname + location.search}</div>;
+}
 
 function getColumn(headingText) {
   return screen.getByText(headingText).closest(".p-4");
@@ -33,7 +47,7 @@ async function selectTeamByName(user, text) {
 }
 
 test("renders teams returned by teamService.getAll on mount", async () => {
-  render(<Teams />);
+  renderTeams();
 
   expect(await screen.findByText("Amadora Sub-11")).toBeInTheDocument();
   expect(screen.getByText("Areias Sub-19")).toBeInTheDocument();
@@ -43,7 +57,7 @@ test("logs an error and does not crash when teamService.getAll rejects", async (
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(teamService, "getAll").mockRejectedValueOnce(new Error("boom"));
 
-  render(<Teams />);
+  renderTeams();
 
   await waitFor(() => {
     expect(errorSpy).toHaveBeenCalledWith(
@@ -57,7 +71,7 @@ test("logs an error and does not crash when teamService.getAll rejects", async (
 
 test("selecting a team displays its players list", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -69,7 +83,7 @@ test("selecting a team displays its players list", async () => {
 
 test("creating a team via the popup refreshes the team list without a manual reload", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await user.click(
@@ -89,7 +103,7 @@ test("creating a team via the popup refreshes the team list without a manual rel
 
 test("adding a player to the selected team refreshes the players list immediately", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -110,7 +124,7 @@ test("adding a player to the selected team refreshes the players list immediatel
 });
 
 test("the Add-player control is disabled with no team selected (AC PREF-05)", async () => {
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   const addButton = getColumn("Players").querySelector(".tabler-icon-users-plus").closest("button");
@@ -120,7 +134,7 @@ test("the Add-player control is disabled with no team selected (AC PREF-05)", as
 
 test("the Add-player control is enabled once a team is selected", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -140,7 +154,7 @@ test("the player list refreshes only after teamService.addPlayer resolves (AC PR
     return originalAddPlayer(...args);
   });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -165,7 +179,7 @@ test("adding a player to a team other than the selected one leaves the selected 
   const teams = await teamService.getAll();
   const otherTeam = teams.find((t) => t.name !== "Sub-11") ?? teams[1];
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   const before = within(getColumn("Players")).getAllByRole("listitem").length;
@@ -188,7 +202,7 @@ test("adding a player to a team other than the selected one leaves the selected 
 
 test("editing the selected team's details updates the list and the edit panel without losing the selection", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -210,7 +224,7 @@ test("editing the selected team's details updates the list and the edit panel wi
 
 test("editing the selected player's details updates the displayed player without needing to reselect", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -230,7 +244,7 @@ test("editing the selected player's details updates the displayed player without
 
 test("editing a player's shirt number updates both the Players list and the open card (AC PREF-04.3)", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await user.click(within(getColumn("Players")).getByText("1 João"));
@@ -253,7 +267,7 @@ test("editing a player's shirt number updates both the Players list and the open
 
 test("deleting the selected team clears the selection and removes it from the team list", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -268,7 +282,7 @@ test("deleting the selected team clears the selection and removes it from the te
 test("renders no React key warnings for the teams and players lists", async () => {
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await screen.findByText("1 João");
@@ -282,13 +296,13 @@ test("renders no React key warnings for the teams and players lists", async () =
 test("renders an empty-state message when there are no teams", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
 
-  render(<Teams />);
+  renderTeams();
 
   expect(await screen.findByText("No teams yet.")).toBeInTheDocument();
 });
 
 test("renders a message asking to select a team when no team is selected", async () => {
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   expect(
@@ -301,7 +315,7 @@ test("renders an empty-state message when the selected team has no players", asy
     { id: 999, club: "Empty", name: "Team", season: "24/25", players: [] },
   ]);
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Empty Team");
 
   await selectTeamByName(user, "Empty Team");
@@ -313,7 +327,7 @@ test("renders an empty-state message when the selected team has no players", asy
 
 test("selecting a different team clears the previously selected player", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await user.click(within(getColumn("Players")).getByText("1 João"));
@@ -326,7 +340,7 @@ test("selecting a different team clears the previously selected player", async (
 
 test("marks the selected team row with aria-current", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -338,7 +352,7 @@ test("marks the selected team row with aria-current", async () => {
 
 test("marks the selected player row with aria-current", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
 
@@ -367,7 +381,7 @@ test("marks a suspended player in the players list so the coach sees it without 
   });
   await bookYellows(player, game, SUSPENSION_THRESHOLD);
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -379,7 +393,7 @@ test("marks a suspended player in the players list so the coach sees it without 
 test("does not mark a player who is not suspended", async () => {
   const [team] = await teamService.getAll();
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -400,7 +414,7 @@ test("does not mark an approaching (not yet suspended) player as Suspended", asy
   });
   await bookYellows(player, game, SUSPENSION_THRESHOLD - 1);
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -414,7 +428,7 @@ test("does not mark an approaching (not yet suspended) player as Suspended", asy
 });
 
 test("no Squad Ranking is shown before a team is selected", async () => {
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   expect(screen.queryByRole("heading", { name: "Squad Ranking" })).not.toBeInTheDocument();
@@ -433,7 +447,7 @@ test("selecting a team shows its Squad Ranking ordered by average, highest first
   await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 3 });
   await ratingService.setRating({ playerId: p2.id, eventType: "game", eventId: game.id, value: 9 });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -446,7 +460,7 @@ test("selecting a team shows its Squad Ranking ordered by average, highest first
 
 test("a selected team with no rated players shows the Squad Ranking empty state", async () => {
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -471,7 +485,7 @@ test("switching to a different team recomputes the Squad Ranking for the newly s
     value: 6,
   });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await within(getColumn("Players")).findByText("6.0");
@@ -496,7 +510,7 @@ test("the Training/Game toggle in Squad Ranking recomputes the order within the 
   await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 9 });
   await ratingService.setRating({ playerId: p2.id, eventType: "game", eventId: game.id, value: 2 });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await within(getColumn("Players")).findByText(`#${p1.shirtNumber}`, { exact: false });
@@ -512,7 +526,7 @@ test("deleting a player removes it from the player list immediately, with no rel
   const [team] = await teamService.getAll();
   const targetPlayer = team.players[1];
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await user.click(
@@ -547,7 +561,7 @@ test("deleting a rated player removes them from the Squad Ranking (AC PREF-01.4)
   });
   await ratingService.setRating({ playerId: p1.id, eventType: "game", eventId: game.id, value: 6 });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await within(getColumn("Players")).findByText(`#${p1.shirtNumber}`, { exact: false });
@@ -569,7 +583,7 @@ test("deleting a player clears the player selection and keeps the team selected 
   const [team] = await teamService.getAll();
   const targetPlayer = team.players[1];
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await user.click(
@@ -609,7 +623,7 @@ test("deleting the last player of a team renders the empty-players state", async
     position: "GK",
   });
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Solo Team");
   await selectTeamByName(user, "Solo Team");
   await user.click(within(getColumn("Players")).getByText("1 Only"));
@@ -628,7 +642,7 @@ test("a rejected player delete keeps the player listed and shows an inline error
   vi.spyOn(teamService, "deletePlayer").mockRejectedValueOnce(new Error("boom"));
   vi.spyOn(console, "error").mockImplementation(() => {});
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
   await selectTeamByName(user, "Amadora Sub-11");
   await user.click(
@@ -650,7 +664,7 @@ test("logs an error and does not crash when loading suspensions fails", async ()
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(gameService, "getAll").mockRejectedValueOnce(new Error("boom"));
   const user = userEvent.setup();
-  render(<Teams />);
+  renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   await selectTeamByName(user, "Amadora Sub-11");
@@ -662,7 +676,7 @@ test("logs an error and does not crash when loading suspensions fails", async ()
 });
 
 test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
-  const { container } = render(<Teams />);
+  const { container } = renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
@@ -670,8 +684,71 @@ test("does not declare its own h-screen or min-h-screen — the app shell owns t
 });
 
 test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", async () => {
-  const { container } = render(<Teams />);
+  const { container } = renderTeams();
   await screen.findByText("Amadora Sub-11");
 
   expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});
+
+test("/teams?team=<id> opens with that team selected and its players listed (AC DTILE-04.1)", async () => {
+  renderTeams(["/teams?team=1"]);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(
+    await within(getColumn("Players")).findByText("1 João")
+  ).toBeInTheDocument();
+});
+
+test("selecting a team updates the URL to ?team=<id> without a reload (AC DTILE-04.2)", async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/teams"]}>
+      <Routes>
+        <Route path="/teams" element={<Teams />} />
+      </Routes>
+      <LocationDisplay />
+    </MemoryRouter>
+  );
+  await screen.findByText("Amadora Sub-11");
+
+  await selectTeamByName(user, "Amadora Sub-11");
+
+  expect(await screen.findByTestId("location")).toHaveTextContent("/teams?team=1");
+});
+
+test("an unknown ?team= id opens with no team selected and throws nothing (AC DTILE-04.3)", async () => {
+  renderTeams(["/teams?team=does-not-exist"]);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(screen.getByText("Select a team to see its players.")).toBeInTheDocument();
+});
+
+test("with no ?team= the page behaves exactly as before (AC DTILE-04.4)", async () => {
+  renderTeams(["/teams"]);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(screen.getByText("Select a team to see its players.")).toBeInTheDocument();
+});
+
+test("deleting the selected team clears the ?team= param rather than leaving it dangling (edge case)", async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/teams?team=1"]}>
+      <Routes>
+        <Route path="/teams" element={<Teams />} />
+      </Routes>
+      <LocationDisplay />
+    </MemoryRouter>
+  );
+  await screen.findByText("Amadora Sub-11");
+  await within(getColumn("Players")).findByText("1 João");
+
+  await waitFor(() => {
+    expect(getColumn("Edit").querySelector(".tabler-icon-trash")).toBeInTheDocument();
+  });
+  await user.click(getColumn("Edit").querySelector(".tabler-icon-trash"));
+  await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+  expect(await screen.findByTestId("location")).toHaveTextContent("/teams");
+  expect(screen.queryByTestId("location")).not.toHaveTextContent("?team=");
 });
