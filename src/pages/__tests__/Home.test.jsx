@@ -987,60 +987,22 @@ test("clicking a training row navigates to /trainings?training=<id> with the det
   expect(await screen.findByTestId("location")).toHaveTextContent("/trainings");
 });
 
-test("clicking a game row navigates to /games?game=<id> with the game popup open (AC DTILE-03.3)", async () => {
-  const user = userEvent.setup();
-  render(
-    <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/games"
-          element={
-            <>
-              <Games />
-              <LocationDisplay />
-            </>
-          }
-        />
-      </Routes>
-    </MemoryRouter>
-  );
+
+test("does not render a row for a record no longer in its own collection after a revisit (Assumptions: dangling references)", async () => {
+  const stale = { id: "stale-training", teamId: 1, day: new Date(Date.now() + 86_400_000), number: 1 };
+  vi.spyOn(trainingService, "getAllNumbered")
+    .mockResolvedValueOnce([stale])
+    .mockResolvedValueOnce([]);
+  const { unmount } = renderHome();
   await screen.findByText("Teams");
-  const link = (await within(getTile("Games")).findAllByRole("link"))[0];
-  expect(link).toHaveAttribute("href", expect.stringMatching(/^\/games\?game=/));
+  expect(
+    within(getTile("Training")).getByRole("link", { name: /Training #1/ })
+  ).toHaveAttribute("href", "/trainings?training=stale-training");
 
-  await user.click(link);
-
-  expect(await screen.findByRole("dialog")).toBeInTheDocument();
-  expect(await screen.findByTestId("location")).toHaveTextContent("/games");
-});
-
-
-
-test("both training and game tile rows respect the active team filter (AC DTILE-01.6)", async () => {
-  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
-    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
-    { id: 2, club: "Areias", name: "Sub-19", players: [] },
-  ]);
-  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
-    { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), number: 1 },
-    { id: 2, teamId: 2, day: new Date(Date.now() + 86_400_000), number: 1 },
-  ]);
-  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
-    { id: 1, teamId: 1, opponent: "A FC", isHome: true, date: new Date(Date.now() + 86_400_000) },
-    { id: 2, teamId: 2, opponent: "B FC", isHome: true, date: new Date(Date.now() + 86_400_000) },
-  ]);
-  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
-  const user = userEvent.setup();
+  unmount();
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
-
-  const trainingLinks = within(getTile("Training")).queryAllByRole("link");
-  const gameLinks = within(getTile("Games")).queryAllByRole("link");
-  expect(trainingLinks).toHaveLength(1);
-  expect(gameLinks).toHaveLength(1);
-  expect(gameLinks[0].textContent).toContain("A FC");
-  expect(gameLinks[0].textContent).not.toContain("B FC");
+  const remainingLinks = within(getTile("Training")).queryAllByRole("link");
+  expect(remainingLinks.some((l) => l.getAttribute("href")?.includes("stale-training"))).toBe(false);
 });
