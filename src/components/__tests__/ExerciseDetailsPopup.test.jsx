@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import ExerciseDetailsPopup from "../ExerciseDetailsPopup";
 
 const fullExercise = {
@@ -84,4 +85,51 @@ test("the footer uses the shared Button component, not a hand-written class", ()
   const closeButton = screen.getByRole("button", { name: "Close" });
   expect(closeButton.className).toMatch(/border/);
   expect(closeButton.className).not.toMatch(/bg-gray-300/);
+});
+
+test("Next moves to the following exercise and updates the title (AC EXDET-03.1, EXDET-03.5)", async () => {
+  const user = userEvent.setup();
+  const ex1 = { id: 1, description: "First", duration: 10, repetitions: null };
+  const ex2 = { id: 2, description: "Second", duration: 20, repetitions: null };
+  render(<ExerciseDetailsPopup exercise={ex1} exercises={[ex1, ex2]} onClose={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Next" }));
+
+  expect(screen.getByRole("heading", { name: "Second" })).toBeInTheDocument();
+});
+
+test("Previous moves to the preceding exercise (AC EXDET-03.2)", async () => {
+  const user = userEvent.setup();
+  const ex1 = { id: 1, description: "First", duration: 10, repetitions: null };
+  const ex2 = { id: 2, description: "Second", duration: 20, repetitions: null };
+  render(<ExerciseDetailsPopup exercise={ex2} exercises={[ex1, ex2]} onClose={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Previous" }));
+
+  expect(screen.getByRole("heading", { name: "First" })).toBeInTheDocument();
+});
+
+test("Previous is disabled on the first exercise and Next on the last (AC EXDET-03.3, EXDET-03.4)", () => {
+  const ex1 = { id: 1, description: "First", duration: 10, repetitions: null };
+  const ex2 = { id: 2, description: "Second", duration: 20, repetitions: null };
+  const ex3 = { id: 3, description: "Third", duration: 15, repetitions: null };
+
+  const { unmount } = render(
+    <ExerciseDetailsPopup exercise={ex1} exercises={[ex1, ex2, ex3]} onClose={() => {}} />
+  );
+  expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Next" })).not.toBeDisabled();
+  unmount();
+
+  render(<ExerciseDetailsPopup exercise={ex3} exercises={[ex1, ex2, ex3]} onClose={() => {}} />);
+  expect(screen.getByRole("button", { name: "Previous" })).not.toBeDisabled();
+  expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+});
+
+test("with exactly one exercise, both Previous and Next are disabled (AC EXDET-03.6)", () => {
+  const only = { id: 1, description: "Only", duration: 10, repetitions: null };
+  render(<ExerciseDetailsPopup exercise={only} exercises={[only]} onClose={() => {}} />);
+
+  expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 });

@@ -451,3 +451,22 @@ test("closing the training popup while an exercise popup is open removes both (e
   expect(screen.queryByRole("heading", { name: "SSG" })).not.toBeInTheDocument();
   expect(screen.queryAllByRole("dialog")).toHaveLength(0);
 });
+
+test("stepping between exercises does not close or remount the training popup behind it (AC EXDET-03)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "First", duration: 10, numberOfPlayers: null, repetitions: null },
+      { id: 2, description: "Second", duration: 20, numberOfPlayers: null, repetitions: null },
+    ],
+    number: 4,
+  };
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+  await user.click(screen.getByRole("button", { name: /First/ }));
+
+  await user.click(screen.getByRole("button", { name: "Next" }));
+
+  expect(screen.getByRole("heading", { name: "Second" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+});
