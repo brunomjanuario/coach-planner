@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { reset } from "../services/store";
 import ConfirmationPopup from "../components/ConfirmationPopup";
 import Tabs from "../components/Tabs";
 import { useAuth } from "../context/useAuth";
+
+const TAB_IDS = ["profile", "advanced"];
 
 function ProfilePanel() {
   const { user } = useAuth();
@@ -57,7 +60,17 @@ function AdvancedPanel() {
 }
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = TAB_IDS.includes(tabParam) ? tabParam : "profile";
+
+  const handleChange = (id) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", id);
+      return next;
+    });
+  };
 
   const tabs = [
     { id: "profile", label: "Profile", panel: <ProfilePanel /> },
@@ -67,7 +80,7 @@ export default function Settings() {
   return (
     <div className="p-4">
       <h1 className="text-xl font-semibold mb-4">Settings</h1>
-      <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+      <Tabs tabs={tabs} active={activeTab} onChange={handleChange} />
     </div>
   );
 }
