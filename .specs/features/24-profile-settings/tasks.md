@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/24-profile-settings/spec.md`
 **Design**: not required
-**Status**: Draft
+**Status**: Complete
 **Batches**: 5 tasks → 1 batch, execute inline (no sub-agents)
 
 **Note for the executor**: read the spec's "⚠️ This is not authentication"
@@ -68,17 +68,17 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `signUp` stores the chosen password and a later `signIn` with that pair succeeds (AC PROF-01.1, PROF-02) — the `_password` parameter stops being discarded
-- [ ] With a stored user, `signIn` checks the submitted pair against it (AC PROF-01.2)
-- [ ] With no stored user, the demo pair still works (AC PROF-01.3) — assert it, since every existing test and the README depend on it
-- [ ] A stored user with no `password` field accepts the demo password (AC PROF-01.4) — the in-flight-session case
-- [ ] A failed sign-in returns the existing message and does not distinguish a wrong email from a wrong password (AC PROF-01.5)
-- [ ] Sign-out leaves the stored credentials intact and a later sign-in succeeds (AC PROF-01.6) — note this changes what `signOut` removes; assert both that the session is cleared and the credentials survive
-- [ ] Email comparison is case-insensitive and whitespace-trimmed; password comparison is neither (edge case) — assert all four combinations
-- [ ] A corrupt `user` value in `localStorage` is treated as signed out instead of throwing from `JSON.parse` (edge case)
-- [ ] A legacy stored user with `username` and no `name` is read as having that name (edge case)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 18+ tests pass
+- [x] `signUp` stores the chosen password and a later `signIn` with that pair succeeds (AC PROF-01.1, PROF-02) — the `_password` parameter stops being discarded
+- [x] With a stored user, `signIn` checks the submitted pair against it (AC PROF-01.2)
+- [x] With no stored user, the demo pair still works (AC PROF-01.3) — assert it, since every existing test and the README depend on it
+- [x] A stored user with no `password` field accepts the demo password (AC PROF-01.4) — the in-flight-session case
+- [x] A failed sign-in returns the existing message and does not distinguish a wrong email from a wrong password (AC PROF-01.5)
+- [x] Sign-out leaves the stored credentials intact and a later sign-in succeeds (AC PROF-01.6) — note this changes what `signOut` removes; assert both that the session is cleared and the credentials survive
+- [x] Email comparison is case-insensitive and whitespace-trimmed; password comparison is neither (edge case) — assert all four combinations
+- [x] A corrupt `user` value in `localStorage` is treated as signed out instead of throwing from `JSON.parse` (edge case)
+- [x] A legacy stored user with `username` and no `name` is read as having that name (edge case)
+- [x] Gate passes: `npm test`
+- [x] Test count: 18+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -98,17 +98,17 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `updateProfile({ name, email })` persists both and updates the context user (AC PROF-03.2, PROF-03.3)
-- [ ] An invalid email is rejected and nothing is written (AC PROF-03.4) — assert the stored value is unchanged, not just that a message came back
-- [ ] An empty or whitespace-only name is rejected and nothing is written (AC PROF-03.5)
-- [ ] The email is trimmed before storing (edge case)
-- [ ] `changePassword({ current, next, confirm })` rejects a wrong current password without altering the stored one (AC PROF-04.2)
-- [ ] It rejects a mismatched confirmation (AC PROF-04.3) and an empty new password (AC PROF-04.4)
-- [ ] A successful change keeps the user signed in and makes the next sign-in require the new password while rejecting the old one (AC PROF-04.6) — assert both directions
-- [ ] A storage failure returns a failure result rather than reporting success (edge case)
-- [ ] Both methods return the same `{ success, message }` shape as the existing ones
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 20+ tests pass
+- [x] `updateProfile({ name, email })` persists both and updates the context user (AC PROF-03.2, PROF-03.3)
+- [x] An invalid email is rejected and nothing is written (AC PROF-03.4) — assert the stored value is unchanged, not just that a message came back
+- [x] An empty or whitespace-only name is rejected and nothing is written (AC PROF-03.5)
+- [x] The email is trimmed before storing (edge case)
+- [x] `changePassword({ current, next, confirm })` rejects a wrong current password without altering the stored one (AC PROF-04.2)
+- [x] It rejects a mismatched confirmation (AC PROF-04.3) and an empty new password (AC PROF-04.4)
+- [x] A successful change keeps the user signed in and makes the next sign-in require the new password while rejecting the old one (AC PROF-04.6) — assert both directions
+- [x] A storage failure returns a failure result rather than reporting success (edge case)
+- [x] Both methods return the same `{ success, message }` shape as the existing ones
+- [x] Gate passes: `npm test`
+- [x] Test count: 20+ tests pass
 
 **Tests**: unit
 **Gate**: full
@@ -128,14 +128,14 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Name and email fields render pre-filled from the current user (AC PROF-03.1)
-- [ ] Saving a changed name updates the displayed value with no page reload (AC PROF-03.2)
-- [ ] An invalid email and an empty name each render their message and save nothing (AC PROF-03.4, PROF-03.5)
-- [ ] A failed save keeps the typed values in the form (edge case)
-- [ ] A successful save renders an explicit confirmation (AC PROF-03.6)
-- [ ] The read-only display added by `23` T2 is replaced, not duplicated
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] Name and email fields render pre-filled from the current user (AC PROF-03.1)
+- [x] Saving a changed name updates the displayed value with no page reload (AC PROF-03.2)
+- [x] An invalid email and an empty name each render their message and save nothing (AC PROF-03.4, PROF-03.5)
+- [x] A failed save keeps the typed values in the form (edge case)
+- [x] A successful save renders an explicit confirmation (AC PROF-03.6)
+- [x] The read-only display added by `23` T2 is replaced, not duplicated
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -155,13 +155,13 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Current, new and confirm fields render as password inputs (AC PROF-04.1)
-- [ ] A wrong current password, a mismatched confirmation and an empty new password each render their own distinct message (AC PROF-04.2–PROF-04.4) — assert three different messages, so one catch-all cannot pass
-- [ ] A successful change clears all three fields, confirms, and leaves the user signed in (AC PROF-04.5)
-- [ ] A failed change leaves the fields as typed (edge case)
-- [ ] The form is a separate `<form>` from the name/email form, so submitting one does not submit the other
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 12+ tests pass
+- [x] Current, new and confirm fields render as password inputs (AC PROF-04.1)
+- [x] A wrong current password, a mismatched confirmation and an empty new password each render their own distinct message (AC PROF-04.2–PROF-04.4) — assert three different messages, so one catch-all cannot pass
+- [x] A successful change clears all three fields, confirms, and leaves the user signed in (AC PROF-04.5)
+- [x] A failed change leaves the fields as typed (edge case)
+- [x] The form is a separate `<form>` from the name/email form, so submitting one does not submit the other
+- [x] Gate passes: `npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -181,13 +181,13 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] An integration test covers: change the email and password → sign out → the old pair is rejected → the new pair signs in (AC PROF-04.6)
-- [ ] A test covers: edit the profile → reset demo data → the profile is unchanged and the user is still signed in (edge case)
-- [ ] `AuthContext.jsx` carries a comment stating plainly that credentials are plaintext in `localStorage` and that this is a mock, not authentication
-- [ ] `CLAUDE.md`'s Auth section is updated — it currently documents the old hard-coded-pair-only behaviour, which this feature changes
-- [ ] The `docs/` page covering auth records the same limitation
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 6+ tests pass
+- [x] An integration test covers: change the email and password → sign out → the old pair is rejected → the new pair signs in (AC PROF-04.6)
+- [x] A test covers: edit the profile → reset demo data → the profile is unchanged and the user is still signed in (edge case)
+- [x] `AuthContext.jsx` carries a comment stating plainly that credentials are plaintext in `localStorage` and that this is a mock, not authentication
+- [x] `CLAUDE.md`'s Auth section is updated — it currently documents the old hard-coded-pair-only behaviour, which this feature changes
+- [x] The `docs/` page covering auth records the same limitation
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 6+ tests pass
 
 **Tests**: integration
 **Gate**: build

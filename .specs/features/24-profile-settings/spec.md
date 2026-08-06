@@ -26,9 +26,9 @@ a decision, not discovered later as a vulnerability.
 
 ## Goals
 
-- [ ] Name, email and password can be changed from the Profile tab
-- [ ] The mock actually honours the credentials it stores
-- [ ] `signUp`'s discarded password stops being discarded
+- [x] Name, email and password can be changed from the Profile tab
+- [x] The mock actually honours the credentials it stores
+- [x] `signUp`'s discarded password stops being discarded
 
 ## Out of Scope
 
@@ -135,11 +135,11 @@ a decision, not discovered later as a vulnerability.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| PROF-01 | P1: Credentials stored and checked by `signIn` | Tasks | Pending |
-| PROF-02 | P1: `signUp` stores the chosen password | Tasks | Pending |
-| PROF-03 | P1: `updateProfile` for name and email | Tasks | Pending |
-| PROF-04 | P1: `changePassword` guarded by the current password | Tasks | Pending |
-| PROF-05 | P1: Profile tab form, validation and feedback | Tasks | Pending |
+| PROF-01 | P1: Credentials stored and checked by `signIn` | Tasks | Done |
+| PROF-02 | P1: `signUp` stores the chosen password | Tasks | Done |
+| PROF-03 | P1: `updateProfile` for name and email | Tasks | Done |
+| PROF-04 | P1: `changePassword` guarded by the current password | Tasks | Done |
+| PROF-05 | P1: Profile tab form, validation and feedback | Tasks | Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped
 
@@ -147,7 +147,7 @@ a decision, not discovered later as a vulnerability.
 
 ## Success Criteria
 
-- [ ] A password set in the app is the password that signs you in
-- [ ] Signing up and signing back in works end to end
-- [ ] Resetting demo data never signs a coach out
-- [ ] The "this is not authentication" limitation is stated in the code and in `docs/`
+- [x] A password set in the app is the password that signs you in
+- [x] Signing up and signing back in works end to end
+- [x] Resetting demo data never signs a coach out
+- [x] The "this is not authentication" limitation is stated in the code and in `docs/`
