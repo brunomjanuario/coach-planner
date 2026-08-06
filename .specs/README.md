@@ -114,9 +114,10 @@ split rather than mapped one-to-one:
 
 ---
 
-## Round three — planned
+## Round three — in progress
 
-Nothing here is implemented. This is the plan.
+`26-app-scroll-shell` is implemented and verified (PASS), on an unmerged
+branch. The other seven are planned, none implemented.
 
 ```
 26-app-scroll-shell  ──────► foundation: every page sits on it
@@ -135,7 +136,7 @@ Nothing here is implemented. This is the plan.
 | # | Feature | Change it serves | Scope | Tasks | Depends on |
 |---|---------|------------------|-------|-------|------------|
 | 25 | [dashboard-tile-lists](features/25-dashboard-tile-lists/spec.md) | 2 — teams as a selectable list, and the rest | Large | 6 | 11, 18 |
-| 26 | [app-scroll-shell](features/26-app-scroll-shell/spec.md) | 3 — scrolling deforms the nav bar | Medium | 3 | — |
+| 26 | [app-scroll-shell](features/26-app-scroll-shell/spec.md) ✅ | 3 — scrolling deforms the nav bar | Medium | 3 | — |
 | 27 | [popup-button-system](features/27-popup-button-system/spec.md) | 7 — the game popup's strange buttons | Medium | 5 | 13 |
 | 28 | [training-exercise-details](features/28-training-exercise-details/spec.md) | 5 — open exercise details from a training | Medium | 4 | 06, 13, 27 |
 | 29 | [exercise-designer](features/29-exercise-designer/spec.md) | 4 — draw an exercise | **Complex** | 9 | 01, 04, 27, 28 |
