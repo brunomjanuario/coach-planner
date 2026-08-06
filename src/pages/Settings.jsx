@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { reset } from "../services/store";
 import ConfirmationPopup from "../components/ConfirmationPopup";
@@ -6,23 +6,164 @@ import Tabs from "../components/Tabs";
 import { useAuth } from "../context/useAuth";
 
 const TAB_IDS = ["profile", "advanced"];
+const INPUT_CLASS = "w-full border rounded px-3 py-2";
 
-function ProfilePanel() {
-  const { user } = useAuth();
+function ProfileForm() {
+  const { user, updateProfile } = useAuth();
+  const [name, setName] = useState(user.name ?? user.username ?? "");
+  const [email, setEmail] = useState(user.email);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    setName(user.name ?? user.username ?? "");
+    setEmail(user.email);
+  }, [user.name, user.username, user.email]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSuccess("");
+    const result = updateProfile({ name, email });
+    if (result.success) {
+      setError("");
+      setSuccess(result.message);
+    } else {
+      setError(result.message);
+    }
+  };
 
   return (
-    <div className="p-4 space-y-2">
-      {user.username && (
-        <p>
-          <span className="font-semibold">Name:</span> {user.username}
+    <form onSubmit={handleSubmit} className="space-y-3 max-w-sm">
+      <div>
+        <label htmlFor="profile-name" className="block text-sm font-semibold mb-1">
+          Name
+        </label>
+        <input
+          id="profile-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      <div>
+        <label htmlFor="profile-email" className="block text-sm font-semibold mb-1">
+          Email
+        </label>
+        <input
+          id="profile-email"
+          type="text"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
         </p>
       )}
-      <p>
-        <span className="font-semibold">Email:</span> {user.email}
-      </p>
-      <p className="text-sm text-gray-500">
-        Editing your profile is coming soon.
-      </p>
+      {success && (
+        <p role="status" className="text-sm text-green-600">
+          {success}
+        </p>
+      )}
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+      >
+        Save
+      </button>
+    </form>
+  );
+}
+
+function PasswordForm() {
+  const { changePassword } = useAuth();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSuccess("");
+    const result = changePassword({ current, next, confirm });
+    if (result.success) {
+      setError("");
+      setSuccess(result.message);
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } else {
+      setError(result.message);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 max-w-sm mt-6">
+      <div>
+        <label htmlFor="password-current" className="block text-sm font-semibold mb-1">
+          Current password
+        </label>
+        <input
+          id="password-current"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      <div>
+        <label htmlFor="password-next" className="block text-sm font-semibold mb-1">
+          New password
+        </label>
+        <input
+          id="password-next"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      <div>
+        <label htmlFor="password-confirm" className="block text-sm font-semibold mb-1">
+          Confirm new password
+        </label>
+        <input
+          id="password-confirm"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="text-sm text-green-600">
+          {success}
+        </p>
+      )}
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+      >
+        Change password
+      </button>
+    </form>
+  );
+}
+
+function ProfilePanel() {
+  return (
+    <div className="p-4">
+      <ProfileForm />
+      <PasswordForm />
     </div>
   );
 }
