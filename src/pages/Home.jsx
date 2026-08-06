@@ -19,6 +19,7 @@ import { formatGameDate, homeAwayPrefix } from "../lib/gameSchedule";
 import StatTile from "../components/StatTile";
 import ListTile from "../components/ListTile";
 import LeaderTile from "../components/LeaderTile";
+import TeamFilterBar from "../components/TeamFilterBar";
 
 const DASHBOARD_LIST_LIMIT = 3;
 
@@ -59,13 +60,12 @@ export default function Home() {
     load();
   }, []);
 
-  function handleTeamFilterChange(e) {
-    const value = e.target.value;
-    if (value === "") {
+  function handleTeamFilterChange(teamId) {
+    if (teamId == null) {
       setTeamFilter(null);
       return;
     }
-    const match = teams.find((t) => String(t.id) === value);
+    const match = teams.find((t) => t.id === teamId);
     setTeamFilter(match ? match.id : null);
   }
 
@@ -100,21 +100,11 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-4 p-5 w-full">
-      <label className="flex items-center gap-2 text-sm">
-        Team
-        <select
-          className="border rounded px-2 py-1"
-          value={teamFilter ?? ""}
-          onChange={handleTeamFilterChange}
-        >
-          <option value="">All teams</option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.club} {team.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <TeamFilterBar
+        teams={teams}
+        activeTeamId={teamFilter}
+        onChange={handleTeamFilterChange}
+      />
       <section>
         <h2 className="text-lg font-semibold mb-2">Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">

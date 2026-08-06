@@ -140,7 +140,7 @@ test("selecting a team recomputes tiles in both Overview and Leaders sections (r
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
   const goalsTile = within(getTile("Most Goals"));
@@ -156,14 +156,14 @@ test("both section headings are real heading elements (AC DGRID-03.3)", async ()
   expect(screen.getByRole("heading", { name: "Leaders" }).tagName).toMatch(/^H[1-6]$/);
 });
 
-test("the team filter sits above both sections and its label is reachable regardless of section order (AC DGRID-03.4)", async () => {
+test("the team filter sits above both sections and is reachable regardless of section order (AC DGRID-03.4)", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
-  const filterLabel = screen.getByText("Team").closest("label");
+  const filterGroup = screen.getByRole("group", { name: /filter dashboard by team/i });
   const overviewHeading = screen.getByRole("heading", { name: "Overview" });
   expect(
-    filterLabel.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    filterGroup.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
   ).toBeTruthy();
   expect(container).toBeTruthy();
 });
@@ -516,7 +516,7 @@ test("selecting a team recomputes every tile for that team only (AC DASH-08.1)",
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
   expect(within(getTile("Training")).getByText("0 past · 1 upcoming")).toBeInTheDocument();
@@ -531,10 +531,10 @@ test("clearing the filter recomputes across all teams (AC DASH-08.2)", async () 
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
 
-  await user.selectOptions(screen.getByLabelText("Team"), "");
+  await user.click(screen.getByRole("button", { name: "All teams" }));
 
   expect(within(getTile("Teams")).getByText("2")).toBeInTheDocument();
   const goalsTile = within(getTile("Most Goals"));
@@ -560,7 +560,7 @@ test("a team with no data selected shows every tile's empty state, never stale f
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "2");
+  await user.click(screen.getByRole("button", { name: "Zero Team" }));
 
   expect(within(getTile("Training")).getByText("No data yet")).toBeInTheDocument();
   expect(within(getTile("Games")).getByText("No data yet")).toBeInTheDocument();
@@ -579,7 +579,7 @@ test("filter changes recompute without re-fetching or reloading (AC DASH-08.4)",
 
   expect(teamService.getAll).toHaveBeenCalledTimes(1);
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
   await within(getTile("Teams")).findByText("1");
 
   expect(teamService.getAll).toHaveBeenCalledTimes(1);
@@ -593,7 +593,7 @@ test("excludes an unassigned training when filtered, counts it when unfiltered (
 
   expect(within(getTile("Training")).getByText("3")).toBeInTheDocument();
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Training")).getByText("1")).toBeInTheDocument();
 });
@@ -746,7 +746,7 @@ test("filtering to a team with no data keeps the grid's shape and shows empty st
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "2");
+  await user.click(screen.getByRole("button", { name: "Zero Team" }));
 
   const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
   const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
@@ -839,7 +839,7 @@ test("with a team filter active the Teams tile lists only that team, matching it
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   const teamsTile = within(getTile("Teams"));
   expect(teamsTile.getByText("1")).toBeInTheDocument();
@@ -1033,7 +1033,7 @@ test("both training and game tile rows respect the active team filter (AC DTILE-
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   const trainingLinks = within(getTile("Training")).queryAllByRole("link");
   const gameLinks = within(getTile("Games")).queryAllByRole("link");
@@ -1073,4 +1073,11 @@ test("all eight dashboard tiles carry the shared minimum-height class (AC DFILT-
   for (const tile of tiles) {
     expect(tile.className).toMatch(/min-h-36/);
   }
+});
+
+test("no <select> element remains on the dashboard (AC DFILT-02.1)", async () => {
+  const { container } = renderHome();
+  await screen.findByText("Teams");
+
+  expect(container.querySelector("select")).not.toBeInTheDocument();
 });

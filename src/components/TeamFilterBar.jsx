@@ -3,7 +3,7 @@ const TRACK_CLASS =
 const CHIP_CLASS =
   "flex-shrink-0 px-3 py-1.5 rounded-full text-sm whitespace-normal break-words focus-visible:outline-2 focus-visible:outline-blue-500";
 const PRESSED_CLASS = "bg-white text-gray-900 shadow-sm";
-const UNPRESSED_CLASS = "text-gray-600 hover:bg-gray-200";
+const UNPRESSED_CLASS = "bg-transparent text-gray-600 hover:bg-gray-200";
 
 function teamLabel(team) {
   return team.name ? `${team.club} ${team.name}` : team.club;
