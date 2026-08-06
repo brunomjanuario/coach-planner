@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/32-dashboard-filter-ui/spec.md`
 **Design**: not required
-**Status**: Not started
+**Status**: Complete
 **Batches**: 4 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -66,15 +66,15 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `TILE_CLASS` carries a minimum-height class, so every tile variant inherits it (AC DFILT-01.1)
-- [ ] All eight dashboard tiles carry it — assert by querying the rendered dashboard and checking the count, not by checking one tile (AC DFILT-01.1)
-- [ ] `StatTile`'s and `LeaderTile`'s loading skeletons carry it too (AC DFILT-01.5) — the skeleton is the variant most likely to be missed
-- [ ] Both section grids still carry `auto-rows-fr` (AC DFILT-01.2)
-- [ ] A tile whose content exceeds the minimum is not clipped — no `overflow-hidden` or fixed `h-` class is introduced (AC DFILT-01.4)
-- [ ] The chosen value is measured against `LeaderTile` with three entries plus an overflow line, and recorded in `Tile`'s doc comment (Assumptions: minimum height value)
-- [ ] Verified by eye in the browser that all eight tiles render at one height; the observation is recorded in the commit body, since the suite cannot see it
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8+ tests pass
+- [x] `TILE_CLASS` carries a minimum-height class, so every tile variant inherits it (AC DFILT-01.1)
+- [x] All eight dashboard tiles carry it — assert by querying the rendered dashboard and checking the count, not by checking one tile (AC DFILT-01.1)
+- [x] `StatTile`'s and `LeaderTile`'s loading skeletons carry it too (AC DFILT-01.5) — the skeleton is the variant most likely to be missed
+- [x] Both section grids still carry `auto-rows-fr` (AC DFILT-01.2)
+- [x] A tile whose content exceeds the minimum is not clipped — no `overflow-hidden` or fixed `h-` class is introduced (AC DFILT-01.4)
+- [x] The chosen value is measured against `LeaderTile` with three entries plus an overflow line, and recorded in `Tile`'s doc comment (Assumptions: minimum height value)
+- [x] Verified by eye in the browser that all eight tiles render at one height; the observation is recorded in the commit body, since the suite cannot see it
+- [x] Gate passes: `npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: component + integration
 **Gate**: full
@@ -94,17 +94,17 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Renders a `role="group"` with an accessible name and one button per team plus "All teams" (AC DFILT-02.1)
-- [ ] Exactly one chip carries `aria-pressed="true"` at a time; the others are explicitly `"false"`, not absent (AC DFILT-02.2)
-- [ ] Activating a chip calls `onChange` with that team's id, and "All teams" calls it with `null` (AC DFILT-02.3)
-- [ ] The component holds no selection state of its own — the parent owns it, as `Tabs` does
-- [ ] Chips carry a visible focus ring and activate on Enter and Space (AC DFILT-02.7)
-- [ ] The bar carries a horizontal-scroll class and no chip carries a truncation class (AC DFILT-04.1, DFILT-04.3)
-- [ ] With no teams, only "All teams" renders, pressed (edge case)
-- [ ] With one team, both chips render (edge case) — filtering to the only team is a distinct state
-- [ ] A team with an empty `name` renders its club alone, with no trailing space (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/TeamFilterBar.test.jsx`
-- [ ] Test count: 14+ tests pass
+- [x] Renders a `role="group"` with an accessible name and one button per team plus "All teams" (AC DFILT-02.1)
+- [x] Exactly one chip carries `aria-pressed="true"` at a time; the others are explicitly `"false"`, not absent (AC DFILT-02.2)
+- [x] Activating a chip calls `onChange` with that team's id, and "All teams" calls it with `null` (AC DFILT-02.3)
+- [x] The component holds no selection state of its own — the parent owns it, as `Tabs` does
+- [x] Chips carry a visible focus ring and activate on Enter and Space (AC DFILT-02.7)
+- [x] The bar carries a horizontal-scroll class and no chip carries a truncation class (AC DFILT-04.1, DFILT-04.3)
+- [x] With no teams, only "All teams" renders, pressed (edge case)
+- [x] With one team, both chips render (edge case) — filtering to the only team is a distinct state
+- [x] A team with an empty `name` renders its club alone, with no trailing space (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/TeamFilterBar.test.jsx`
+- [x] Test count: 14+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -124,13 +124,13 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] No `<select>` remains on the dashboard (AC DFILT-02.1) — assert the absence
-- [ ] Activating a team chip rescopes every tile: counts, lists and leaders (AC DFILT-02.3) — assert at least one tile from each section, so a partially-wired filter fails
-- [ ] Activating "All teams" restores the unfiltered figures (AC DFILT-02.5)
-- [ ] A filtered team with no records shows each tile's own empty state, not a blank tile (edge case)
-- [ ] Existing dashboard tests pass with only the filter *interaction* updated — no assertion about what the tiles show changes
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 10+ tests pass
+- [x] No `<select>` remains on the dashboard (AC DFILT-02.1) — assert the absence
+- [x] Activating a team chip rescopes every tile: counts, lists and leaders (AC DFILT-02.3) — assert at least one tile from each section, so a partially-wired filter fails
+- [x] Activating "All teams" restores the unfiltered figures (AC DFILT-02.5)
+- [x] A filtered team with no records shows each tile's own empty state, not a blank tile (edge case)
+- [x] Existing dashboard tests pass with only the filter *interaction* updated — no assertion about what the tiles show changes
+- [x] Gate passes: `npm test`
+- [x] Test count: 10+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -150,13 +150,13 @@ T1 → T2 → T3 → T4
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] With a filter active, a "Showing: <club name>" line renders with a Clear action beside it (AC DFILT-03 / AC DFILT-02.4)
-- [ ] With no filter active, neither the line nor Clear is in the document (AC DFILT-02.6) — assert the absence, which is what makes the signpost meaningful
-- [ ] Clear resets the filter, presses "All teams" and removes the line (AC DFILT-02.5)
-- [ ] The line names the same team as the pressed chip — asserted together in one test, so the two cannot drift apart
-- [ ] When the filtered team is no longer in the re-read team list, the filter falls back to "All teams" and no line naming a missing team renders (edge case)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 8+ tests pass
+- [x] With a filter active, a "Showing: <club name>" line renders with a Clear action beside it (AC DFILT-03 / AC DFILT-02.4)
+- [x] With no filter active, neither the line nor Clear is in the document (AC DFILT-02.6) — assert the absence, which is what makes the signpost meaningful
+- [x] Clear resets the filter, presses "All teams" and removes the line (AC DFILT-02.5)
+- [x] The line names the same team as the pressed chip — asserted together in one test, so the two cannot drift apart
+- [x] When the filtered team is no longer in the re-read team list, the filter falls back to "All teams" and no line naming a missing team renders (edge case)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: integration
 **Gate**: build
