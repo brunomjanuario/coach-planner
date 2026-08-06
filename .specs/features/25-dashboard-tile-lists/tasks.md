@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/25-dashboard-tile-lists/spec.md`
 **Design**: not required — the two modelling questions (what a click does, where the row data comes from) are settled in the spec's Assumptions table
-**Status**: Not started
+**Status**: Complete
 **Batches**: 6 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -63,14 +63,14 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `teamRows(teams, limit)` returns up to `limit` teams ordered alphabetically by `club name`, case-insensitively (AC DTILE-01.1)
-- [ ] `upcomingRows(records, now, limit)` returns the soonest-first upcoming records with `basis: "upcoming"` (AC DTILE-01.2, DTILE-01.3)
-- [ ] With zero upcoming records it returns the most recent past records with `basis: "past"` (edge case) — assert the `basis` value, not only the entries
-- [ ] With neither, it returns zero entries and `overflow: 0` so the caller renders an empty state, never a "+0 more" (edge case)
-- [ ] `overflow` equals total minus rows returned, and is `0` when the total is exactly `limit` (AC DTILE-01.4, edge case)
-- [ ] Records with an unparseable or missing date are excluded rather than sorted arbitrarily
-- [ ] Gate passes: `npx vitest run src/lib/__tests__/dashboardStats.test.js`
-- [ ] Test count: 14+ tests pass
+- [x] `teamRows(teams, limit)` returns up to `limit` teams ordered alphabetically by `club name`, case-insensitively (AC DTILE-01.1)
+- [x] `upcomingRows(records, now, limit)` returns the soonest-first upcoming records with `basis: "upcoming"` (AC DTILE-01.2, DTILE-01.3)
+- [x] With zero upcoming records it returns the most recent past records with `basis: "past"` (edge case) — assert the `basis` value, not only the entries
+- [x] With neither, it returns zero entries and `overflow: 0` so the caller renders an empty state, never a "+0 more" (edge case)
+- [x] `overflow` equals total minus rows returned, and is `0` when the total is exactly `limit` (AC DTILE-01.4, edge case)
+- [x] Records with an unparseable or missing date are excluded rather than sorted arbitrarily
+- [x] Gate passes: `npx vitest run src/lib/__tests__/dashboardStats.test.js`
+- [x] Test count: 14+ tests pass
 
 **Tests**: unit
 **Gate**: quick
@@ -90,16 +90,16 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Renders the count in the label row **and** the rows beneath it (AC DTILE-01.1) — assert both, since "not *just* a count" means the count stays
-- [ ] Renders at most `limit` rows and a "+N more" indicator whose N is the given overflow (AC DTILE-01.4)
-- [ ] Renders no indicator when overflow is 0 (edge case)
-- [ ] Each row is a `Link` carrying a visible focus class and activating on Enter (AC DTILE-03.4)
-- [ ] With zero entries it renders the empty label and its `emptyHref` link, matching `StatTile`'s existing markup (AC DTILE-01.5)
-- [ ] While `loading` it renders the same skeleton height as `StatTile`'s, so the grid does not jump (edge case) — assert the skeleton class, which is what the suite can actually check
-- [ ] A `basis: "past"` tile renders a "most recent" note; an `"upcoming"` one does not (edge case)
-- [ ] A long row label wraps and carries no truncation class (edge case)
-- [ ] Gate passes: `npx vitest run src/components/__tests__/ListTile.test.jsx`
-- [ ] Test count: 14+ tests pass
+- [x] Renders the count in the label row **and** the rows beneath it (AC DTILE-01.1) — assert both, since "not *just* a count" means the count stays
+- [x] Renders at most `limit` rows and a "+N more" indicator whose N is the given overflow (AC DTILE-01.4)
+- [x] Renders no indicator when overflow is 0 (edge case)
+- [x] Each row is a `Link` carrying a visible focus class and activating on Enter (AC DTILE-03.4)
+- [x] With zero entries it renders the empty label and its `emptyHref` link, matching `StatTile`'s existing markup (AC DTILE-01.5)
+- [x] While `loading` it renders the same skeleton height as `StatTile`'s, so the grid does not jump (edge case) — assert the skeleton class, which is what the suite can actually check
+- [x] A `basis: "past"` tile renders a "most recent" note; an `"upcoming"` one does not (edge case)
+- [x] A long row label wraps and carries no truncation class (edge case)
+- [x] Gate passes: `npx vitest run src/components/__tests__/ListTile.test.jsx`
+- [x] Test count: 14+ tests pass
 
 **Tests**: component
 **Gate**: quick
@@ -119,13 +119,13 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] `/teams?team=<id>` opens with that team selected and its players listed (AC DTILE-04.1)
-- [ ] Selecting a team updates the URL to `?team=<id>` with no reload (AC DTILE-04.2)
-- [ ] An unknown id opens with no team selected and throws nothing (AC DTILE-04.3) — assert with a junk id, not just a missing param
-- [ ] With no `?team=` the page behaves exactly as before (AC DTILE-04.4) — the existing tests must pass unedited
-- [ ] Deleting the selected team clears the param rather than leaving a dangling one
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8+ tests pass
+- [x] `/teams?team=<id>` opens with that team selected and its players listed (AC DTILE-04.1)
+- [x] Selecting a team updates the URL to `?team=<id>` with no reload (AC DTILE-04.2)
+- [x] An unknown id opens with no team selected and throws nothing (AC DTILE-04.3) — assert with a junk id, not just a missing param
+- [x] With no `?team=` the page behaves exactly as before (AC DTILE-04.4) — the existing tests must pass unedited
+- [x] Deleting the selected team clears the param rather than leaving a dangling one
+- [x] Gate passes: `npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -145,12 +145,12 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] With 5 teams the tile shows 3 rows and "+2 more" (AC DTILE-01.1, DTILE-01.4)
-- [ ] Clicking a row navigates to `/teams?team=<id>` and that team is selected on arrival (AC DTILE-03.1) — assert the destination state, not only the href
-- [ ] With a team filter active the tile lists only that team, matching its count of 1 (AC DTILE-01.6)
-- [ ] With no teams the existing empty state and "Add one" link render unchanged (AC DTILE-01.5)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 8+ tests pass
+- [x] With 5 teams the tile shows 3 rows and "+2 more" (AC DTILE-01.1, DTILE-01.4)
+- [x] Clicking a row navigates to `/teams?team=<id>` and that team is selected on arrival (AC DTILE-03.1) — assert the destination state, not only the href
+- [x] With a team filter active the tile lists only that team, matching its count of 1 (AC DTILE-01.6)
+- [x] With no teams the existing empty state and "Add one" link render unchanged (AC DTILE-01.5)
+- [x] Gate passes: `npm test`
+- [x] Test count: 8+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -170,16 +170,16 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The Trainings tile lists up to 3 upcoming trainings, soonest first, each with number and date (AC DTILE-01.2)
-- [ ] A training with no number renders its date alone, not "Training #undefined" (edge case)
-- [ ] The Games tile lists up to 3 upcoming games, soonest first, each with opponent and date (AC DTILE-01.3)
-- [ ] With no upcoming records, each tile shows the most recent past ones and a "most recent" note (edge case) — one test per tile, both bases asserted
-- [ ] Clicking a training row lands on `/trainings?training=<id>` with the details popup open (AC DTILE-03.2)
-- [ ] Clicking a game row lands on `/games?game=<id>` with the game popup open (AC DTILE-03.3)
-- [ ] Both tiles keep their existing breakdown line (`past · upcoming`, `played · upcoming`) (AC DTILE-02)
-- [ ] Both tiles' rows respect the active team filter (AC DTILE-01.6)
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 14+ tests pass
+- [x] The Trainings tile lists up to 3 upcoming trainings, soonest first, each with number and date (AC DTILE-01.2)
+- [x] A training with no number renders its date alone, not "Training #undefined" (edge case)
+- [x] The Games tile lists up to 3 upcoming games, soonest first, each with opponent and date (AC DTILE-01.3)
+- [x] With no upcoming records, each tile shows the most recent past ones and a "most recent" note (edge case) — one test per tile, both bases asserted
+- [x] Clicking a training row lands on `/trainings?training=<id>` with the details popup open (AC DTILE-03.2)
+- [x] Clicking a game row lands on `/games?game=<id>` with the game popup open (AC DTILE-03.3)
+- [x] Both tiles keep their existing breakdown line (`past · upcoming`, `played · upcoming`) (AC DTILE-02)
+- [x] Both tiles' rows respect the active team filter (AC DTILE-01.6)
+- [x] Gate passes: `npm test`
+- [x] Test count: 14+ tests pass
 
 **Tests**: integration
 **Gate**: full
@@ -199,11 +199,11 @@ T2 → T3 → T4 → T5 → T6
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Navigating to `?training=<deleted id>` shows "That training no longer exists." and no error (AC DTILE-03.5)
-- [ ] Navigating to `?game=<deleted id>` shows the equivalent games message (AC DTILE-03.5)
-- [ ] A tile does not render a row for a record its own collection no longer contains (Assumptions: dangling references)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 5+ tests pass
+- [x] Navigating to `?training=<deleted id>` shows "That training no longer exists." and no error (AC DTILE-03.5)
+- [x] Navigating to `?game=<deleted id>` shows the equivalent games message (AC DTILE-03.5)
+- [x] A tile does not render a row for a record its own collection no longer contains (Assumptions: dangling references)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 5+ tests pass
 
 **Tests**: integration
 **Gate**: build

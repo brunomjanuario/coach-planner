@@ -116,9 +116,9 @@ split rather than mapped one-to-one:
 
 ## Round three — in progress
 
-`26-app-scroll-shell` and `27-popup-button-system` are implemented and
-verified (PASS), each on its own unmerged branch. The other six are
-planned, none implemented.
+`26-app-scroll-shell`, `27-popup-button-system` and `25-dashboard-tile-lists`
+are implemented and verified (PASS), each on its own unmerged branch. The
+other five are planned, none implemented.
 
 ```
 26-app-scroll-shell  ──────► foundation: every page sits on it
@@ -136,7 +136,7 @@ planned, none implemented.
 
 | # | Feature | Change it serves | Scope | Tasks | Depends on |
 |---|---------|------------------|-------|-------|------------|
-| 25 | [dashboard-tile-lists](features/25-dashboard-tile-lists/spec.md) | 2 — teams as a selectable list, and the rest | Large | 6 | 11, 18 |
+| 25 | [dashboard-tile-lists](features/25-dashboard-tile-lists/spec.md) ✅ | 2 — teams as a selectable list, and the rest | Large | 6 | 11, 18 |
 | 26 | [app-scroll-shell](features/26-app-scroll-shell/spec.md) ✅ | 3 — scrolling deforms the nav bar | Medium | 3 | — |
 | 27 | [popup-button-system](features/27-popup-button-system/spec.md) ✅ | 7 — the game popup's strange buttons | Medium | 5 | 13 |
 | 28 | [training-exercise-details](features/28-training-exercise-details/spec.md) | 5 — open exercise details from a training | Medium | 4 | 06, 13, 27 |
