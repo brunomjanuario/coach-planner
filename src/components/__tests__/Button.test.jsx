@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync, statSync } from "fs";
+import { join } from "path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Button from "../Button";
@@ -116,4 +118,29 @@ test("renders its children", () => {
   render(<Button>Rate squad</Button>);
 
   expect(screen.getByText("Rate squad")).toBeInTheDocument();
+});
+
+test("bg-gray-300 text-white never appears together anywhere in src (AC BTN-01.6)", () => {
+  const offenders = [];
+  const srcDir = join(import.meta.dirname, "..", "..");
+
+  function walk(dir) {
+    for (const entry of readdirSync(dir)) {
+      if (entry === "__tests__") continue;
+      const fullPath = join(dir, entry);
+      const stats = statSync(fullPath);
+      if (stats.isDirectory()) {
+        walk(fullPath);
+      } else if (fullPath.endsWith(".jsx")) {
+        const contents = readFileSync(fullPath, "utf8");
+        if (contents.includes("bg-gray-300 text-white")) {
+          offenders.push(fullPath);
+        }
+      }
+    }
+  }
+
+  walk(srcDir);
+
+  expect(offenders).toEqual([]);
 });
