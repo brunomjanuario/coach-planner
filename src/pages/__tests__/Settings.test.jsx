@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import Settings from "../Settings";
 import { teamService } from "../../services/teamService";
-import { AuthContext } from "../../context/AuthContextInstance";
+import { AuthProvider } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 
 const CONFIRM_MESSAGE =
   "Reset all data to the demo seed? This cannot be undone.";
@@ -19,16 +20,24 @@ function LocationDisplay() {
   return <div data-testid="location">{location.pathname + location.search}</div>;
 }
 
-// PrivateRoute in App.jsx already guarantees a resolved, non-null user
-// before Settings mounts in production — mirror that here instead of
-// racing AuthProvider's async localStorage read on first render.
+// Mirrors App.jsx's PrivateRoute: don't mount children until AuthProvider's
+// mount-time localStorage read has resolved, so `user` is never null here —
+// exactly the guarantee the real route guard gives Settings in production.
+function Gate({ children }) {
+  const { loading } = useAuth();
+  if (loading) return null;
+  return children;
+}
+
 function render(ui, { initialEntries = ["/settings"] } = {}) {
   return rtlRender(
     <MemoryRouter initialEntries={initialEntries}>
-      <AuthContext.Provider value={{ user: SIGNED_IN_USER }}>
-        {ui}
-        <LocationDisplay />
-      </AuthContext.Provider>
+      <AuthProvider>
+        <Gate>
+          {ui}
+          <LocationDisplay />
+        </Gate>
+      </AuthProvider>
     </MemoryRouter>
   );
 }
@@ -49,16 +58,6 @@ test("opens on the Profile tab and the reset button is not in the document", () 
   ).not.toBeInTheDocument();
 });
 
-test("the Profile panel shows the signed-in user's name and email read-only", () => {
-  render(<Settings />);
-
-  expect(screen.getByText("Coach Bruno")).toBeInTheDocument();
-  expect(screen.getByText("user@email.com")).toBeInTheDocument();
-  expect(
-    screen.queryByRole("textbox")
-  ).not.toBeInTheDocument();
-});
-
 test("switching to Advanced shows its panel and hides Profile's", async () => {
   const user = userEvent.setup();
   render(<Settings />);
@@ -68,7 +67,7 @@ test("switching to Advanced shows its panel and hides Profile's", async () => {
   expect(
     screen.getByRole("button", { name: "Reset demo data" })
   ).toBeInTheDocument();
-  expect(screen.queryByText("Coach Bruno")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
 });
 
 test("switching back to Profile hides the Advanced panel again", async () => {
@@ -78,7 +77,7 @@ test("switching back to Profile hides the Advanced panel again", async () => {
   await goToAdvanced(user);
   await user.click(screen.getByRole("tab", { name: "Profile" }));
 
-  expect(screen.getByText("Coach Bruno")).toBeInTheDocument();
+  expect(screen.getByLabelText("Name")).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Reset demo data" })
   ).not.toBeInTheDocument();
@@ -262,4 +261,92 @@ test("reopening the page with the same URL restores the same tab", () => {
     "aria-selected",
     "true"
   );
+});
+
+describe("profile name/email form", () => {
+  test("renders editable name and email fields pre-filled with the current values", () => {
+    render(<Settings />);
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Coach Bruno");
+    expect(screen.getByLabelText("Email")).toHaveValue("user@email.com");
+  });
+
+  test("saving a changed name persists it and reflects it in the UI without a page reload", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "New Name");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("New Name");
+
+    // Re-mount the same tree (an SPA navigation, not a browser reload) to
+    // confirm the new name was actually persisted, not just left in the input.
+    unmount();
+    render(<Settings />);
+    expect(screen.getByLabelText("Name")).toHaveValue("New Name");
+  });
+
+  test("an invalid email is rejected with a message and saves nothing", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Email"));
+    await user.type(screen.getByLabelText("Email"), "not-an-email");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Enter a valid email address"
+    );
+    expect(JSON.parse(localStorage.getItem("user")).email).toBe(
+      "user@email.com"
+    );
+  });
+
+  test("an empty name is rejected with a message and saves nothing", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Name cannot be empty"
+    );
+    const stored = JSON.parse(localStorage.getItem("user"));
+    expect(stored.name).toBeUndefined();
+    expect(stored.username).toBe("Coach Bruno");
+  });
+
+  test("a failed save keeps the typed values in the form", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Email"));
+    await user.type(screen.getByLabelText("Email"), "not-an-email");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByLabelText("Email")).toHaveValue("not-an-email");
+  });
+
+  test("a successful save renders an explicit confirmation", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "New Name");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Profile updated");
+  });
+
+  test("the read-only display from feature 23 is replaced, not duplicated", () => {
+    render(<Settings />);
+
+    expect(
+      screen.queryByText("Editing your profile is coming soon.")
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("user@email.com")).toHaveLength(1);
+  });
 });
