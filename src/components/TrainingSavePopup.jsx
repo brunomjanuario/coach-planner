@@ -4,6 +4,8 @@ import { teamService } from "../services/teamService";
 import ExerciseFields from "./ExerciseFields";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
 import { toInputValue, fromInputValue } from "../lib/datetime";
+import Button from "./Button";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
 export default function TrainingSavePopup({ training, teamId, onClose, onSubmit }) {
@@ -143,22 +145,14 @@ export default function TrainingSavePopup({ training, teamId, onClose, onSubmit 
     <PopupShell
       title={training ? "Edit Training" : "Create Training"}
       footer={
-        <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            className="px-4 py-2 bg-gray-300 text-white rounded"
-            onClick={onClose}
-          >
+        <PopupActions>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
+          </Button>
+          <Button type="submit" form={formId} variant="primary">
             {training ? "Save" : "Create"}
-          </button>
-        </div>
+          </Button>
+        </PopupActions>
       }
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">

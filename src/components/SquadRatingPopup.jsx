@@ -2,6 +2,8 @@ import { useId, useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { ratingService } from "../services/ratingService";
 import RatingInput from "./RatingInput";
+import Button from "./Button";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
 /**
@@ -76,15 +78,11 @@ export default function SquadRatingPopup({ eventType, eventId, teamId, onClose }
       <PopupShell
         title="Rate Squad"
         footer={
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
+          <PopupActions>
+            <Button variant="secondary" onClick={onClose}>
               Close
-            </button>
-          </div>
+            </Button>
+          </PopupActions>
         }
       >
         <p className="text-sm text-gray-500">No players to rate.</p>
@@ -96,22 +94,14 @@ export default function SquadRatingPopup({ eventType, eventId, teamId, onClose }
     <PopupShell
       title="Rate Squad"
       footer={
-        <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            className="px-4 py-2 bg-gray-300 text-white rounded"
-            onClick={onClose}
-          >
+        <PopupActions>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
+          </Button>
+          <Button type="submit" form={formId} variant="primary">
             Save
-          </button>
-        </div>
+          </Button>
+        </PopupActions>
       }
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">

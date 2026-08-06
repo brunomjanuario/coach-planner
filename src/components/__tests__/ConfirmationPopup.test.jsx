@@ -74,3 +74,15 @@ test("stacks correctly when opened from inside another popup (edge case)", async
   await user.click(screen.getByRole("button", { name: "Submit" }));
   expect(onSubmit).toHaveBeenCalledTimes(1);
 });
+
+test("Cancel is secondary and Submit is danger, matching a confirmation dialog's actual risk (AC BTN-04.1)", () => {
+  render(<ConfirmationPopup message="Delete this?" onSubmit={() => {}} onClose={() => {}} />);
+
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const submitButton = screen.getByRole("button", { name: "Submit" });
+
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-red-500/);
+  expect(submitButton.className).toMatch(/bg-red-600/);
+  expect(submitButton.className).not.toMatch(/bg-green-500/);
+});

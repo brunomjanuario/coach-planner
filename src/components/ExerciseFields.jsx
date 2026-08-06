@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { newId } from "../lib/id";
+import Button from "./Button";
 
 const EMPTY_FORM = {
   description: "",
@@ -151,21 +152,13 @@ export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
       </div>
       <div className="flex justify-end gap-2">
         {isEditing && (
-          <button
-            type="button"
-            onClick={onCancelEdit}
-            className="px-3 py-2 bg-gray-300 text-white rounded"
-          >
+          <Button variant="secondary" onClick={onCancelEdit}>
             Cancel
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
-          onClick={handleSubmit}
-          className="px-3 py-2 bg-blue-500 text-white rounded"
-        >
+        <Button variant="primary" onClick={handleSubmit}>
           {isEditing ? "Save" : "Add"}
-        </button>
+        </Button>
       </div>
     </div>
   );

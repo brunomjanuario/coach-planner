@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 13,
+  "next_id": 14,
   "lessons": [
     {
       "id": "L-001",
@@ -220,6 +220,24 @@
       ],
       "created": "2026-08-06T08:29:12Z",
       "last_seen": "2026-08-06T08:29:12Z"
+    },
+    {
+      "id": "L-013",
+      "key": "spec_precision_gap::when migrating multiple files to a shared ui primitive add one assertion per migrated file confirming its own variant class wiring not just tests for the shared primitive itself",
+      "text": "When migrating multiple files to a shared UI primitive, add one assertion per migrated file confirming its own variant/class wiring, not just tests for the shared primitive itself.",
+      "signal": "spec_precision_gap",
+      "scope": "src/components",
+      "status": "candidate",
+      "features": [
+        "27-popup-button-system"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "BTN-04.1 — validation.md Gap #1 (src/components)"
+      ],
+      "created": "2026-08-06T11:07:54Z",
+      "last_seen": "2026-08-06T11:07:54Z"
     }
   ]
 }

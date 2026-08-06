@@ -544,3 +544,18 @@ test("the form contains no type=\"text\" input for opponent or competition", asy
   expect(opponentSelect().tagName).toBe("SELECT");
   expect(competitionSelect().tagName).toBe("SELECT");
 });
+
+test("Cancel is secondary and Save/Create is primary, submitting the detached form by id (AC BTN-01.5)", async () => {
+  mockLists();
+  const { container } = renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const createButton = screen.getByRole("button", { name: "Create" });
+  const form = container.querySelector("form");
+
+  expect(cancelButton.className).toMatch(/border/);
+  expect(createButton.className).toMatch(/bg-blue-600/);
+  expect(createButton).toHaveAttribute("type", "submit");
+  expect(createButton).toHaveAttribute("form", form.id);
+});

@@ -4,6 +4,8 @@ import { opponentService } from "../services/opponentService";
 import { competitionService } from "../services/competitionService";
 import { toInputValue, fromInputValue } from "../lib/datetime";
 import { toOptions } from "../lib/selectOptions";
+import Button from "./Button";
+import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 import OpponentsPopup from "./OpponentsPopup";
 import CompetitionsPopup from "./CompetitionsPopup";
@@ -193,22 +195,14 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
       <PopupShell
         title={game ? "Edit Game" : "Create Game"}
         footer={
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
+          <PopupActions>
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              form={formId}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
+            </Button>
+            <Button type="submit" form={formId} variant="primary">
               {game ? "Save" : "Create"}
-            </button>
-          </div>
+            </Button>
+          </PopupActions>
         }
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">

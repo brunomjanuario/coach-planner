@@ -80,3 +80,14 @@ test("clicking Cancel calls onClose without submitting", async () => {
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(createSpy).not.toHaveBeenCalled();
 });
+
+test("Cancel is secondary and Submit is primary (AC BTN-04.1)", () => {
+  render(<TeamPopup team={null} onClose={() => {}} />);
+
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const submitButton = screen.getByRole("button", { name: "Submit" });
+
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+  expect(submitButton.className).toMatch(/bg-blue-600/);
+});

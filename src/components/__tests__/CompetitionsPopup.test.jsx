@@ -277,3 +277,23 @@ test("a 20-item list scrolls inside the shell with the create form still reachab
   expect(shellBody).not.toContainElement(input);
   expect(addButton).toBeInTheDocument();
 });
+
+test("Close is secondary, Add is primary, and the inline rename row uses the same variants (AC BTN-04.1)", async () => {
+  vi.spyOn(competitionService, "getAll").mockResolvedValue([{ id: "1", name: "Cup" }]);
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("Cup");
+
+  const closeButton = screen.getByRole("button", { name: "Close" });
+  const addButton = screen.getByRole("button", { name: "Add" });
+  expect(closeButton.className).toMatch(/border/);
+  expect(closeButton.className).not.toMatch(/bg-gray-300/);
+  expect(addButton.className).toMatch(/bg-blue-600/);
+
+  await user.click(screen.getByRole("button", { name: "Rename Cup" }));
+  const saveButton = screen.getByRole("button", { name: "Save" });
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  expect(saveButton.className).toMatch(/bg-blue-600/);
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+});

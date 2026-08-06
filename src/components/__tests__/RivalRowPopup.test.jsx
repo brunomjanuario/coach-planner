@@ -218,3 +218,13 @@ test("cancelling calls onClose without calling onSubmit", async () => {
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(onSubmit).not.toHaveBeenCalled();
 });
+
+test("Cancel is secondary and Add is primary (AC BTN-04.1)", () => {
+  renderPopup();
+
+  const cancelButton = screen.getByRole("button", { name: "Cancel" });
+  const addButton = screen.getByRole("button", { name: "Add" });
+  expect(cancelButton.className).toMatch(/border/);
+  expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+  expect(addButton.className).toMatch(/bg-blue-600/);
+});

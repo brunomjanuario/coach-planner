@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
+import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
+import PopupActions from "./PopupActions";
 import SquadRatingPopup from "./SquadRatingPopup";
 import PopupShell from "./PopupShell";
 
@@ -30,36 +32,23 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
             : "Training Details"
         }
         footer={
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-300 text-white rounded"
-              onClick={onClose}
-            >
+          <PopupActions
+            destructive={
+              <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+                Delete
+              </Button>
+            }
+          >
+            <Button variant="secondary" onClick={onClose}>
               Close
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-              onClick={onEdit}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-red-600 text-white rounded"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-green-600 text-white rounded"
-              onClick={() => setShowRatingPopup(true)}
-            >
+            </Button>
+            <Button variant="secondary" onClick={() => setShowRatingPopup(true)}>
               Rate squad
-            </button>
-          </div>
+            </Button>
+            <Button variant="primary" onClick={onEdit}>
+              Edit
+            </Button>
+          </PopupActions>
         }
       >
         <div className="space-y-4">
