@@ -20,6 +20,7 @@ import StatTile from "../components/StatTile";
 import ListTile from "../components/ListTile";
 import LeaderTile from "../components/LeaderTile";
 import TeamFilterBar from "../components/TeamFilterBar";
+import Button from "../components/Button";
 
 const DASHBOARD_LIST_LIMIT = 3;
 
@@ -60,6 +61,15 @@ export default function Home() {
     load();
   }, []);
 
+  // Guards against a filter left pointing at a team that no longer exists
+  // (e.g. deleted in another tab while this dashboard is open) — falls back
+  // to "All teams" rather than silently filtering by a dangling id.
+  useEffect(() => {
+    if (!loading && teamFilter != null && !teams.some((t) => t.id === teamFilter)) {
+      setTeamFilter(null);
+    }
+  }, [teams, loading, teamFilter]);
+
   function handleTeamFilterChange(teamId) {
     if (teamId == null) {
       setTeamFilter(null);
@@ -69,6 +79,7 @@ export default function Home() {
     setTeamFilter(match ? match.id : null);
   }
 
+  const activeTeam = teamFilter != null ? teams.find((t) => t.id === teamFilter) : undefined;
   const scopedTeams =
     teamFilter != null ? teams.filter((t) => t.id === teamFilter) : teams;
   const scopedTrainings =
@@ -105,6 +116,16 @@ export default function Home() {
         activeTeamId={teamFilter}
         onChange={handleTeamFilterChange}
       />
+      {activeTeam && (
+        <div className="flex items-center gap-2 text-sm">
+          <span>
+            Showing: {activeTeam.club} {activeTeam.name}
+          </span>
+          <Button variant="ghost" onClick={() => handleTeamFilterChange(null)}>
+            Clear
+          </Button>
+        </div>
+      )}
       <section>
         <h2 className="text-lg font-semibold mb-2">Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-fr gap-4">

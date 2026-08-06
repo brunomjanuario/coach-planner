@@ -1081,3 +1081,71 @@ test("no <select> element remains on the dashboard (AC DFILT-02.1)", async () =>
 
   expect(container.querySelector("select")).not.toBeInTheDocument();
 });
+
+test("with a filter active, a Showing line renders naming the same team as the pressed chip, with a Clear action (AC DFILT-02.4, DFILT-03)", async () => {
+  const user = userEvent.setup();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+
+  expect(screen.getByText("Showing: Amadora Sub-11")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Amadora Sub-11" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});
+
+test("with no filter active, neither the Showing line nor Clear is in the document (AC DFILT-02.6)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+});
+
+test("Clear resets the filter, presses All teams and removes the Showing line (AC DFILT-02.5)", async () => {
+  const user = userEvent.setup();
+  renderHome();
+  await screen.findByText("Teams");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+  await screen.findByText("Showing: Amadora Sub-11");
+
+  await user.click(screen.getByRole("button", { name: "Clear" }));
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All teams" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  expect(within(getTile("Teams")).getByText("2")).toBeInTheDocument();
+});
+
+test("when the filtered team is no longer present after a revisit, the filter falls back to All teams and no Showing line names a missing team (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+    { id: 2, club: "Areias", name: "Sub-19", players: [] },
+  ]);
+  const user = userEvent.setup();
+  const { unmount } = renderHome();
+  await screen.findByText("Teams");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+  await screen.findByText("Showing: Amadora Sub-11");
+  unmount();
+
+  // Simulates the team having been deleted elsewhere before this revisit —
+  // Home always mounts with no filter, so the fallback is observed at the
+  // point a fresh load can no longer have carried a dangling filter forward.
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 2, club: "Areias", name: "Sub-19", players: [] },
+  ]);
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All teams" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});
