@@ -1,9 +1,11 @@
 # Coach Planner — Feature Roadmap
 
-Two planning rounds. **Round one** (`00`–`11`) built the app: twelve features
-derived from ten ideas, plus two foundations. All twelve are implemented and
-merged. **Round two** (`12`–`24`) is thirteen features derived from the user's
-change list — one feature per change, each independently shippable.
+Three planning rounds. **Round one** (`00`–`11`) built the app: twelve features
+derived from ten ideas, plus two foundations. **Round two** (`12`–`24`) is
+thirteen features derived from the user's change list. Both rounds are
+implemented and merged. **Round three** (`25`–`32`) is eight features derived
+from the user's second change list — one feature per item, each independently
+shippable.
 
 Every feature has a `spec.md` (WHAT, with traceable requirement IDs) and a
 `tasks.md` (atomic tasks with dependencies, tests and gates).
@@ -48,9 +50,7 @@ Every feature has a `spec.md` (WHAT, with traceable requirement IDs) and a
 
 ---
 
-## Round two — planned
-
-Nothing here is implemented. This is the plan.
+## Round two — shipped
 
 ```
 12-player-list-refresh  ─┐
@@ -114,6 +114,78 @@ split rather than mapped one-to-one:
 
 ---
 
+## Round three — planned
+
+Nothing here is implemented. This is the plan.
+
+```
+26-app-scroll-shell  ──────► foundation: every page sits on it
+      │
+27-popup-button-system ────► must precede 28, 29, 30 (they add/edit popups)
+      │
+      ├──► 25-dashboard-tile-lists ──► 32-dashboard-filter-ui
+      │
+      ├──► 28-training-exercise-details ──► 29-exercise-designer
+      │
+      └──► 30-game-reference-manager
+
+31-settings-tabs-polish   (independent — but 30 consumes the Tabs it restyles)
+```
+
+| # | Feature | Change it serves | Scope | Tasks | Depends on |
+|---|---------|------------------|-------|-------|------------|
+| 25 | [dashboard-tile-lists](features/25-dashboard-tile-lists/spec.md) | 2 — teams as a selectable list, and the rest | Large | 6 | 11, 18 |
+| 26 | [app-scroll-shell](features/26-app-scroll-shell/spec.md) | 3 — scrolling deforms the nav bar | Medium | 3 | — |
+| 27 | [popup-button-system](features/27-popup-button-system/spec.md) | 7 — the game popup's strange buttons | Medium | 5 | 13 |
+| 28 | [training-exercise-details](features/28-training-exercise-details/spec.md) | 5 — open exercise details from a training | Medium | 4 | 06, 13, 27 |
+| 29 | [exercise-designer](features/29-exercise-designer/spec.md) | 4 — draw an exercise | **Complex** | 9 | 01, 04, 27, 28 |
+| 30 | [game-reference-manager](features/30-game-reference-manager/spec.md) | 6 — opponents and competitions in one popup | Medium | 5 | 20, 21, 22, 23, 27 |
+| 31 | [settings-tabs-polish](features/31-settings-tabs-polish/spec.md) | 8 — the settings tab display is ugly | Small | 3 | 23 |
+| 32 | [dashboard-filter-ui](features/32-dashboard-filter-ui/spec.md) | 1 — equal squares, a better filter | Medium | 4 | 18, 25, 31 |
+
+**39 atomic tasks.** Each feature gets its own branch off `main` and its own PR,
+matching the `20 → 21 → 22 → 23` pattern.
+
+### Suggested order
+
+1. **`26`** — the shell. Every page sits inside it, and it is the one change
+   that fixes a bug the user can see on every screen.
+2. **`27`** — the button system. It must land before `28`, `29` and `30`, all of
+   which add or restructure popups; running it later means migrating those
+   popups twice.
+3. **`25` → `32`** — the dashboard. `25` changes what the tiles *contain*, `32`
+   sizes them and replaces the filter. Sizing before the contents are final
+   would measure the wrong thing.
+4. **`31`** — the tab restyle. Independent, but `30` consumes `Tabs`, so doing
+   it first avoids a mid-round visual mismatch. It also closes `23`'s
+   carried-forward test-strength gap.
+5. **`28` → `29`** — exercises. `28` gives an exercise a detail view and reserves
+   a slot; `29` fills the slot with a diagram. `29` is the only Complex feature
+   in the round and the only one that adds a runtime dependency.
+6. **`30`** — the reference-list merge. Last because it is pure consolidation:
+   nothing depends on it, and it benefits from `27` and `31` already being in.
+
+### Where the changes were split, and why
+
+- **Item 1** ("same size squares" + "improve the filter") and **item 2**
+  ("teams as a list, and the rest of the screens") both land on the dashboard,
+  but in opposite directions: `25` changes tile *content*, `32` changes tile
+  *geometry and chrome*. Doing them as one feature would mean sizing tiles
+  against content that was about to change.
+- **Item 4** ("draw the exercise") is the only Complex feature in the round and
+  the only one with a design phase. It adds a dependency, a schema version and a
+  data model, and it carries a testing constraint — Konva needs a real canvas,
+  which jsdom does not have — that shapes the whole architecture. See its
+  [`design.md`](features/29-exercise-designer/design.md).
+- **Item 5** ("open exercise details") is separated from item 4 because the
+  detail view is worth shipping on its own and gives the diagram somewhere to
+  live. `28` reserves the slot; `29` fills it.
+- **Item 7** ("strange buttons") was reported against one popup and is fixed
+  across all eleven. The specific defect — white text on light grey — appears
+  fourteen times, and `28`/`29`/`30` are all about to add more popups.
+
+---
+
 ## How to execute one
 
 Each `tasks.md` opens with the execution protocol. In short:
@@ -129,14 +201,17 @@ Each `tasks.md` opens with the execution protocol. In short:
 ## Design phase
 
 Round one flagged four features (`01`, `07`, `09`, `11`) as needing an
-architecture pass. **No round-two feature does.** The two with real modelling
-decisions — `20` and `21` — settled them in their Assumptions tables and in
-AD-010, and neither is Large. If a feature turns out to need design once its
-turn comes, run the Design phase then, against the codebase as it actually is.
+architecture pass. No round-two feature did. **Round three has exactly one:
+`29-exercise-designer`** — a new runtime dependency, a schema version, a new
+data model, and a testing constraint (Konva needs a real canvas; jsdom has
+none) that decides the whole architecture. Every other round-three feature
+settles its modelling questions in its Assumptions table. If one turns out to
+need design once its turn comes, run the Design phase then, against the
+codebase as it actually is.
 
 ## Project decisions
 
-Read [`STATE.md`](STATE.md) before starting any feature. Eleven decisions govern
+Read [`STATE.md`](STATE.md) before starting any feature. Sixteen decisions govern
 this roadmap. Round two added three:
 
 - **AD-009** — the popup overlay is defined once, in `PopupShell`.
@@ -144,6 +219,21 @@ this roadmap. Round two added three:
   foreign keys; games keep their name strings.
 - **AD-011** — the auth mock stores plaintext credentials and honours them. It is
   consistent, not secure, and is replaced wholesale when a backend arrives.
+
+Round three added five:
+
+- **AD-012** — the app shell owns the scroll; one `<main>` is the only scroll
+  container, and the shell never gets a `transform` (it would break every
+  `fixed` popup).
+- **AD-013** — one `Button` and one `PopupActions` own every popup action
+  button. No popup writes its own button classes.
+- **AD-014** — dashboard tile rows **navigate** to a record; the team filter
+  stays a separate control.
+- **AD-015** — exercise diagrams are normalised JSON rendered as SVG; Konva is a
+  lazily-loaded editor-only input device, never in the read path or the initial
+  bundle.
+- **AD-016** — opponents and competitions share one manager and one popup.
+  AD-010 stands: still reference lists, still not foreign keys.
 
 ## What is deliberately not here
 
@@ -154,4 +244,8 @@ this roadmap. Round two added three:
 | Per-competition league tables | `20` deliberately stops at a named entity. Scoping standings per competition is a real feature with its own questions. |
 | Head-to-head records per opponent | A consumer of `21`'s data, not part of creating it. |
 | Focus trapping and Escape-to-close on popups | `13` fixes the height bug and does not regress focus. Full modal accessibility deserves its own ACs. |
-| Fixing `TeamCard`/`PlayerCard` image paths | Still broken in production builds (`src/assets/images/*.png` resolves only in dev). Untouched by these thirteen; worth its own small feature. |
+| Fixing `TeamCard`/`PlayerCard` image paths | Still broken in production builds (`src/assets/images/*.png` resolves only in dev). Untouched by all three rounds; worth its own small feature. |
+| An opponent belonging to a competition (a real foreign key) | AD-016 reads "opponents are linked to competitions" as a UI request and merges the popups. The relational version reverses AD-010, rewrites every game record and reopens standings — a feature, not a restyle. |
+| Animating, exporting or sharing an exercise diagram | `29` gets to a static, editable, storable diagram. Each of those three is a separate product question. |
+| Adopting `Button` for page-level buttons | `27` stops at the popup boundary, where the contrast bug lives. Page headers have different sizing; a follow-up can adopt the same component. |
+| Persisting the dashboard's team filter across reloads | No dashboard state persists today. `32` changes how the filter looks, not how long it lives. |

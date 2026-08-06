@@ -101,9 +101,69 @@
 - **Date**: 2026-08-04
 - **Status**: active
 
+### AD-012
+
+- **Decision**: The app shell owns the scroll. `App.jsx`'s authenticated wrapper is `h-screen overflow-hidden`; a single `<main>` is the one `overflow-y-auto` container. No page declares its own viewport height, and the shell never gets `transform`, `filter` or `contain`.
+- **Reason**: The shell had a width constraint and no height constraint, so the document scrolled and the `h-screen` sidebar scrolled away with it — its background running out partway up the screen. Fixing it per-page would mean six places to get it right and one place to get it wrong.
+- **Trade-off**: Route changes no longer reset scroll position, and any future page that wants its own scroll pane has to opt into it deliberately. The transform ban is invisible until someone adds an animation to the shell and every popup silently stops being viewport-anchored — recorded here so it is a rule rather than a surprise.
+- **Scope**: `26-app-scroll-shell`, `src/App.jsx`, `src/components/Sidebar.jsx`, every page root.
+- **Date**: 2026-08-06
+- **Status**: active
+
+### AD-013
+
+- **Decision**: One `Button` component (with `primary`/`secondary`/`danger`/`ghost` variants) and one `PopupActions` row own every popup action button's appearance and ordering. No popup writes its own button classes.
+- **Reason**: Fourteen buttons across eleven popups were `bg-gray-300 text-white` — white on light grey, roughly 1.5:1, below the 4.5:1 bar `14-ratings-contrast` already set for this codebase. Thirty-odd hand-copied class strings is the same failure mode AD-009 fixed for the overlay: one bad style becomes fourteen bugs.
+- **Trade-off**: Two reds collapse into one `danger`, so "clear a result" and "delete a game" now look equally weighty — accepted, because nothing in the product distinguished them and both sit behind a confirmation anyway. A popup wanting a genuinely different button has to extend the component rather than opt out.
+- **Scope**: `27-popup-button-system`, every `*Popup` component. Page-level buttons are explicitly not covered yet.
+- **Date**: 2026-08-06
+- **Status**: active
+
+### AD-014
+
+- **Decision**: Dashboard tiles list their records and a row **navigates** to that record's page with the record open. The team filter stays a separate control; rows never change dashboard state.
+- **Reason**: User selection during specification. Keeps the dashboard read-only and reuses the `?training=`/`?game=` deep links that already exist, rather than inventing cross-tile filter state.
+- **Trade-off**: Clicking a team on the dashboard leaves the dashboard, which is not what a coach comparing two teams wants — that job stays with the filter bar. It also forces a `?team=` deep link onto the Teams page, which is the one destination that lacked one.
+- **Scope**: `25-dashboard-tile-lists`, `32-dashboard-filter-ui`, `src/pages/Home.jsx`, `src/pages/Teams.jsx`.
+- **Date**: 2026-08-06
+- **Status**: active
+
+### AD-015
+
+- **Decision**: Exercise diagrams are stored as compact JSON with **normalised 0–1 coordinates** on a new `exercise.diagram` field, rendered read-only as inline SVG. Konva (via `react-konva`) is a lazily-loaded input device for the editor only, and never appears in the read path or the initial bundle.
+- **Reason**: `localStorage` has a ~5MB ceiling (AD-002) and a raster image per exercise would both spend it and make a drawing uneditable. A diagram is drawn once and looked at many times, so the common path should not need a canvas — and jsdom has no canvas, so a Konva-based read path could not be tested at all.
+- **Trade-off**: Two renderers for one data model — Konva for editing, SVG for viewing — which must be kept visually consistent by hand. Adding `react-konva` also requires bumping React from 19.1.0 to `^19.2.0` (verified peer requirement). The legacy `image` field stays unused rather than being repurposed.
+- **Scope**: `29-exercise-designer`, `src/lib/exerciseDiagram.js`, `src/components/DiagramView.jsx`, `src/components/ExerciseDiagramEditor.jsx`, store `SCHEMA_VERSION` 4.
+- **Date**: 2026-08-06
+- **Status**: active
+
+### AD-016
+
+- **Decision**: Opponents and competitions are merged into **one manager component and one tabbed popup**. AD-010 stands unchanged: they remain independent reference lists of name strings, not a foreign-key relationship.
+- **Reason**: The request — "opponents are linked to competitions, they should be in the same popup" — is about placement. `OpponentsPopup` and `CompetitionsPopup` were 226 and 228 lines differing only in the noun, so every fix had to be written twice. Reading the same sentence as a data-model change would reverse AD-010, rewrite every game record and every read path, for a request whose visible output is where a button is.
+- **Trade-off**: If a real opponent→competition relationship is wanted later, this consolidation does not deliver it and does not block it — it is a separate feature with its own migration and standings questions. Recorded so the alternative reading is on file rather than lost.
+- **Scope**: `30-game-reference-manager`, `src/components/ReferenceListManager.jsx`, `src/components/ReferenceListsPopup.jsx`.
+- **Date**: 2026-08-06
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: `24-profile-settings` — done and verified (PASS, no fix iteration needed). This was the last remaining specified feature — no more round-two features are pending.
+- **Feature**: Round three (`25`–`32`) — **specified and planned, none implemented.** Eight features derived from the user's eight-item change list, one feature per item, each with `spec.md` and `tasks.md`; `29-exercise-designer` also has `design.md`. 39 atomic tasks total.
+- **Phase / Task**: Specify + Tasks complete for all eight. Execute not started on any of them. Four gray areas were resolved with the user before writing: tile rows **navigate** rather than filter (AD-014); the drawing tool is **react-konva** as a tactics board (AD-015); the button fix covers **all eleven popups** via a shared component (AD-013); and each feature gets **its own directory, branch and PR**, matching the `20→21→22→23` pattern.
+- **Recommended execution order**: `26` → `27` → `25` → `32` → `28` → `29` → `30` → `31`. `26` is a foundation every page sits on; `27` must land before `28`/`29`/`30` add or edit popups, or those popups get migrated twice; `32` sizes the dashboard tiles and must follow `25`, which changes what they contain; `29` needs `28`'s reserved diagram slot. `31` is independent of all of them but `30` consumes the `Tabs` it restyles, so running `31` first avoids a visual mismatch mid-round.
+- **Completed**: nothing implemented. Planning artefacts written: 8 × `spec.md`, 8 × `tasks.md`, 1 × `design.md`, this decisions block (AD-012 – AD-016), and `.specs/README.md`'s round-three section.
+- **In-progress** (file:line): none.
+- **Next step**: pick a feature from the order above, branch from an up-to-date `main`, and run its `tasks.md` through the skill's Execute flow. Everything except `29` fits a single task batch and executes inline; `29`'s 9 tasks pack into 2 batches and will trigger the sub-agent offer.
+- **Blockers**: `feature/23-settings-tabs` (#26) and `feature/24-profile-settings` (#27) are both merged to `main` as of this session's starting commit `5871e35`, so round three branches from a clean `main`. **One dependency check before `29`:** it bumps React from 19.1.0 to `^19.2.0` because `react-konva@19.2.5` requires it — T1 does that bump alone, with the full suite as its gate, so a React regression cannot be mistaken for a drawing bug.
+- **Uncommitted files**: the round-three planning artefacts listed above are written but not committed.
+- **Branch**: `main` (clean at planning time). Each round-three feature gets its own branch off `main`, per the user's choice.
+- **Open items carried forward**: (1) the `11-dashboard` question about a batch aggregation method on `ratingService` — still unanswered, still not forced; (2) `23`'s SETT-04.3 test-strength gap — **now assigned**, closed by `31-settings-tabs-polish` T3; (3) the `24` sign-out/refresh quirk (one `localStorage` key doubles as stored account and session flag) — still accepted, untouched by round three; (4) `TeamCard`/`PlayerCard` image paths still resolve only in dev, not in production builds — still unplanned, still worth its own small feature.
+
+---
+
+## Superseded handoff (24-profile-settings)
+
+- **Feature**: `24-profile-settings` — done and verified (PASS, no fix iteration needed). This was the last remaining round-two feature.
 - **Phase / Task**: All 5 tasks complete across 2 phases — Phase 1 (mock consistency): T1 (`src/context/AuthContext.jsx` — `signIn` now checks the stored `user` record instead of only the hard-coded pair, falling back to the demo password when a stored user has none; `signUp` stops discarding its password param; `signOut` clears only the in-memory session, deliberately leaving `localStorage` intact so a later `signIn` still works — AC PROF-01.6; email comparison case-insensitive/trimmed, password exact; corrupt `localStorage` JSON treated as signed out; legacy `username`→`name` migrated on read, `62e78c5`) → T2 (`updateProfile({name,email})` and `changePassword({current,next,confirm})` added, same `{success,message}` shape as `signIn`/`signUp`; both reject invalid input without writing, `b832bf2`). Phase 2 (the profile form, in `src/pages/Settings.jsx`'s Profile tab): T3 (`ProfileForm` — editable name/email pre-filled from `user`, inline `role="alert"`/`role="status"` feedback; had to switch the email `<input>` from `type="email"` to `type="text"` because jsdom's native constraint validation was silently blocking submission before the custom validator ran, `4531765`) → T4 (`PasswordForm` — three password fields in its own `<form>` so it can't cross-submit with the profile form; wrong-current/mismatch/empty-new each render a distinct message, `1fa9aa8`) → T5 (a `RoundTripHarness` test component proves change-email+password → sign-out → old pair rejected → new pair signs in end-to-end; a reset-preserves-profile test; `CLAUDE.md` and `docs/08-authentication.md` rewritten to document the new credential model and the explicit "this is not authentication" scoping, `4291db1`).
 - **Verifier**: Single pass, PASS — 30/30 ACs and edge cases covered with `file:line` evidence matching spec-defined outcomes, gate (`lint && build && test`) green at 1126/1126 tests (+44 vs. the `23` baseline), discrimination sensor 3/3 mutations killed (re-adding `signOut`'s `localStorage.removeItem`, dropping `changePassword`'s current-password guard, dropping `updateProfile`'s email-regex guard were all caught). Zero gaps. See `.specs/features/24-profile-settings/validation.md`.
 - **Completed**: T1–T5, each committed individually on `feature/24-profile-settings`, plus two docs commits (task/spec status, Verifier report).
