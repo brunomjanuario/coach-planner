@@ -350,3 +350,125 @@ describe("profile name/email form", () => {
     expect(screen.getAllByDisplayValue("user@email.com")).toHaveLength(1);
   });
 });
+
+describe("password form", () => {
+  // SIGNED_IN_USER has no stored password, so it falls back to the demo
+  // password ("password") — see AuthContext's PROF-01.4 behaviour.
+  const CURRENT_PASSWORD = "password";
+
+  test("current, new and confirm render as password inputs", () => {
+    render(<Settings />);
+
+    expect(screen.getByLabelText("Current password")).toHaveAttribute(
+      "type",
+      "password"
+    );
+    expect(screen.getByLabelText("New password")).toHaveAttribute(
+      "type",
+      "password"
+    );
+    expect(screen.getByLabelText("Confirm new password")).toHaveAttribute(
+      "type",
+      "password"
+    );
+  });
+
+  test("a wrong current password renders its own message", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.type(screen.getByLabelText("Current password"), "wrong");
+    await user.type(screen.getByLabelText("New password"), "newpass");
+    await user.type(screen.getByLabelText("Confirm new password"), "newpass");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Current password is incorrect"
+    );
+  });
+
+  test("a mismatched confirmation renders its own, different message", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.type(
+      screen.getByLabelText("Current password"),
+      CURRENT_PASSWORD
+    );
+    await user.type(screen.getByLabelText("New password"), "newpass");
+    await user.type(
+      screen.getByLabelText("Confirm new password"),
+      "different"
+    );
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "New passwords do not match"
+    );
+  });
+
+  test("an empty new password renders its own, different message", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.type(
+      screen.getByLabelText("Current password"),
+      CURRENT_PASSWORD
+    );
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "New password cannot be empty"
+    );
+  });
+
+  test("a successful change clears all three fields, confirms, and keeps the user signed in", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.type(
+      screen.getByLabelText("Current password"),
+      CURRENT_PASSWORD
+    );
+    await user.type(screen.getByLabelText("New password"), "newpass");
+    await user.type(screen.getByLabelText("Confirm new password"), "newpass");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Password updated");
+    expect(screen.getByLabelText("Current password")).toHaveValue("");
+    expect(screen.getByLabelText("New password")).toHaveValue("");
+    expect(screen.getByLabelText("Confirm new password")).toHaveValue("");
+    // Still signed in: the Profile panel (with its own form) is still on screen.
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
+  test("a failed change leaves the fields as typed", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.type(screen.getByLabelText("Current password"), "wrong");
+    await user.type(screen.getByLabelText("New password"), "newpass");
+    await user.type(screen.getByLabelText("Confirm new password"), "newpass");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+
+    expect(screen.getByLabelText("Current password")).toHaveValue("wrong");
+    expect(screen.getByLabelText("New password")).toHaveValue("newpass");
+    expect(screen.getByLabelText("Confirm new password")).toHaveValue(
+      "newpass"
+    );
+  });
+
+  test("is a separate form from the name/email form — submitting one does not submit the other", async () => {
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "New Name");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(
+      screen.getByLabelText("Current password").closest("form")
+    ).not.toBe(screen.getByLabelText("Name").closest("form"));
+    expect(screen.getByLabelText("Current password")).toHaveValue("");
+  });
+});

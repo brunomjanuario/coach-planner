@@ -78,10 +78,92 @@ function ProfileForm() {
   );
 }
 
+function PasswordForm() {
+  const { changePassword } = useAuth();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSuccess("");
+    const result = changePassword({ current, next, confirm });
+    if (result.success) {
+      setError("");
+      setSuccess(result.message);
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } else {
+      setError(result.message);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 max-w-sm mt-6">
+      <div>
+        <label htmlFor="password-current" className="block text-sm font-semibold mb-1">
+          Current password
+        </label>
+        <input
+          id="password-current"
+          type="password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      <div>
+        <label htmlFor="password-next" className="block text-sm font-semibold mb-1">
+          New password
+        </label>
+        <input
+          id="password-next"
+          type="password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      <div>
+        <label htmlFor="password-confirm" className="block text-sm font-semibold mb-1">
+          Confirm new password
+        </label>
+        <input
+          id="password-confirm"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          className={INPUT_CLASS}
+        />
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="text-sm text-green-600">
+          {success}
+        </p>
+      )}
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+      >
+        Change password
+      </button>
+    </form>
+  );
+}
+
 function ProfilePanel() {
   return (
     <div className="p-4">
       <ProfileForm />
+      <PasswordForm />
     </div>
   );
 }
