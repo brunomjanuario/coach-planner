@@ -10,7 +10,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 **Spec**: `.specs/features/26-app-scroll-shell/spec.md`
 **Design**: not required
-**Status**: Not started
+**Status**: Complete
 **Batches**: 3 tasks → 1 batch, execute inline (no sub-agents)
 
 ---
@@ -60,14 +60,14 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The authenticated shell renders `h-screen` **and** `overflow-hidden` (AC SHELL-01.1) — assert both, since either alone leaves the bug
-- [ ] The inner routes render inside a `<main>` carrying `flex-1 min-w-0 overflow-y-auto` (AC SHELL-01.3)
-- [ ] `<main>` is the **only** element in the rendered tree with `overflow-y-auto` (AC SHELL-01.3) — assert the count is 1, not merely that one exists
-- [ ] The sidebar and `<main>` are siblings; the sidebar is not a descendant of `<main>` (AC SHELL-01.4)
-- [ ] The shell carries no `transform`, `filter`, `backdrop-`, `perspective` or `contain` class (AC SHELL-04.1) — this is what keeps `fixed` popups anchored to the viewport
-- [ ] `/signin` and `/signup` render with no shell wrapper (edge case)
-- [ ] Gate passes: `npx vitest run src/__tests__/App.test.jsx`
-- [ ] Test count: 8+ tests pass
+- [x] The authenticated shell renders `h-screen` **and** `overflow-hidden` (AC SHELL-01.1) — assert both, since either alone leaves the bug
+- [x] The inner routes render inside a `<main>` carrying `flex-1 min-w-0 overflow-y-auto` (AC SHELL-01.3)
+- [x] `<main>` is the **only** element in the rendered tree with `overflow-y-auto` (AC SHELL-01.3) — assert the count is 1, not merely that one exists
+- [x] The sidebar and `<main>` are siblings; the sidebar is not a descendant of `<main>` (AC SHELL-01.4)
+- [x] The shell carries no `transform`, `filter`, `backdrop-`, `perspective` or `contain` class (AC SHELL-04.1) — this is what keeps `fixed` popups anchored to the viewport
+- [x] `/signin` and `/signup` render with no shell wrapper (edge case)
+- [x] Gate passes: `npx vitest run src/__tests__/App.test.jsx`
+- [x] Test count: 8+ tests pass
 
 **Tests**: integration
 **Gate**: quick
@@ -87,11 +87,11 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] The sidebar root carries `h-full` and no longer carries `h-screen` (AC SHELL-01.2) — assert the absence explicitly; leaving both would silently keep the old behaviour
-- [ ] The sidebar root still carries `flex-shrink-0` (or equivalent) so it cannot be squeezed by a wide main region (edge case: narrow viewport)
-- [ ] Every existing sidebar test still passes unchanged — links, tooltips and sign-out behaviour are untouched
-- [ ] Gate passes: `npx vitest run src/components/__tests__/Sidebar.test.jsx`
-- [ ] Test count: 3+ new assertions on top of the existing suite
+- [x] The sidebar root carries `h-full` and no longer carries `h-screen` (AC SHELL-01.2) — assert the absence explicitly; leaving both would silently keep the old behaviour
+- [x] The sidebar root still carries `flex-shrink-0` (or equivalent) so it cannot be squeezed by a wide main region (edge case: narrow viewport)
+- [x] Every existing sidebar test still passes unchanged — links, tooltips and sign-out behaviour are untouched
+- [x] Gate passes: `npx vitest run src/components/__tests__/Sidebar.test.jsx`
+- [x] Test count: 3+ new assertions on top of the existing suite
 
 **Tests**: component
 **Gate**: quick
@@ -111,13 +111,13 @@ T1 → T2 → T3
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] No page root declares `h-screen` or `min-h-screen` (AC SHELL-03.1) — one assertion per page, six in total, so a future page cannot regress silently
-- [ ] Rendering each page inside the shell yields exactly one `overflow-y-auto` element (AC SHELL-03.2)
-- [ ] The league table keeps its own horizontal overflow container (AC SHELL-03.3) — assert on `LeagueTable`, not on the page, so the assertion survives a page rework
-- [ ] A page shorter than the viewport still renders the sidebar at `h-full` with no scrollbar class added (edge case)
-- [ ] A popup opened from `Trainings` still renders `fixed inset-0` and `max-h-[85vh]` (AC SHELL-04.1, SHELL-04.2)
-- [ ] Gate passes: `npm run lint && npm run build && npm test`
-- [ ] Test count: 12+ tests pass
+- [x] No page root declares `h-screen` or `min-h-screen` (AC SHELL-03.1) — one assertion per page, six in total, so a future page cannot regress silently
+- [x] Rendering each page inside the shell yields exactly one `overflow-y-auto` element (AC SHELL-03.2)
+- [x] The league table keeps its own horizontal overflow container (AC SHELL-03.3) — assert on `LeagueTable`, not on the page, so the assertion survives a page rework
+- [x] A page shorter than the viewport still renders the sidebar at `h-full` with no scrollbar class added (edge case)
+- [x] A popup opened from `Trainings` still renders `fixed inset-0` and `max-h-[85vh]` (AC SHELL-04.1, SHELL-04.2)
+- [x] Gate passes: `npm run lint && npm run build && npm test`
+- [x] Test count: 12+ tests pass
 
 **Tests**: integration
 **Gate**: build
