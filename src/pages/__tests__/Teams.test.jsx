@@ -660,3 +660,18 @@ test("logs an error and does not crash when loading suspensions fails", async ()
   });
   expect(within(getColumn("Players")).getByText("1 João")).toBeInTheDocument();
 });
+
+test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
+  const { container } = render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
+
+test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", async () => {
+  const { container } = render(<Teams />);
+  await screen.findByText("Amadora Sub-11");
+
+  expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
+});

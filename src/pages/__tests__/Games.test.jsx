@@ -1290,3 +1290,10 @@ describe("Game form selects (feature 22)", () => {
     expect(opponentSelectEl).toHaveValue("Opponent 5");
   });
 });
+
+test("does not declare its own min-h-screen — the app shell owns the viewport height (AC SHELL-03.1)", async () => {
+  const { container } = renderGames();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+  expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
+});
