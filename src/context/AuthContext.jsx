@@ -8,6 +8,7 @@ import { AuthContext } from "./AuthContextInstance";
 const STORAGE_KEY = "user";
 const DEMO_EMAIL = "user@email.com";
 const DEMO_PASSWORD = "password";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeStoredUser(raw) {
   if (!raw || typeof raw !== "object") return raw;
@@ -72,8 +73,66 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateProfile = ({ name, email }) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { success: false, message: "Name cannot be empty" };
+    }
+    const trimmedEmail = email.trim();
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      return { success: false, message: "Enter a valid email address" };
+    }
+
+    const updated = { ...user, name: trimmedName, email: trimmedEmail };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      return {
+        success: false,
+        message: "Could not save your profile. Try again.",
+      };
+    }
+    setUser(updated);
+    return { success: true, message: "Profile updated" };
+  };
+
+  const changePassword = ({ current, next, confirm }) => {
+    const storedPassword = user.password ?? DEMO_PASSWORD;
+    if (current !== storedPassword) {
+      return { success: false, message: "Current password is incorrect" };
+    }
+    if (!next) {
+      return { success: false, message: "New password cannot be empty" };
+    }
+    if (next !== confirm) {
+      return { success: false, message: "New passwords do not match" };
+    }
+
+    const updated = { ...user, password: next };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      return {
+        success: false,
+        message: "Could not save your password. Try again.",
+      };
+    }
+    setUser(updated);
+    return { success: true, message: "Password updated" };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, signUp, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        signIn,
+        signOut,
+        signUp,
+        loading,
+        updateProfile,
+        changePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

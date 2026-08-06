@@ -257,3 +257,244 @@ test("a legacy stored user with username and no name is read as having that name
 
   expect(result.current.user.name).toBe("Legacy Coach");
 });
+
+describe("updateProfile", () => {
+  function signedInResult() {
+    const { result } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    return result;
+  }
+
+  test("persists the new name and email and updates the context user", () => {
+    const result = signedInResult();
+
+    let updateResult;
+    act(() => {
+      updateResult = result.current.updateProfile({
+        name: "New Name",
+        email: "new@club.pt",
+      });
+    });
+
+    expect(updateResult).toEqual({ success: true, message: "Profile updated" });
+    expect(result.current.user).toMatchObject({
+      name: "New Name",
+      email: "new@club.pt",
+    });
+    const stored = JSON.parse(localStorage.getItem("user"));
+    expect(stored).toMatchObject({ name: "New Name", email: "new@club.pt" });
+  });
+
+  test("rejects an invalid email and writes nothing", () => {
+    const result = signedInResult();
+
+    let updateResult;
+    act(() => {
+      updateResult = result.current.updateProfile({
+        name: "New Name",
+        email: "not-an-email",
+      });
+    });
+
+    expect(updateResult).toEqual({
+      success: false,
+      message: "Enter a valid email address",
+    });
+    const stored = JSON.parse(localStorage.getItem("user"));
+    expect(stored.email).toBe("coach@club.pt");
+    expect(stored.name).toBeUndefined();
+  });
+
+  test("rejects an empty or whitespace-only name and writes nothing", () => {
+    const result = signedInResult();
+
+    let updateResult;
+    act(() => {
+      updateResult = result.current.updateProfile({
+        name: "   ",
+        email: "new@club.pt",
+      });
+    });
+
+    expect(updateResult).toEqual({
+      success: false,
+      message: "Name cannot be empty",
+    });
+    const stored = JSON.parse(localStorage.getItem("user"));
+    expect(stored.email).toBe("coach@club.pt");
+  });
+
+  test("trims the email before storing it", () => {
+    const result = signedInResult();
+
+    act(() => {
+      result.current.updateProfile({
+        name: "New Name",
+        email: "  new@club.pt  ",
+      });
+    });
+
+    expect(result.current.user.email).toBe("new@club.pt");
+  });
+
+  test("returns a failure result rather than success when storage throws", () => {
+    const result = signedInResult();
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("quota exceeded");
+      });
+
+    let updateResult;
+    act(() => {
+      updateResult = result.current.updateProfile({
+        name: "New Name",
+        email: "new@club.pt",
+      });
+    });
+
+    expect(updateResult).toEqual({
+      success: false,
+      message: "Could not save your profile. Try again.",
+    });
+    setItemSpy.mockRestore();
+  });
+});
+
+describe("changePassword", () => {
+  function signedInResult() {
+    const { result } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    return result;
+  }
+
+  test("rejects a wrong current password without altering the stored one", () => {
+    const result = signedInResult();
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "wrong",
+        next: "newpass",
+        confirm: "newpass",
+      });
+    });
+
+    expect(changeResult).toEqual({
+      success: false,
+      message: "Current password is incorrect",
+    });
+    const stored = JSON.parse(localStorage.getItem("user"));
+    expect(stored.password).toBe("hunter2");
+  });
+
+  test("rejects a mismatched confirmation", () => {
+    const result = signedInResult();
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "hunter2",
+        next: "newpass",
+        confirm: "different",
+      });
+    });
+
+    expect(changeResult).toEqual({
+      success: false,
+      message: "New passwords do not match",
+    });
+  });
+
+  test("rejects an empty new password", () => {
+    const result = signedInResult();
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "hunter2",
+        next: "",
+        confirm: "",
+      });
+    });
+
+    expect(changeResult).toEqual({
+      success: false,
+      message: "New password cannot be empty",
+    });
+  });
+
+  test("a successful change keeps the user signed in and requires the new password on the next sign-in while rejecting the old one", () => {
+    const result = signedInResult();
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "hunter2",
+        next: "newpass",
+        confirm: "newpass",
+      });
+    });
+
+    expect(changeResult).toEqual({ success: true, message: "Password updated" });
+    expect(result.current.user).not.toBeNull();
+
+    let oldPairResult;
+    act(() => {
+      oldPairResult = result.current.signIn("coach@club.pt", "hunter2");
+    });
+    expect(oldPairResult).toEqual({
+      success: false,
+      message: "Invalid email or password",
+    });
+
+    let newPairResult;
+    act(() => {
+      newPairResult = result.current.signIn("coach@club.pt", "newpass");
+    });
+    expect(newPairResult).toEqual({ success: true });
+  });
+
+  test("returns a failure result rather than success when storage throws", () => {
+    const result = signedInResult();
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("quota exceeded");
+      });
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "hunter2",
+        next: "newpass",
+        confirm: "newpass",
+      });
+    });
+
+    expect(changeResult).toEqual({
+      success: false,
+      message: "Could not save your password. Try again.",
+    });
+    setItemSpy.mockRestore();
+  });
+
+  test("returns the same { success, message } shape as signIn/signUp", () => {
+    const result = signedInResult();
+
+    let changeResult;
+    act(() => {
+      changeResult = result.current.changePassword({
+        current: "hunter2",
+        next: "newpass",
+        confirm: "newpass",
+      });
+    });
+
+    expect(Object.keys(changeResult).sort()).toEqual(["message", "success"]);
+  });
+});
