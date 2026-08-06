@@ -12,7 +12,10 @@ import {
   topRated,
   nextEvent,
   teamRows,
+  upcomingRows,
 } from "../lib/dashboardStats";
+import { formatTrainingDate } from "../lib/trainingDisplay";
+import { formatGameDate, homeAwayPrefix } from "../lib/gameSchedule";
 import StatTile from "../components/StatTile";
 import ListTile from "../components/ListTile";
 import LeaderTile from "../components/LeaderTile";
@@ -41,7 +44,7 @@ export default function Home() {
       const [teamsData, trainingsData, gamesData, cardsData, ratingsData] =
         await Promise.all([
           teamService.getAll(),
-          trainingService.getAll(),
+          trainingService.getAllNumbered(),
           gameService.getAll(),
           cardService.getAll(),
           ratingService.getAll(),
@@ -76,6 +79,13 @@ export default function Home() {
 
   const stats = counts({ teams, trainings, games }, teamFilter ?? undefined);
   const teamList = teamRows(scopedTeams, DASHBOARD_LIST_LIMIT);
+  const now = new Date();
+  const trainingList = upcomingRows(scopedTrainings, now, DASHBOARD_LIST_LIMIT, {
+    dateField: "day",
+  });
+  const gameList = upcomingRows(scopedGames, now, DASHBOARD_LIST_LIMIT, {
+    dateField: "date",
+  });
   const scorers = topScorers(players, 3);
   const carded = topCarded(players, cards, 3);
   const teamGames = topTeamGames(scopedTeams, scopedGames, 3);
@@ -120,17 +130,34 @@ export default function Home() {
             loading={loading}
             emptyHref="/teams"
           />
-          <StatTile
+          <ListTile
             label="Training"
-            value={stats.trainings.total}
+            count={stats.trainings.total}
             breakdown={`${stats.trainings.past} past · ${stats.trainings.upcoming} upcoming`}
+            rows={trainingList.entries.map((training) => ({
+              id: training.id,
+              label:
+                training.number != null
+                  ? `Training #${training.number} · ${formatTrainingDate(training.day)}`
+                  : formatTrainingDate(training.day),
+              href: `/trainings?training=${training.id}`,
+            }))}
+            overflow={trainingList.overflow}
+            basis={trainingList.basis}
             loading={loading}
             emptyHref="/trainings"
           />
-          <StatTile
+          <ListTile
             label="Games"
-            value={stats.games.total}
+            count={stats.games.total}
             breakdown={`${stats.games.played} played · ${stats.games.upcoming} upcoming`}
+            rows={gameList.entries.map((game) => ({
+              id: game.id,
+              label: `${homeAwayPrefix(game)} ${game.opponent} · ${formatGameDate(game.date)}`,
+              href: `/games?game=${game.id}`,
+            }))}
+            overflow={gameList.overflow}
+            basis={gameList.basis}
             loading={loading}
             emptyHref="/games"
           />

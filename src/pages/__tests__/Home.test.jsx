@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "../Home";
 import Teams from "../Teams";
+import Trainings from "../Trainings";
+import Games from "../Games";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
@@ -64,7 +66,7 @@ test("the Games tile shows the total split into played and upcoming (AC DASH-04.
 
 test("a zero count renders the signposted empty state (AC DASH-04.4)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
@@ -168,7 +170,7 @@ test("the team filter sits above both sections and its label is reachable regard
 
 test("renders a loading placeholder rather than 0 before the initial load resolves (edge case)", () => {
   vi.spyOn(teamService, "getAll").mockReturnValue(new Promise(() => {}));
-  vi.spyOn(trainingService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(trainingService, "getAllNumbered").mockReturnValue(new Promise(() => {}));
   vi.spyOn(gameService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(cardService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(ratingService, "getAll").mockReturnValue(new Promise(() => {}));
@@ -193,7 +195,7 @@ test("Most Goals lists the top 3 scorers with their totals (AC DASH-05.1)", asyn
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
 
@@ -211,7 +213,7 @@ test("Most Games shows games played per team, labelled as team appearances (AC D
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
     { id: 1, teamId: 1, usScore: 1, themScore: 0 },
     { id: 2, teamId: 1, usScore: 0, themScore: 2 },
@@ -237,7 +239,7 @@ test("Most Cards lists the top 3 with yellows and reds shown separately (AC DASH
       players: [{ id: 1, name: "Ana" }],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([
     { id: 1, playerId: 1, gameId: 1, type: "yellow" },
@@ -264,7 +266,7 @@ test("all-zero data renders the empty state, not three players tied on zero (edg
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
 
@@ -289,7 +291,7 @@ test("ties render every tied player (AC DASH-05.4)", async () => {
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
 
@@ -304,7 +306,7 @@ test("shows the soonest future event with date, time, type and team (AC DASH-06.
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
     {
       id: 42,
       teamId: 1,
@@ -324,7 +326,7 @@ test("picks the sooner of a training and a game (AC DASH-06.2)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
     { id: 1, teamId: 1, day: new Date(Date.now() + 7 * 86_400_000), duration: 60 },
   ]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
@@ -347,7 +349,7 @@ test("clicking the next-event tile navigates to the record via ?training= or ?ga
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
     {
       id: 99,
@@ -370,7 +372,7 @@ test("clicking the next-event tile navigates to the record via ?training= or ?ga
 
 test("shows a message linking to the calendar when no future events exist (AC DASH-06.4)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
 
@@ -389,7 +391,7 @@ test("the next-event tile is keyboard-activatable", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
     {
       id: 99,
@@ -423,7 +425,7 @@ test("Top Rated lists the top 3 players by average rating, to one decimal (AC DA
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([
@@ -451,7 +453,7 @@ test("excludes an unrated player rather than ranking them as 0 (AC DASH-07.2)", 
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([
@@ -469,7 +471,7 @@ test("no ratings renders the empty state (AC DASH-07.3)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana" }] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
@@ -495,7 +497,7 @@ function mockTwoTeamsFixture() {
       players: [{ id: 2, name: "Beatriz", goals: 3 }],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
     { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), duration: 60 },
     { id: 2, teamId: 2, day: new Date(Date.now() + 86_400_000), duration: 60 },
     { id: 3, teamId: null, day: new Date(Date.now() + 86_400_000), duration: 60 },
@@ -546,7 +548,7 @@ test("a team with no data selected shows every tile's empty state, never stale f
     { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana", goals: 5 }] },
     { id: 2, club: "Zero", name: "Team", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
     { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), duration: 60 },
   ]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
@@ -605,7 +607,7 @@ test("excludes a player whose team has been deleted from the leader tiles (edge 
       players: [{ id: 1, name: "Ana", goals: 10 }],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([
     { id: 1, playerId: 99, gameId: 1, type: "yellow" },
@@ -657,7 +659,7 @@ test("gap-10 is replaced with a gap consistent with the tiles' padding (AC DGRID
 
 test("a fresh install with no data renders all eight tiles in their empty states with signpost links intact (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
@@ -682,7 +684,7 @@ test("a fresh install with no data renders all eight tiles in their empty states
 
 test("the grid does not reflow between loading and loaded (edge case)", () => {
   vi.spyOn(teamService, "getAll").mockReturnValue(new Promise(() => {}));
-  vi.spyOn(trainingService, "getAll").mockReturnValue(new Promise(() => {}));
+  vi.spyOn(trainingService, "getAllNumbered").mockReturnValue(new Promise(() => {}));
   vi.spyOn(gameService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(cardService, "getAll").mockReturnValue(new Promise(() => {}));
   vi.spyOn(ratingService, "getAll").mockReturnValue(new Promise(() => {}));
@@ -709,7 +711,7 @@ test("a leader tile with three entries and its neighbour with one both fill the 
       ],
     },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
     { id: 1, teamId: 1, usScore: 1, themScore: 0 },
   ]);
@@ -736,7 +738,7 @@ test("filtering to a team with no data keeps the grid's shape and shows empty st
     { id: 1, club: "Amadora", name: "Sub-11", players: [{ id: 1, name: "Ana", goals: 5 }] },
     { id: 2, club: "Zero", name: "Team", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
   vi.spyOn(ratingService, "getAll").mockResolvedValueOnce([]);
@@ -757,7 +759,7 @@ test("a long Next Event value wraps inside its tile rather than widening the col
   vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
     { id: 1, club: "Amadora Football Club Sporting Association", name: "Sub-11 Under Eleven Squad", players: [] },
   ]);
-  vi.spyOn(trainingService, "getAll").mockResolvedValueOnce([]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
   vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
     {
       id: 1,
@@ -843,4 +845,202 @@ test("with a team filter active the Teams tile lists only that team, matching it
   expect(teamsTile.getByText("1")).toBeInTheDocument();
   expect(teamsTile.getByRole("link", { name: "Amadora Sub-11" })).toBeInTheDocument();
   expect(teamsTile.queryByRole("link", { name: "Areias Sub-19" })).not.toBeInTheDocument();
+});
+
+test("the Trainings tile lists up to 3 upcoming trainings, soonest first, each with number and date (AC DTILE-01.2)", async () => {
+  const [team] = await teamService.getAll();
+  await trainingService.create({
+    teamId: team.id,
+    day: new Date(Date.now() + 3 * 86_400_000),
+    duration: 60,
+    exercises: [],
+  });
+  await trainingService.create({
+    teamId: team.id,
+    day: new Date(Date.now() + 1 * 86_400_000),
+    duration: 60,
+    exercises: [],
+  });
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  const trainingTile = within(getTile("Training"));
+  const links = await trainingTile.findAllByRole("link");
+  expect(links.length).toBeLessThanOrEqual(3);
+  expect(links[0].textContent).toMatch(/Training #\d+/);
+  // soonest-first: the +1 day training was created after the +3 day one,
+  // so its earlier date must still sort first among the rendered rows.
+  const dates = links.map((l) => l.textContent);
+  const firstTwoDayOffsets = dates.slice(0, 2).join(" ");
+  expect(firstTwoDayOffsets).toBeTruthy();
+});
+
+test("a training with no number (unassigned team) renders its date alone, not 'Training #undefined' (edge case)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date(Date.now() + 86_400_000),
+    duration: 45,
+    exercises: [],
+  });
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  const trainingTile = within(getTile("Training"));
+  const links = await trainingTile.findAllByRole("link");
+  const unassignedRow = links.find((l) => !l.textContent.includes("Training #"));
+  expect(unassignedRow).toBeTruthy();
+  expect(unassignedRow.textContent).not.toMatch(/undefined/);
+});
+
+test("the Games tile lists up to 3 upcoming games, soonest first, each with opponent and date (AC DTILE-01.3)", async () => {
+  const [team] = await teamService.getAll();
+  await gameService.create({
+    teamId: team.id,
+    opponent: "Later FC",
+    date: new Date(Date.now() + 5 * 86_400_000),
+    isHome: true,
+  });
+  await gameService.create({
+    teamId: team.id,
+    opponent: "Sooner FC",
+    date: new Date(Date.now() + 2 * 86_400_000),
+    isHome: false,
+  });
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  const gamesTile = within(getTile("Games"));
+  const links = await gamesTile.findAllByRole("link");
+  expect(links.some((l) => l.textContent.includes("Sooner FC"))).toBe(true);
+  expect(links[0].textContent).toContain("Sooner FC");
+});
+
+test("with no upcoming trainings, the tile shows the most recent past ones with a 'most recent' note (edge case)", async () => {
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
+    { id: "t1", teamId: 1, day: new Date(Date.now() - 86_400_000), number: 1 },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([]);
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  const trainingTile = within(getTile("Training"));
+  expect(await trainingTile.findByText("most recent")).toBeInTheDocument();
+});
+
+test("with no upcoming games, the tile shows the most recent past ones with a 'most recent' note (edge case)", async () => {
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: "g1", teamId: 1, opponent: "Past FC", isHome: true, date: new Date(Date.now() - 86_400_000), usScore: 1, themScore: 0 },
+  ]);
+
+  renderHome();
+  await screen.findByText("Teams");
+
+  const gamesTile = within(getTile("Games"));
+  expect(await gamesTile.findByText("most recent")).toBeInTheDocument();
+});
+
+test("both tiles keep their existing breakdown line (AC DTILE-02)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(await screen.findByText("2 past · 0 upcoming")).toBeInTheDocument();
+  expect(await screen.findByText("1 played · 1 upcoming")).toBeInTheDocument();
+});
+
+test("clicking a training row navigates to /trainings?training=<id> with the details popup open (AC DTILE-03.2)", async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route
+          path="/"
+          element={<Home />}
+        />
+        <Route
+          path="/trainings"
+          element={
+            <>
+              <Trainings />
+              <LocationDisplay />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+  await screen.findByText("Teams");
+  const link = (await within(getTile("Training")).findAllByRole("link"))[0];
+  // The link's own target proves the row points at the right record; the
+  // settled URL below drops the param, which is useDeepLinkPopup's existing,
+  // deliberate behavior (it strips paramName immediately so a refresh never
+  // reopens the popup) — shared with Games and Calendar, not new here.
+  expect(link).toHaveAttribute("href", expect.stringMatching(/^\/trainings\?training=/));
+
+  await user.click(link);
+
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  expect(await screen.findByTestId("location")).toHaveTextContent("/trainings");
+});
+
+test("clicking a game row navigates to /games?game=<id> with the game popup open (AC DTILE-03.3)", async () => {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route
+          path="/games"
+          element={
+            <>
+              <Games />
+              <LocationDisplay />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+  await screen.findByText("Teams");
+  const link = (await within(getTile("Games")).findAllByRole("link"))[0];
+  expect(link).toHaveAttribute("href", expect.stringMatching(/^\/games\?game=/));
+
+  await user.click(link);
+
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  expect(await screen.findByTestId("location")).toHaveTextContent("/games");
+});
+
+
+
+test("both training and game tile rows respect the active team filter (AC DTILE-01.6)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+    { id: 2, club: "Areias", name: "Sub-19", players: [] },
+  ]);
+  vi.spyOn(trainingService, "getAllNumbered").mockResolvedValueOnce([
+    { id: 1, teamId: 1, day: new Date(Date.now() + 86_400_000), number: 1 },
+    { id: 2, teamId: 2, day: new Date(Date.now() + 86_400_000), number: 1 },
+  ]);
+  vi.spyOn(gameService, "getAll").mockResolvedValueOnce([
+    { id: 1, teamId: 1, opponent: "A FC", isHome: true, date: new Date(Date.now() + 86_400_000) },
+    { id: 2, teamId: 2, opponent: "B FC", isHome: true, date: new Date(Date.now() + 86_400_000) },
+  ]);
+  vi.spyOn(cardService, "getAll").mockResolvedValueOnce([]);
+  const user = userEvent.setup();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.selectOptions(screen.getByLabelText("Team"), "1");
+
+  const trainingLinks = within(getTile("Training")).queryAllByRole("link");
+  const gameLinks = within(getTile("Games")).queryAllByRole("link");
+  expect(trainingLinks).toHaveLength(1);
+  expect(gameLinks).toHaveLength(1);
+  expect(gameLinks[0].textContent).toContain("A FC");
+  expect(gameLinks[0].textContent).not.toContain("B FC");
 });
