@@ -116,9 +116,9 @@ split rather than mapped one-to-one:
 
 ## Round three — in progress
 
-`26-app-scroll-shell`, `27-popup-button-system` and `25-dashboard-tile-lists`
-are implemented and verified (PASS), each on its own unmerged branch. The
-other five are planned, none implemented.
+`26-app-scroll-shell`, `27-popup-button-system`, `25-dashboard-tile-lists`
+and `32-dashboard-filter-ui` are implemented and verified (PASS), each on
+its own unmerged branch. The other four are planned, none implemented.
 
 ```
 26-app-scroll-shell  ──────► foundation: every page sits on it
@@ -143,7 +143,7 @@ other five are planned, none implemented.
 | 29 | [exercise-designer](features/29-exercise-designer/spec.md) | 4 — draw an exercise | **Complex** | 9 | 01, 04, 27, 28 |
 | 30 | [game-reference-manager](features/30-game-reference-manager/spec.md) | 6 — opponents and competitions in one popup | Medium | 5 | 20, 21, 22, 23, 27 |
 | 31 | [settings-tabs-polish](features/31-settings-tabs-polish/spec.md) | 8 — the settings tab display is ugly | Small | 3 | 23 |
-| 32 | [dashboard-filter-ui](features/32-dashboard-filter-ui/spec.md) | 1 — equal squares, a better filter | Medium | 4 | 18, 25, 31 |
+| 32 | [dashboard-filter-ui](features/32-dashboard-filter-ui/spec.md) ✅ | 1 — equal squares, a better filter | Medium | 4 | 18, 25, 31 |
 
 **39 atomic tasks.** Each feature gets its own branch off `main` and its own PR,
 matching the `20 → 21 → 22 → 23` pattern.

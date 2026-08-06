@@ -140,7 +140,7 @@ test("selecting a team recomputes tiles in both Overview and Leaders sections (r
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
   const goalsTile = within(getTile("Most Goals"));
@@ -156,14 +156,14 @@ test("both section headings are real heading elements (AC DGRID-03.3)", async ()
   expect(screen.getByRole("heading", { name: "Leaders" }).tagName).toMatch(/^H[1-6]$/);
 });
 
-test("the team filter sits above both sections and its label is reachable regardless of section order (AC DGRID-03.4)", async () => {
+test("the team filter sits above both sections and is reachable regardless of section order (AC DGRID-03.4)", async () => {
   const { container } = renderHome();
   await screen.findByText("Teams");
 
-  const filterLabel = screen.getByText("Team").closest("label");
+  const filterGroup = screen.getByRole("group", { name: /filter dashboard by team/i });
   const overviewHeading = screen.getByRole("heading", { name: "Overview" });
   expect(
-    filterLabel.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    filterGroup.compareDocumentPosition(overviewHeading) & Node.DOCUMENT_POSITION_FOLLOWING
   ).toBeTruthy();
   expect(container).toBeTruthy();
 });
@@ -516,7 +516,7 @@ test("selecting a team recomputes every tile for that team only (AC DASH-08.1)",
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
   expect(within(getTile("Training")).getByText("0 past · 1 upcoming")).toBeInTheDocument();
@@ -531,10 +531,10 @@ test("clearing the filter recomputes across all teams (AC DASH-08.2)", async () 
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
   expect(within(getTile("Teams")).getByText("1")).toBeInTheDocument();
 
-  await user.selectOptions(screen.getByLabelText("Team"), "");
+  await user.click(screen.getByRole("button", { name: "All teams" }));
 
   expect(within(getTile("Teams")).getByText("2")).toBeInTheDocument();
   const goalsTile = within(getTile("Most Goals"));
@@ -560,7 +560,7 @@ test("a team with no data selected shows every tile's empty state, never stale f
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "2");
+  await user.click(screen.getByRole("button", { name: "Zero Team" }));
 
   expect(within(getTile("Training")).getByText("No data yet")).toBeInTheDocument();
   expect(within(getTile("Games")).getByText("No data yet")).toBeInTheDocument();
@@ -579,7 +579,7 @@ test("filter changes recompute without re-fetching or reloading (AC DASH-08.4)",
 
   expect(teamService.getAll).toHaveBeenCalledTimes(1);
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
   await within(getTile("Teams")).findByText("1");
 
   expect(teamService.getAll).toHaveBeenCalledTimes(1);
@@ -593,7 +593,7 @@ test("excludes an unassigned training when filtered, counts it when unfiltered (
 
   expect(within(getTile("Training")).getByText("3")).toBeInTheDocument();
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   expect(within(getTile("Training")).getByText("1")).toBeInTheDocument();
 });
@@ -746,7 +746,7 @@ test("filtering to a team with no data keeps the grid's shape and shows empty st
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "2");
+  await user.click(screen.getByRole("button", { name: "Zero Team" }));
 
   const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
   const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
@@ -839,7 +839,7 @@ test("with a team filter active the Teams tile lists only that team, matching it
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   const teamsTile = within(getTile("Teams"));
   expect(teamsTile.getByText("1")).toBeInTheDocument();
@@ -1033,7 +1033,7 @@ test("both training and game tile rows respect the active team filter (AC DTILE-
   renderHome();
   await screen.findByText("Teams");
 
-  await user.selectOptions(screen.getByLabelText("Team"), "1");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
 
   const trainingLinks = within(getTile("Training")).queryAllByRole("link");
   const gameLinks = within(getTile("Games")).queryAllByRole("link");
@@ -1060,4 +1060,100 @@ test("does not render a row for a record no longer in its own collection after a
 
   const remainingLinks = within(getTile("Training")).queryAllByRole("link");
   expect(remainingLinks.some((l) => l.getAttribute("href")?.includes("stale-training"))).toBe(false);
+});
+
+test("all eight dashboard tiles carry the shared minimum-height class (AC DFILT-01.1)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  const overviewGrid = screen.getByRole("heading", { name: "Overview" }).nextElementSibling;
+  const leadersGrid = screen.getByRole("heading", { name: "Leaders" }).nextElementSibling;
+  const tiles = [...overviewGrid.children, ...leadersGrid.children];
+  expect(tiles).toHaveLength(8);
+  for (const tile of tiles) {
+    expect(tile.className).toMatch(/min-h-36/);
+  }
+});
+
+test("no <select> element remains on the dashboard (AC DFILT-02.1)", async () => {
+  const { container } = renderHome();
+  await screen.findByText("Teams");
+
+  expect(container.querySelector("select")).not.toBeInTheDocument();
+});
+
+test("with a filter active, a Showing line renders naming the same team as the pressed chip, with a Clear action (AC DFILT-02.4, DFILT-03)", async () => {
+  const user = userEvent.setup();
+  renderHome();
+  await screen.findByText("Teams");
+
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+
+  expect(screen.getByText("Showing: Amadora Sub-11")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Amadora Sub-11" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});
+
+test("with no filter active, neither the Showing line nor Clear is in the document (AC DFILT-02.6)", async () => {
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+});
+
+test("Clear resets the filter, presses All teams and removes the Showing line (AC DFILT-02.5)", async () => {
+  const user = userEvent.setup();
+  renderHome();
+  await screen.findByText("Teams");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+  await screen.findByText("Showing: Amadora Sub-11");
+
+  await user.click(screen.getByRole("button", { name: "Clear" }));
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All teams" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  expect(within(getTile("Teams")).getByText("2")).toBeInTheDocument();
+});
+
+test("when the filtered team is no longer present after a revisit, the filter falls back to All teams and no Showing line names a missing team (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 1, club: "Amadora", name: "Sub-11", players: [] },
+    { id: 2, club: "Areias", name: "Sub-19", players: [] },
+  ]);
+  const user = userEvent.setup();
+  const { unmount } = renderHome();
+  await screen.findByText("Teams");
+  await user.click(screen.getByRole("button", { name: "Amadora Sub-11" }));
+  await screen.findByText("Showing: Amadora Sub-11");
+  unmount();
+
+  // Simulates the team having been deleted elsewhere before this revisit.
+  // NOTE (flagged by the feature's Verifier): this passes whether or not
+  // Home.jsx's defensive useEffect exists, because a fresh mount already
+  // starts with teamFilter=null regardless — Home has no live mid-session
+  // refetch, so the guard's branch (teamFilter set AND teams changes under
+  // it) is currently unreachable within one mount. The guard's own logic
+  // was verified correct by direct source read; it stays in as harmless,
+  // spec-required, forward-looking code for if Home ever gains a refresh
+  // path. This test proves the *observable* requirement — a revisit never
+  // shows a Showing line for a team that's gone — at the level Home's
+  // current architecture actually supports.
+  vi.spyOn(teamService, "getAll").mockResolvedValueOnce([
+    { id: 2, club: "Areias", name: "Sub-19", players: [] },
+  ]);
+  renderHome();
+  await screen.findByText("Teams");
+
+  expect(screen.queryByText(/^Showing:/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All teams" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
 });

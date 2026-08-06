@@ -180,3 +180,17 @@ test("TILE_CLASS is declared in exactly one module — StatTile and LeaderTile n
   expect(leaderTileSrc).not.toMatch(/\bTILE_CLASS\s*=/);
   expect(tileSrc).toMatch(/\bTILE_CLASS\s*=/);
 });
+
+test("carries the shared minimum-height class, including its loading skeleton (AC DFILT-01.1, DFILT-01.5)", () => {
+  const { unmount } = render(
+    <LeaderTile
+      label="Most Goals"
+      data={{ entries: [{ id: 1, name: "Ana", value: 3, rank: 1 }], overflow: 0 }}
+    />
+  );
+  expect(screen.getByText("Most Goals").parentElement.className).toMatch(/min-h-36/);
+  unmount();
+
+  render(<LeaderTile label="Most Goals" loading data={{ entries: [], overflow: 0 }} />);
+  expect(screen.getByText("Most Goals").parentElement.className).toMatch(/min-h-36/);
+});

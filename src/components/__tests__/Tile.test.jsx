@@ -94,3 +94,9 @@ test("renders no note element when none is given", () => {
 
   expect(container.textContent).not.toContain("appearances");
 });
+
+test("carries a shared minimum-height class so every tile variant is the same size (AC DFILT-01.1)", () => {
+  renderTile();
+
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+});

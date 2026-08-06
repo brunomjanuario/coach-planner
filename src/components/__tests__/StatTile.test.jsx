@@ -128,3 +128,12 @@ test("an interactive tile's surface class matches the plain tile's surface class
 
   expect(linkClass).toContain(plainClass);
 });
+
+test("carries the shared minimum-height class, including its loading skeleton (AC DFILT-01.1, DFILT-01.5)", () => {
+  const { unmount } = renderTile({ value: 4 });
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+  unmount();
+
+  renderTile({ value: 4, loading: true });
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+});

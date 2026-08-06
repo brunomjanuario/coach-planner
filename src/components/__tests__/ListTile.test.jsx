@@ -133,3 +133,16 @@ test("renders rows in the order given, without re-sorting", () => {
   const links = within(container).getAllByRole("link").map((l) => l.textContent);
   expect(links).toEqual(["Second", "First"]);
 });
+
+test("carries the shared minimum-height class in populated, empty and loading states (AC DFILT-01.1, DFILT-01.5)", () => {
+  const { unmount } = renderTile({ count: 5, rows });
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+  unmount();
+
+  const { unmount: unmountEmpty } = renderTile({ count: 0, rows: [] });
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+  unmountEmpty();
+
+  renderTile({ count: 5, rows, loading: true });
+  expect(screen.getByText("Teams").parentElement.className).toMatch(/min-h-36/);
+});
