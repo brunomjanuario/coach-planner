@@ -558,3 +558,37 @@ test("the squad rating view opened from a game scopes ratings to that game's tea
   // it must match teamA's own roster size, not include teamB's players.
   expect(screen.getAllByRole("spinbutton")).toHaveLength(teamA.players.length);
 });
+
+test("Clear Result and Delete Game render together in one action row, both danger, with no second red shade (AC BTN-02.2)", async () => {
+  await renderPopup({ game: playedGame, onDelete: vi.fn() });
+
+  const clearButton = screen.getByRole("button", { name: "Clear Result" });
+  const deleteButton = screen.getByRole("button", { name: "Delete Game" });
+
+  expect(clearButton.className).toMatch(/bg-red-600/);
+  expect(deleteButton.className).toMatch(/bg-red-600/);
+  expect(clearButton.className).not.toMatch(/bg-red-800/);
+  expect(deleteButton.className).not.toMatch(/bg-red-800/);
+  expect(clearButton.parentElement).toBe(deleteButton.parentElement);
+
+  const dialog = screen.getByRole("dialog");
+  const footer = dialog.querySelector(".border-t");
+  expect(footer.querySelectorAll(":scope > *")).toHaveLength(1);
+});
+
+test("Rate squad renders as a secondary action, not green (AC BTN-02.3)", async () => {
+  await renderPopup({ game: scheduledGame });
+
+  const rateButton = screen.getByRole("button", { name: "Rate squad" });
+  expect(rateButton.className).not.toMatch(/bg-green-600/);
+  expect(rateButton.className).toMatch(/border/);
+});
+
+test("with no saved result, the destructive slot holds only Delete Game and leaves no gap (edge case)", async () => {
+  await renderPopup({ game: scheduledGame, onDelete: vi.fn() });
+
+  expect(screen.queryByRole("button", { name: "Clear Result" })).not.toBeInTheDocument();
+  const deleteButton = screen.getByRole("button", { name: "Delete Game" });
+  expect(deleteButton.parentElement.className).toMatch(/mr-auto/);
+  expect(deleteButton.parentElement.children).toHaveLength(1);
+});

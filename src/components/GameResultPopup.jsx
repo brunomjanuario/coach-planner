@@ -1,7 +1,9 @@
 import { useId, useState } from "react";
 import { hasResult } from "../lib/gameResult";
+import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
 import GameCardsSection from "./GameCardsSection";
+import PopupActions from "./PopupActions";
 import SquadRatingPopup from "./SquadRatingPopup";
 import PopupShell from "./PopupShell";
 
@@ -73,51 +75,32 @@ export default function GameResultPopup({ game, onClose, onSubmit, onClear, onDe
       <PopupShell
         title={hasResult(game) ? "Edit Result" : "Record Result"}
         footer={
-          <div className="space-y-2">
-            <div className="flex justify-end space-x-2">
-              {hasResult(game) && (
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-red-600 text-white rounded mr-auto"
-                  onClick={handleClear}
-                >
-                  Clear Result
-                </button>
-              )}
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-300 text-white rounded"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form={formId}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 bg-green-600 text-white rounded"
-                onClick={() => setShowRatingPopup(true)}
-              >
-                Rate squad
-              </button>
-            </div>
-            {onDelete && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-red-800 text-white rounded"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Delete Game
-                </button>
-              </div>
-            )}
-          </div>
+          <PopupActions
+            destructive={
+              <>
+                {hasResult(game) && (
+                  <Button variant="danger" onClick={handleClear}>
+                    Clear Result
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+                    Delete Game
+                  </Button>
+                )}
+              </>
+            }
+          >
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="secondary" onClick={() => setShowRatingPopup(true)}>
+              Rate squad
+            </Button>
+            <Button type="submit" form={formId} variant="primary">
+              Save
+            </Button>
+          </PopupActions>
         }
       >
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
