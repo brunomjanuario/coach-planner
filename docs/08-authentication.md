@@ -20,11 +20,13 @@
 
 | Value | Type | Description |
 | --- | --- | --- |
-| `user` | `{ email, username? } \| null` | Current session, `null` when signed out. |
+| `user` | `{ email, name?, username?, password? } \| null` | Current session, `null` when signed out. |
 | `loading` | `boolean` | `true` until the `localStorage` read completes on mount. |
-| `signIn` | `(email, password) => Result` | Validates against the demo credentials. |
-| `signUp` | `(username, email, password) => Result` | Accepts any email except the demo one. |
-| `signOut` | `() => void` | Clears state and `localStorage`. |
+| `signIn` | `(email, password) => Result` | Checks the stored user, falling back to the demo pair. |
+| `signUp` | `(username, email, password) => Result` | Accepts any email except the demo one; now stores the password. |
+| `signOut` | `() => void` | Clears the session but leaves stored credentials in `localStorage`. |
+| `updateProfile` | `({ name, email }) => Result` | Validates and persists a new name/email. |
+| `changePassword` | `({ current, next, confirm }) => Result` | Validates and persists a new password. |
 
 `Result` is `{ success: true }` or `{ success: false, message: string }`. Both
 functions are **synchronous** despite representing network operations — call
@@ -38,22 +40,56 @@ import { useAuth } from "../context/AuthContext";
 const { user, signIn, signOut, signUp, loading } = useAuth();
 ```
 
+## ⚠️ This is not authentication
+
+Credentials — including the password — are stored as **plaintext** in
+`localStorage`, readable by any script on the origin. There is no server, no
+session token and no hashing. Feature `24-profile-settings` made the mock
+**consistent** (the password you set is the password that signs you in); it did
+not make it **secure**. Nothing here should be reused when a real backend
+arrives — the whole module gets replaced at that point.
+
 ## Credentials
 
-**Sign in** succeeds only for the hard-coded pair:
+**Sign in** checks the submitted email/password against the stored `user`
+record in `localStorage`:
 
-```
-email:    user@email.com
-password: password
-```
+- Email comparison is case-insensitive and trimmed; password comparison is
+  neither.
+- If the stored record has no `password` field (a pre-`24` account, or one
+  created before ever changing it), the demo password (`password`) is accepted
+  for it.
+- If nothing is stored yet, the hard-coded demo pair still works:
 
-Anything else returns `{ success: false, message: "Invalid email or password" }`.
+  ```
+  email:    user@email.com
+  password: password
+  ```
 
-**Sign up** is the inverse — it rejects `user@email.com` with "Email already
-taken" and accepts every other email/username/password combination, immediately
-creating a session. Passwords are never stored, so an account created via sign-up
-**cannot be signed in to again** after logout: `signIn` still only knows the one
-hard-coded pair.
+Any other combination returns `{ success: false, message: "Invalid email or
+password" }` — sign-in never reveals which field was wrong.
+
+**Sign up** rejects `user@email.com` with "Email already taken" and otherwise
+stores `{ username, email, password }`, immediately creating a session. Unlike
+before `24`, the password is **not** discarded, so an account created via
+sign-up can be signed back in to after logout with the same credentials.
+
+**Sign out** clears the in-memory `user` session but deliberately does **not**
+remove the `localStorage` record, so `signIn` can still check a later attempt
+against it. One consequence of the single-key design: refreshing the page
+immediately after signing out re-hydrates the same stored record on mount,
+signing the coach back in. This is a known trade-off of reusing one
+`localStorage` key for both "the account that exists" and "the session that's
+active" — not something `24` set out to fix.
+
+**Editing the profile** (`updateProfile`, `changePassword`, both surfaced on
+the Settings → Profile tab) validates and persists changes to the same stored
+record: `updateProfile` rejects an invalid email or an empty name and writes
+nothing on failure; `changePassword` requires the current password and a
+matching confirmation, and a successful change keeps the coach signed in while
+requiring the new password on the next `signIn`. Resetting demo data
+(`services/store.js`'s `reset()`) only clears its own namespaced collections —
+it never touches the `user` key, so a coach's profile survives a reset.
 
 ## Session persistence
 
@@ -63,15 +99,17 @@ The user object is serialized to `localStorage` under the key `user`:
 localStorage.setItem("user", JSON.stringify(userObj));
 ```
 
-On mount, `AuthProvider` reads it back and rehydrates `user`, then sets
-`loading` to `false`. That is why a refresh keeps you signed in even though the
-app data itself resets.
+On mount, `AuthProvider` reads it back — migrating a legacy `username` field to
+`name` if present — and rehydrates `user`, then sets `loading` to `false`.
+That is why a refresh keeps you signed in even though the app data itself
+resets. A corrupt (non-JSON) value in the key is treated as signed out rather
+than thrown from `JSON.parse`.
 
 Because the guard trusts whatever is in `localStorage`, writing a value there by
 hand grants access to every private route. That is expected for a mock and
 unacceptable for a real deployment.
 
-Clear the session manually with:
+Clear the credentials entirely (not just the session) with:
 
 ```js
 localStorage.removeItem("user")
@@ -101,7 +139,8 @@ note to that effect.
 
 ```
 /signin → submit → signIn(email, password)
-  success → setUser + localStorage.setItem → navigate("/")
+  success (stored user exists)  → setUser → navigate("/")
+  success (no user stored yet)  → setUser + localStorage.setItem → navigate("/")
   failure → render result.message in red under the form
 ```
 

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -471,4 +472,115 @@ describe("password form", () => {
     ).not.toBe(screen.getByLabelText("Name").closest("form"));
     expect(screen.getByLabelText("Current password")).toHaveValue("");
   });
+});
+
+// A minimal sign-in/sign-out harness for the round-trip test below — Settings
+// alone can't prove the credential round trip, since sign-in/sign-out live
+// outside it. This mirrors how App.jsx swaps Settings for SignIn once `user`
+// goes null, without depending on either page's own routing.
+function RoundTripHarness() {
+  const { user, signOut, signIn } = useAuth();
+  const [creds, setCreds] = useState({ email: "", password: "" });
+  const [result, setResult] = useState(null);
+
+  if (!user) {
+    return (
+      <div>
+        <label htmlFor="rt-email">Sign-in email</label>
+        <input
+          id="rt-email"
+          value={creds.email}
+          onChange={(e) =>
+            setCreds((c) => ({ ...c, email: e.target.value }))
+          }
+        />
+        <label htmlFor="rt-password">Sign-in password</label>
+        <input
+          id="rt-password"
+          type="password"
+          value={creds.password}
+          onChange={(e) =>
+            setCreds((c) => ({ ...c, password: e.target.value }))
+          }
+        />
+        <button
+          type="button"
+          onClick={() => setResult(signIn(creds.email, creds.password))}
+        >
+          Attempt sign in
+        </button>
+        {result && (
+          <p data-testid="signin-result">
+            {result.success ? "success" : result.message}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Settings />
+      <button type="button" onClick={signOut}>
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+test("change the email and password, sign out, then the old pair is rejected and the new pair signs in (AC PROF-04.6)", async () => {
+  const user = userEvent.setup();
+  rtlRender(
+    <MemoryRouter initialEntries={["/settings"]}>
+      <AuthProvider>
+        <Gate>
+          <RoundTripHarness />
+        </Gate>
+      </AuthProvider>
+    </MemoryRouter>
+  );
+
+  await user.clear(screen.getByLabelText("Email"));
+  await user.type(screen.getByLabelText("Email"), "new@club.pt");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await user.type(screen.getByLabelText("Current password"), "password");
+  await user.type(screen.getByLabelText("New password"), "newpass");
+  await user.type(screen.getByLabelText("Confirm new password"), "newpass");
+  await user.click(screen.getByRole("button", { name: "Change password" }));
+
+  await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+  await user.type(screen.getByLabelText("Sign-in email"), "user@email.com");
+  await user.type(screen.getByLabelText("Sign-in password"), "password");
+  await user.click(screen.getByRole("button", { name: "Attempt sign in" }));
+  expect(screen.getByTestId("signin-result")).toHaveTextContent(
+    "Invalid email or password"
+  );
+
+  await user.clear(screen.getByLabelText("Sign-in email"));
+  await user.type(screen.getByLabelText("Sign-in email"), "new@club.pt");
+  await user.clear(screen.getByLabelText("Sign-in password"));
+  await user.type(screen.getByLabelText("Sign-in password"), "newpass");
+  await user.click(screen.getByRole("button", { name: "Attempt sign in" }));
+  // A successful sign-in swaps the harness back to Settings, so the
+  // sign-in form (and its result text) is gone — Settings reappearing is
+  // itself the proof the new pair worked.
+  expect(screen.getByLabelText("Name")).toBeInTheDocument();
+});
+
+test("editing the profile and then resetting demo data leaves the profile unchanged and the user still signed in", async () => {
+  const user = userEvent.setup();
+  render(<Settings />);
+
+  await user.clear(screen.getByLabelText("Name"));
+  await user.type(screen.getByLabelText("Name"), "New Name");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await goToAdvanced(user);
+  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+
+  await user.click(screen.getByRole("tab", { name: "Profile" }));
+  expect(screen.getByLabelText("Name")).toHaveValue("New Name");
 });

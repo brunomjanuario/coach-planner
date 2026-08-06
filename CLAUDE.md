@@ -78,13 +78,20 @@ to update.
 
 ## Auth
 
-`context/AuthContext.jsx` is a mock. `signIn` only accepts the hard-coded
-`user@email.com` / `password` pair; `signUp` accepts anything else. The user
-object is persisted to `localStorage` under the key `user`. `PrivateRoute` in
-`App.jsx` redirects to `/signin` when there is no user.
+`context/AuthContext.jsx` is a mock. Credentials (`name`/`username`, `email`,
+`password`) are persisted to `localStorage` under the key `user`. `signIn`
+checks the submitted pair against that stored record, falling back to a demo
+password when none is set; the hard-coded `user@email.com` / `password` pair
+still works when no user has been stored. `signUp` now stores the password it
+is given instead of discarding it, so a signed-up user can sign back in.
+`updateProfile`/`changePassword` let a signed-in coach edit their own name,
+email and password from the Settings → Profile tab; `signOut` clears the
+session but deliberately leaves the stored credentials in `localStorage` so a
+later `signIn` still works. `PrivateRoute` in `App.jsx` redirects to `/signin`
+when there is no user.
 
 Do not treat this as real authentication — there is no token, no server check
-and no password hashing.
+and no password hashing. See `docs/08-authentication.md` for the full picture.
 
 ## Known rough edges
 
