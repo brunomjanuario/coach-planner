@@ -10,6 +10,7 @@ import {
   removeShape,
   clearShapes,
   normalise,
+  validate,
   SHAPE_KINDS,
 } from "../lib/exerciseDiagram";
 
@@ -143,6 +144,10 @@ export default function ExerciseDiagramEditor({
   // a stack of whole diagrams, not per-tool inverse operations). In-memory
   // component state only, so it never survives the popup unmounting.
   const [history, setHistory] = useState([]);
+  // The size-guard refusal message (edge case: over 60 shapes or 8192
+  // bytes) — set on a failed Save, cleared on the next successful mutation
+  // or Save attempt, and never closes the popup or drops any work.
+  const [saveError, setSaveError] = useState(null);
 
   // Loaded once per popup instance (deps only on konvaLoader, never on
   // `diagram`) — `diagram` is passed down as a prop on every render instead
@@ -160,7 +165,16 @@ export default function ExerciseDiagramEditor({
     [konvaLoader]
   );
 
+  // Refuses to save an over-limit diagram (edge case: > 60 shapes or > 8192
+  // bytes serialized) — the editor stays open and every shape stays exactly
+  // as it was, so nothing is lost just because it could not be saved yet.
   const handleSave = () => {
+    const result = validate(diagram);
+    if (!result.ok) {
+      setSaveError(result.reason);
+      return;
+    }
+    setSaveError(null);
     if (onSave) onSave(diagram);
     onClose();
   };
@@ -268,6 +282,11 @@ export default function ExerciseDiagramEditor({
       }
     >
       <div className="space-y-4">
+        {saveError && (
+          <p role="alert" className="text-sm text-red-500">
+            {saveError}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Diagram tools">
           {TOOLS.map((toolId) => (
             <Button

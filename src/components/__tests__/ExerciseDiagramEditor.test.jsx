@@ -1,7 +1,7 @@
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ExerciseDiagramEditor from "../ExerciseDiagramEditor";
-import { createDiagram, addShape, SHAPE_KINDS } from "../../lib/exerciseDiagram";
+import { createDiagram, addShape, SHAPE_KINDS, LIMITS } from "../../lib/exerciseDiagram";
 
 async function renderEditor(props = {}) {
   const utils = render(
@@ -374,4 +374,96 @@ test("Clear is itself undoable, restoring every shape (AC DRAW-05.5)", async () 
   const saved = onSave.mock.calls[0][0];
   expect(saved.shapes).toHaveLength(2);
   expect(saved.shapes.map((s) => s.kind)).toEqual(["cone", "ball"]);
+});
+
+// --- T7: size guard at save --------------------------------------------
+
+test("saving a diagram over the shape-count limit is refused, naming the limit (edge case)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const onClose = vi.fn();
+  let diagram = createDiagram();
+  for (let i = 0; i < LIMITS.maxShapes + 1; i += 1) {
+    diagram = addShape(diagram, "cone", { x: 0.1, y: 0.1 });
+  }
+  await renderEditor({ diagram, onSave, onClose });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent(String(LIMITS.maxShapes));
+});
+
+test("saving a diagram over the byte limit is refused, naming the limit (edge case)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const onClose = vi.fn();
+  const diagram = addShape(createDiagram(), "text", {
+    x: 0.5,
+    y: 0.5,
+    text: "x".repeat(LIMITS.maxBytes),
+  });
+  await renderEditor({ diagram, onSave, onClose });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent(String(LIMITS.maxBytes));
+});
+
+test("after a refusal the editor stays open and every shape is still present (edge case)", async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  let diagram = createDiagram();
+  for (let i = 0; i < LIMITS.maxShapes + 1; i += 1) {
+    diagram = addShape(diagram, "cone", { x: 0.1, y: 0.1 });
+  }
+  await renderEditor({ diagram, onClose });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onClose).not.toHaveBeenCalled();
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getAllByTestId("konva-shape")).toHaveLength(LIMITS.maxShapes + 1);
+});
+
+test("saving a diagram at exactly the shape-count limit succeeds", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const onClose = vi.fn();
+  let diagram = createDiagram();
+  for (let i = 0; i < LIMITS.maxShapes; i += 1) {
+    diagram = addShape(diagram, "cone", { x: 0.1, y: 0.1 });
+  }
+  await renderEditor({ diagram, onSave, onClose });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(LIMITS.maxShapes);
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("Cancel closes the editor and returns the diagram unchanged from what it was on open (AC P1.7)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const onClose = vi.fn();
+  const original = addShape(createDiagram(), "cone", { x: 0.2, y: 0.2 });
+  const originalSnapshot = JSON.parse(JSON.stringify(original));
+
+  await renderEditor({ diagram: original, onSave, onClose });
+
+  // make an in-editor change before cancelling
+  await user.click(screen.getByRole("button", { name: "Ball" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(onSave).not.toHaveBeenCalled();
+  expect(onClose).toHaveBeenCalledTimes(1);
+  // the diagram object the popup was opened with is exactly what it was —
+  // the in-editor edit only ever touched the editor's own working copy.
+  expect(original).toEqual(originalSnapshot);
 });
