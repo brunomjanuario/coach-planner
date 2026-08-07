@@ -14,12 +14,14 @@ afterEach(() => {
  * `Stage` cannot mount in any test in this repo. This mock stands in for
  * every react-konva primitive the diagram editor uses, as a plain `<div>`
  * that forwards the same event shapes real Konva produces:
- *   - `Stage`'s onClick receives `{ evt, target: { getStage: () =>
- *     ({ getPointerPosition: () => {x, y} }) } }`, with the pointer position
- *     computed from the native click's clientX/Y against the stage
- *     element's own bounding rect — the same relative-to-container
- *     computation Konva itself does, just against jsdom's (always-zero)
- *     layout rather than a real one.
+ *   - `Stage`'s onClick/onMouseDown/onMouseMove/onMouseUp each receive
+ *     `{ evt, target: { getStage: () => ({ getPointerPosition: () =>
+ *     {x, y} }) } }`, with the pointer position computed from the native
+ *     event's clientX/Y against the stage element's own bounding rect —
+ *     the same relative-to-container computation Konva itself does, just
+ *     against jsdom's (always-zero) layout rather than a real one. The
+ *     mousedown/move/up trio is what the editor's freehand line tool
+ *     tracks a multi-point path through.
  *   - Shape primitives (`Circle`, `Line`, `Text`, …) forward `onClick` with
  *     `{ evt, target: { id: () => props.id } }` and `onDragEnd` with
  *     `{ target: { x: () => <clientX>, y: () => <clientY> } }` — driven by
@@ -44,11 +46,26 @@ vi.mock("react-konva", () => {
   }
 
   const Stage = React.forwardRef(function MockKonvaStage(
-    { children, onClick, width, height, ...rest },
+    { children, onClick, onMouseDown, onMouseMove, onMouseUp, width, height, ...rest },
     ref
   ) {
     const localRef = React.useRef(null);
     React.useImperativeHandle(ref, () => localRef.current);
+
+    function wrap(handler) {
+      return (e) => {
+        if (!handler) return;
+        handler({
+          evt: e,
+          target: {
+            getStage: () => ({
+              getPointerPosition: () => pointerFromEvent(e, localRef.current),
+            }),
+          },
+        });
+      };
+    }
+
     return React.createElement(
       "div",
       {
@@ -56,18 +73,10 @@ vi.mock("react-konva", () => {
         ref: localRef,
         "data-width": width,
         "data-height": height,
-        onClick: (e) => {
-          if (onClick) {
-            onClick({
-              evt: e,
-              target: {
-                getStage: () => ({
-                  getPointerPosition: () => pointerFromEvent(e, localRef.current),
-                }),
-              },
-            });
-          }
-        },
+        onClick: wrap(onClick),
+        onMouseDown: wrap(onMouseDown),
+        onMouseMove: wrap(onMouseMove),
+        onMouseUp: wrap(onMouseUp),
         ...Object.fromEntries(
           Object.entries(rest).filter(([key]) => key.startsWith("data-"))
         ),

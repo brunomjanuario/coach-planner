@@ -8,13 +8,16 @@ import {
   addShape,
   moveShape,
   removeShape,
+  clearShapes,
   normalise,
   SHAPE_KINDS,
 } from "../lib/exerciseDiagram";
 
-// The tools that place a single-point marker on a stage click. line/arrow/
-// text are placed differently (T6) and are not wired to the stage click yet.
+// The tools that place a single-point marker on a stage click.
 const MARKER_KINDS = ["player-a", "player-b", "cone", "ball", "goal"];
+
+// design.md: undo is a stack of whole diagrams, 20 deep, in memory only.
+const UNDO_LIMIT = 20;
 
 /**
  * Editor shell (design.md: a PopupShell hosting a lazily-loaded Konva
@@ -51,6 +54,9 @@ function KonvaSurface({
   diagram,
   stageSize,
   onStageClick,
+  onStageMouseDown,
+  onStageMouseMove,
+  onStageMouseUp,
   onShapeClick,
   onShapeDragEnd,
   selectedId,
@@ -63,6 +69,9 @@ function KonvaSurface({
       width={stageSize.width}
       height={stageSize.height}
       onClick={onStageClick}
+      onMouseDown={onStageMouseDown}
+      onMouseMove={onStageMouseMove}
+      onMouseUp={onStageMouseUp}
     >
       <Layer>
         {diagram.shapes.map((shape) => {
@@ -127,6 +136,13 @@ export default function ExerciseDiagramEditor({
   const [diagram, setDiagram] = useState(() => deserialize(initialDiagram) ?? createDiagram());
   const [tool, setTool] = useState("select");
   const [selectedId, setSelectedId] = useState(null);
+  // Points captured so far for an in-progress line/arrow drag; null when
+  // not currently drawing a path.
+  const [drawingPoints, setDrawingPoints] = useState(null);
+  // Undo stack: previous whole diagrams, capped at UNDO_LIMIT (design.md —
+  // a stack of whole diagrams, not per-tool inverse operations). In-memory
+  // component state only, so it never survives the popup unmounting.
+  const [history, setHistory] = useState([]);
 
   // Loaded once per popup instance (deps only on konvaLoader, never on
   // `diagram`) — `diagram` is passed down as a prop on every render instead
@@ -149,14 +165,57 @@ export default function ExerciseDiagramEditor({
     onClose();
   };
 
-  // Placing a marker consumes the click; the select tool (or any tool this
-  // editor doesn't yet place from a stage click — line/arrow/text, T6)
-  // leaves the diagram untouched.
+  // Pushes the diagram as it is *before* this change onto the undo stack,
+  // capped at UNDO_LIMIT, then applies the change. Every mutation in this
+  // editor goes through here so undo is a plain pop, not a per-tool inverse.
+  const applyChange = (mutate) => {
+    setHistory((h) => [...h, diagram].slice(-UNDO_LIMIT));
+    setDiagram(mutate(diagram));
+  };
+
+  // Placing a marker or a text label consumes the click; the select tool
+  // (and line/arrow, which draw via mousedown/mousemove/mouseup instead)
+  // leave the diagram untouched.
   const handleStageClick = (e) => {
-    if (!MARKER_KINDS.includes(tool)) return;
     const pointer = e.target.getStage().getPointerPosition();
     const point = normalise(pointer, STAGE_SIZE);
-    setDiagram((d) => addShape(d, tool, point));
+
+    if (tool === "text") {
+      const text = window.prompt("Enter label text:");
+      if (text === null) return;
+      applyChange((d) => addShape(d, "text", { ...point, text }));
+      return;
+    }
+
+    if (!MARKER_KINDS.includes(tool)) return;
+    applyChange((d) => addShape(d, tool, point));
+  };
+
+  // line captures every point along the drag (freehand); arrow only needs
+  // its start and end (design.md's data model: line ships a polyline, arrow
+  // ships exactly two points).
+  const handleStageMouseDown = (e) => {
+    if (tool !== "line" && tool !== "arrow") return;
+    const pointer = e.target.getStage().getPointerPosition();
+    setDrawingPoints([normalise(pointer, STAGE_SIZE)]);
+  };
+
+  const handleStageMouseMove = (e) => {
+    if (tool !== "line" || !drawingPoints) return;
+    const pointer = e.target.getStage().getPointerPosition();
+    const point = normalise(pointer, STAGE_SIZE);
+    setDrawingPoints((points) => [...points, point]);
+  };
+
+  const handleStageMouseUp = (e) => {
+    if ((tool !== "line" && tool !== "arrow") || !drawingPoints) return;
+    const pointer = e.target.getStage().getPointerPosition();
+    const endPoint = normalise(pointer, STAGE_SIZE);
+    const rawPoints = tool === "arrow" ? [drawingPoints[0], endPoint] : [...drawingPoints, endPoint];
+    // addShape's path-kind branch expects [x, y] tuples, not {x, y} objects.
+    const points = rawPoints.map((p) => [p.x, p.y]);
+    applyChange((d) => addShape(d, tool, { points }));
+    setDrawingPoints(null);
   };
 
   const handleShapeClick = (shapeId) => {
@@ -166,12 +225,25 @@ export default function ExerciseDiagramEditor({
   const handleShapeDragEnd = (shapeId, e) => {
     const pixel = { x: e.target.x(), y: e.target.y() };
     const point = normalise(pixel, STAGE_SIZE);
-    setDiagram((d) => moveShape(d, shapeId, point));
+    applyChange((d) => moveShape(d, shapeId, point));
   };
 
   const handleDelete = () => {
     if (!selectedId) return;
-    setDiagram((d) => removeShape(d, selectedId));
+    applyChange((d) => removeShape(d, selectedId));
+    setSelectedId(null);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setDiagram(previous);
+    setSelectedId(null);
+  };
+
+  const handleClear = () => {
+    applyChange((d) => clearShapes(d));
     setSelectedId(null);
   };
 
@@ -180,10 +252,10 @@ export default function ExerciseDiagramEditor({
       title="Draw diagram"
       footer={
         <PopupActions>
-          <Button variant="secondary" disabled>
+          <Button variant="secondary" disabled={history.length === 0} onClick={handleUndo}>
             Undo
           </Button>
-          <Button variant="secondary" disabled>
+          <Button variant="secondary" onClick={handleClear}>
             Clear
           </Button>
           <Button variant="secondary" onClick={onClose}>
@@ -220,6 +292,9 @@ export default function ExerciseDiagramEditor({
               diagram={diagram}
               stageSize={STAGE_SIZE}
               onStageClick={handleStageClick}
+              onStageMouseDown={handleStageMouseDown}
+              onStageMouseMove={handleStageMouseMove}
+              onStageMouseUp={handleStageMouseUp}
               onShapeClick={handleShapeClick}
               onShapeDragEnd={handleShapeDragEnd}
               selectedId={selectedId}

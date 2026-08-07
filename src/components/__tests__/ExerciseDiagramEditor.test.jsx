@@ -233,3 +233,145 @@ test.each(["player-a", "player-b", "cone", "ball", "goal"])(
     expect(onSave.mock.calls[0][0].shapes[0].kind).toBe(kind);
   }
 );
+
+// --- T6: lines, arrows, labels, undo and clear -----------------------------
+
+test("a freehand line can be added, storing normalised points", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Line" }));
+  const stage = screen.getByTestId("diagram-stage");
+  fireEvent.mouseDown(stage, { clientX: 60, clientY: 93 }); // 0.1, 0.25
+  fireEvent.mouseMove(stage, { clientX: 120, clientY: 186 }); // 0.2, 0.5
+  fireEvent.mouseUp(stage, { clientX: 240, clientY: 279 }); // 0.4, 0.75
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const shape = onSave.mock.calls[0][0].shapes[0];
+  expect(shape.kind).toBe("line");
+  expect(shape.points).toEqual([
+    [0.1, 0.25],
+    [0.2, 0.5],
+    [0.4, 0.75],
+  ]);
+});
+
+test("a straight arrow can be added, storing only its start and end normalised points", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Arrow" }));
+  const stage = screen.getByTestId("diagram-stage");
+  fireEvent.mouseDown(stage, { clientX: 180, clientY: 186 }); // 0.3, 0.5
+  fireEvent.mouseMove(stage, { clientX: 300, clientY: 200 }); // intermediate move ignored — arrow is straight
+  fireEvent.mouseUp(stage, { clientX: 360, clientY: 279 }); // 0.6, 0.75
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const shape = onSave.mock.calls[0][0].shapes[0];
+  expect(shape.kind).toBe("arrow");
+  expect(shape.points).toEqual([
+    [0.3, 0.5],
+    [0.6, 0.75],
+  ]);
+});
+
+test("a text label can be added with its text", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  vi.spyOn(window, "prompt").mockReturnValue("press here");
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Text" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const shape = onSave.mock.calls[0][0].shapes[0];
+  expect(shape).toMatchObject({ kind: "text", text: "press here", x: 0.5, y: 0.5 });
+
+  window.prompt.mockRestore();
+});
+
+test("Undo is disabled with nothing to undo (AC DRAW-05.4)", async () => {
+  await renderEditor();
+  expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+});
+
+test("undo reverts the last change and can be repeated to a depth of 20, bounded at the 21st (AC DRAW-05.3)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Cone" }));
+  const stage = screen.getByTestId("diagram-stage");
+  for (let i = 0; i < 21; i += 1) {
+    fireEvent.click(stage, { clientX: 10 + i, clientY: 10 });
+  }
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(21);
+  onSave.mockClear();
+
+  const undoButton = screen.getByRole("button", { name: "Undo" });
+  for (let i = 0; i < 20; i += 1) {
+    await user.click(undoButton);
+  }
+
+  // the 20th undo lands on the oldest diagram still in the (20-deep) stack:
+  // 1 shape, not 0 — the very first addition fell out of the bound.
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(1);
+  onSave.mockClear();
+
+  // 21st undo: nothing left on the stack, so it is a real bound, not "some history".
+  expect(undoButton).toBeDisabled();
+  await user.click(undoButton);
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(1);
+});
+
+test("undo state is in memory only — a freshly opened editor has nothing to undo even with existing shapes", async () => {
+  const diagram = addShape(addShape(createDiagram(), "cone", { x: 0.1, y: 0.1 }), "ball", {
+    x: 0.2,
+    y: 0.2,
+  });
+  await renderEditor({ diagram });
+
+  expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+});
+
+test("Clear removes every shape (AC DRAW-05.5)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(addShape(createDiagram(), "cone", { x: 0.1, y: 0.1 }), "ball", {
+    x: 0.2,
+    y: 0.2,
+  });
+  await renderEditor({ diagram, onSave });
+
+  await user.click(screen.getByRole("button", { name: "Clear" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(0);
+});
+
+test("Clear is itself undoable, restoring every shape (AC DRAW-05.5)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(addShape(createDiagram(), "cone", { x: 0.1, y: 0.1 }), "ball", {
+    x: 0.2,
+    y: 0.2,
+  });
+  await renderEditor({ diagram, onSave });
+
+  await user.click(screen.getByRole("button", { name: "Clear" }));
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const saved = onSave.mock.calls[0][0];
+  expect(saved.shapes).toHaveLength(2);
+  expect(saved.shapes.map((s) => s.kind)).toEqual(["cone", "ball"]);
+});
