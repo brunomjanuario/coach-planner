@@ -3,7 +3,7 @@ import { createSeed } from "../model/seed";
 import { newId } from "../lib/id";
 
 const SCHEMA_KEY = "schemaVersion";
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const DATE_FIELDS = {
   teams: [],
   trainings: ["day"],
@@ -52,6 +52,25 @@ const MIGRATIONS = {
       name,
     }));
     storage.write("opponents", opponents);
+  },
+  // Backfills `diagram: null` on every exercise already stored on a
+  // training, per AD-015/29-exercise-designer's data model. Every other
+  // field on the exercise — including the legacy, still-unused `image` —
+  // is spread through untouched. Reading `exercise.diagram` when it is
+  // already set (re-running against already-migrated data) preserves it
+  // rather than clobbering it, which is what makes this idempotent.
+  4: () => {
+    const trainings = storage.read("trainings", DATE_FIELDS.trainings) ?? [];
+    const migrated = trainings.map((training) => ({
+      ...training,
+      exercises: Array.isArray(training.exercises)
+        ? training.exercises.map((exercise) => ({
+            ...exercise,
+            diagram: exercise.diagram ?? null,
+          }))
+        : training.exercises,
+    }));
+    storage.write("trainings", migrated);
   },
 };
 
