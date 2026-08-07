@@ -22,10 +22,12 @@ afterEach(() => {
  *     layout rather than a real one.
  *   - Shape primitives (`Circle`, `Line`, `Text`, …) forward `onClick` with
  *     `{ evt, target: { id: () => props.id } }` and `onDragEnd` with
- *     `{ target: { x: () => <clientX>, y: () => <clientY> } }` — the caller
- *     drives the new position through a native `dragend` event's
- *     clientX/clientY, mirroring how a real Konva onDragEnd exposes the
- *     shape's post-drag position via `target.x()`/`target.y()`.
+ *     `{ target: { x: () => <clientX>, y: () => <clientY> } }` — driven by
+ *     a native `mouseup` (not `dragend`: jsdom has no `DragEvent`
+ *     constructor, so a real `dragend` silently drops clientX/clientY;
+ *     `mouseup` is a real MouseEvent and carries them), mirroring how a
+ *     real Konva onDragEnd exposes the shape's post-drag position via
+ *     `target.x()`/`target.y()`.
  *
  * Do not "fix" this by unmocking react-konva — the editor's actual drawing
  * logic (clamping, normalising, undo) lives in src/lib/exerciseDiagram.js
@@ -92,7 +94,13 @@ vi.mock("react-konva", () => {
               onClick({ evt: e, target: { id: () => id } });
             }
           },
-          onDragEnd: (e) => {
+          // Fires on native "mouseup" rather than "dragend": jsdom has no
+          // DragEvent constructor, so a real `dragend` DOM event silently
+          // loses clientX/clientY (they are MouseEvent-only fields jsdom's
+          // fallback plain Event drops). `fireEvent.mouseUp(el, {clientX,
+          // clientY})` is a real, fully-supported MouseEvent in jsdom and
+          // carries the same two numbers the editor needs from a drag end.
+          onMouseUp: (e) => {
             if (onDragEnd) {
               onDragEnd({
                 target: { id: () => id, x: () => e.clientX, y: () => e.clientY },

@@ -2,7 +2,19 @@ import { Component, Suspense, lazy, useMemo, useState } from "react";
 import PopupShell from "./PopupShell";
 import Button from "./Button";
 import PopupActions from "./PopupActions";
-import { createDiagram, deserialize, SHAPE_KINDS } from "../lib/exerciseDiagram";
+import {
+  createDiagram,
+  deserialize,
+  addShape,
+  moveShape,
+  removeShape,
+  normalise,
+  SHAPE_KINDS,
+} from "../lib/exerciseDiagram";
+
+// The tools that place a single-point marker on a stage click. line/arrow/
+// text are placed differently (T6) and are not wired to the stage click yet.
+const MARKER_KINDS = ["player-a", "player-b", "cone", "ball", "goal"];
 
 /**
  * Editor shell (design.md: a PopupShell hosting a lazily-loaded Konva
@@ -34,23 +46,48 @@ function flattenPoints(points, size) {
   return (points ?? []).flatMap(([x, y]) => [x * size.width, y * size.height]);
 }
 
-function KonvaSurface({ konva, diagram, stageSize }) {
+function KonvaSurface({
+  konva,
+  diagram,
+  stageSize,
+  onStageClick,
+  onShapeClick,
+  onShapeDragEnd,
+  selectedId,
+}) {
   const { Stage, Layer, Circle, Line, Text, Group } = konva;
 
   return (
-    <Stage data-testid="diagram-stage" width={stageSize.width} height={stageSize.height}>
+    <Stage
+      data-testid="diagram-stage"
+      width={stageSize.width}
+      height={stageSize.height}
+      onClick={onStageClick}
+    >
       <Layer>
-        {diagram.shapes.map((shape) => (
-          <Group key={shape.id} id={shape.id} data-testid="konva-shape" data-shape-kind={shape.kind}>
-            {shape.kind === "line" || shape.kind === "arrow" ? (
-              <Line points={flattenPoints(shape.points, stageSize)} />
-            ) : shape.kind === "text" ? (
-              <Text x={shape.x * stageSize.width} y={shape.y * stageSize.height} text={shape.text ?? ""} />
-            ) : (
-              <Circle x={shape.x * stageSize.width} y={shape.y * stageSize.height} radius={10} />
-            )}
-          </Group>
-        ))}
+        {diagram.shapes.map((shape) => {
+          const isPointShape = "x" in shape && "y" in shape;
+          return (
+            <Group
+              key={shape.id}
+              id={shape.id}
+              data-testid="konva-shape"
+              data-shape-kind={shape.kind}
+              data-selected={shape.id === selectedId}
+              draggable={isPointShape}
+              onClick={() => onShapeClick?.(shape.id)}
+              onDragEnd={isPointShape ? (e) => onShapeDragEnd?.(shape.id, e) : undefined}
+            >
+              {shape.kind === "line" || shape.kind === "arrow" ? (
+                <Line points={flattenPoints(shape.points, stageSize)} />
+              ) : shape.kind === "text" ? (
+                <Text x={shape.x * stageSize.width} y={shape.y * stageSize.height} text={shape.text ?? ""} />
+              ) : (
+                <Circle x={shape.x * stageSize.width} y={shape.y * stageSize.height} radius={10} />
+              )}
+            </Group>
+          );
+        })}
       </Layer>
     </Stage>
   );
@@ -89,6 +126,7 @@ export default function ExerciseDiagramEditor({
 }) {
   const [diagram, setDiagram] = useState(() => deserialize(initialDiagram) ?? createDiagram());
   const [tool, setTool] = useState("select");
+  const [selectedId, setSelectedId] = useState(null);
 
   // Loaded once per popup instance (deps only on konvaLoader, never on
   // `diagram`) — `diagram` is passed down as a prop on every render instead
@@ -109,6 +147,32 @@ export default function ExerciseDiagramEditor({
   const handleSave = () => {
     if (onSave) onSave(diagram);
     onClose();
+  };
+
+  // Placing a marker consumes the click; the select tool (or any tool this
+  // editor doesn't yet place from a stage click — line/arrow/text, T6)
+  // leaves the diagram untouched.
+  const handleStageClick = (e) => {
+    if (!MARKER_KINDS.includes(tool)) return;
+    const pointer = e.target.getStage().getPointerPosition();
+    const point = normalise(pointer, STAGE_SIZE);
+    setDiagram((d) => addShape(d, tool, point));
+  };
+
+  const handleShapeClick = (shapeId) => {
+    setSelectedId(shapeId);
+  };
+
+  const handleShapeDragEnd = (shapeId, e) => {
+    const pixel = { x: e.target.x(), y: e.target.y() };
+    const point = normalise(pixel, STAGE_SIZE);
+    setDiagram((d) => moveShape(d, shapeId, point));
+  };
+
+  const handleDelete = () => {
+    if (!selectedId) return;
+    setDiagram((d) => removeShape(d, selectedId));
+    setSelectedId(null);
   };
 
   return (
@@ -145,9 +209,21 @@ export default function ExerciseDiagramEditor({
             </Button>
           ))}
         </div>
+        <div>
+          <Button type="button" variant="danger" disabled={!selectedId} onClick={handleDelete}>
+            Delete
+          </Button>
+        </div>
         <CanvasErrorBoundary>
           <Suspense fallback={<div role="status">Loading the diagram editor…</div>}>
-            <DiagramCanvas diagram={diagram} stageSize={STAGE_SIZE} />
+            <DiagramCanvas
+              diagram={diagram}
+              stageSize={STAGE_SIZE}
+              onStageClick={handleStageClick}
+              onShapeClick={handleShapeClick}
+              onShapeDragEnd={handleShapeDragEnd}
+              selectedId={selectedId}
+            />
           </Suspense>
         </CanvasErrorBoundary>
       </div>

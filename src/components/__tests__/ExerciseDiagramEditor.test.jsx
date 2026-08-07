@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ExerciseDiagramEditor from "../ExerciseDiagramEditor";
 import { createDiagram, addShape, SHAPE_KINDS } from "../../lib/exerciseDiagram";
@@ -130,3 +130,106 @@ test("clicking Save calls onSave with the working diagram and then onClose", asy
   expect(onSave.mock.calls[0][0]).toMatchObject({ v: 1, pitch: "full", shapes: [] });
   expect(onClose).toHaveBeenCalledTimes(1);
 });
+
+// --- T5: place, move and delete markers -----------------------------------
+
+test("with a marker tool active, a stage click adds a shape of that kind at that position (AC P1.3)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Cone" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const saved = onSave.mock.calls[0][0];
+  expect(saved.shapes).toHaveLength(1);
+  expect(saved.shapes[0]).toMatchObject({ kind: "cone" });
+});
+
+test("the added position is normalised (0..1), not raw pixels, from a pixel-space stage click (AC P1.4)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Ball" }));
+  // stage is 600x372 (STAGE_SIZE) -> clicking at half-width/half-height
+  // must store 0.5/0.5, not 300/186.
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes[0]).toMatchObject({ x: 0.5, y: 0.5 });
+});
+
+test("a drag callback calls moveShape and the shape's stored position updates (AC P1.4)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.1, y: 0.1 });
+  await renderEditor({ diagram, onSave });
+
+  const shapeNode = screen.getByTestId("konva-shape");
+  fireEvent.mouseUp(shapeNode, { clientX: 450, clientY: 279 }); // 600*0.75, 372*0.75
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes[0]).toMatchObject({ x: 0.75, y: 0.75 });
+});
+
+test("a drag ending outside the pitch results in a clamped position (edge case)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.5, y: 0.5 });
+  await renderEditor({ diagram, onSave });
+
+  const shapeNode = screen.getByTestId("konva-shape");
+  fireEvent.mouseUp(shapeNode, { clientX: 900, clientY: -50 });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes[0]).toMatchObject({ x: 1, y: 0 });
+});
+
+test("selecting a shape and deleting removes it (AC P1.5)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.2, y: 0.2 });
+  await renderEditor({ diagram, onSave });
+
+  await user.click(screen.getByTestId("konva-shape"));
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(0);
+});
+
+test("the Delete control is disabled with nothing selected, and deleting does nothing (edge case)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.2, y: 0.2 });
+  await renderEditor({ diagram, onSave });
+
+  const deleteButton = screen.getByRole("button", { name: "Delete" });
+  expect(deleteButton).toBeDisabled();
+
+  await user.click(deleteButton);
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes).toHaveLength(1);
+});
+
+test.each(["player-a", "player-b", "cone", "ball", "goal"])(
+  "the %s marker can be placed on the stage",
+  async (kind) => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    await renderEditor({ onSave });
+
+    const toolbar = screen.getByRole("toolbar", { name: "Diagram tools" });
+    const namePattern = new RegExp(kind.replace(/-/g, ".?"), "i");
+    await user.click(within(toolbar).getByRole("button", { name: namePattern }));
+    fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 60, clientY: 62 });
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave.mock.calls[0][0].shapes[0].kind).toBe(kind);
+  }
+);
