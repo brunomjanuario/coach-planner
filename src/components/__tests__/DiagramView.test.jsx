@@ -130,6 +130,51 @@ test("renders successfully in jsdom with no canvas — the whole point of this c
   expect(screen.getByTestId("diagram-view")).toBeInTheDocument();
 });
 
+test("every shape keeps its relative pitch position when rendered inside a narrower container (AC P2.4)", () => {
+  const diagram = threeShapeDiagram(); // player-a, cone, ball — circle, polygon and circle markup
+
+  function renderAtWidth(width) {
+    const { container, unmount } = render(
+      <div style={{ width: `${width}px` }}>
+        <DiagramView diagram={diagram} />
+      </div>
+    );
+    const svg = container.querySelector('[data-testid="diagram-view"]');
+    const viewBox = svg.getAttribute("viewBox");
+    const shapes = Array.from(
+      svg.querySelectorAll('[data-testid="diagram-shape"]')
+    ).map((el) => {
+      // player-a/player-b render as a <g> wrapping the positioned circle;
+      // every other kind carries its own positional attributes directly.
+      const positioned = el.querySelector("circle") ?? el;
+      return {
+        kind: el.getAttribute("data-shape-kind"),
+        // Whichever positional attribute the element type carries — cx/cy
+        // for circles, points for the cone polygon — captured as the raw
+        // viewBox-space value the shape actually rendered at.
+        cx: positioned.getAttribute("cx"),
+        cy: positioned.getAttribute("cy"),
+        points: positioned.getAttribute("points"),
+      };
+    });
+    unmount();
+    return { viewBox, shapes };
+  }
+
+  const wide = renderAtWidth(1200);
+  const narrow = renderAtWidth(240);
+
+  // Sanity: real, non-degenerate output — not an empty/trivial match.
+  expect(wide.shapes).toHaveLength(3);
+  expect(wide.shapes.every((s) => s.cx || s.points)).toBe(true);
+
+  // The viewBox is the sole scaling mechanism (CSS/SVG stretches it to fit
+  // the container) — the shapes' own normalised-derived coordinates must be
+  // byte-identical regardless of the container width they render into.
+  expect(narrow.viewBox).toBe(wide.viewBox);
+  expect(narrow.shapes).toEqual(wide.shapes);
+});
+
 test("the module's source imports no konva or react-konva anywhere in its graph (AC DRAW-04.3)", () => {
   const diagramViewSource = readFileSync(
     path.join(__dirname, "../DiagramView.jsx"),
