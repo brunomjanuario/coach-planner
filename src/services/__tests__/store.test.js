@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getCollection, setCollection, reset } from "../store";
 import { createSeed } from "../../model/seed";
+import { trainingService } from "../trainingService";
 
 describe("store", () => {
   it("seeds from createSeed() and persists it on first run with empty storage", () => {
@@ -11,7 +12,7 @@ describe("store", () => {
 
   it("writes a schema-version key on first run", () => {
     getCollection("teams");
-    expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("3");
+    expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
   });
 
   it("does not re-seed when data is already present", () => {
@@ -124,7 +125,7 @@ describe("store", () => {
       seedV1Store([{ id: 1, competition: "Cup" }]);
 
       getCollection("competitions"); // first load: runs both v1->v2 and v2->v3 migrations
-      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("3");
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
 
       const afterFirstLoad = getCollection("competitions");
       const afterSecondLoad = getCollection("competitions"); // second load: must not re-run
@@ -228,7 +229,7 @@ describe("store", () => {
       seedV2Store([{ id: 1, opponent: "Porto" }]);
 
       const afterFirstLoad = getCollection("opponents");
-      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("3");
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
       const afterSecondLoad = getCollection("opponents");
 
       expect(afterSecondLoad).toEqual(afterFirstLoad);
@@ -240,7 +241,7 @@ describe("store", () => {
 
       getCollection("opponents");
 
-      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("3");
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
     });
 
     it("a store two versions behind (v1) runs both migrations in order and ends at the current version", () => {
@@ -256,7 +257,7 @@ describe("store", () => {
       const opponents = getCollection("opponents");
       const competitions = getCollection("competitions");
 
-      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("3");
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
       expect(opponents.map((o) => o.name).sort()).toEqual(["Benfica", "Porto"]);
       expect(competitions.map((c) => c.name).sort()).toEqual(["Cup", "League"]);
     });
@@ -266,6 +267,187 @@ describe("store", () => {
       const seed = createSeed();
 
       expect(opponents).toEqual(seed.opponents);
+    });
+  });
+
+  describe("v3 -> v4 migration: diagram: null backfilled onto every exercise (AC DRAW-01)", () => {
+    function seedV3Store(trainings) {
+      localStorage.setItem("coachplanner:v1:schemaVersion", "3");
+      localStorage.setItem("coachplanner:v1:trainings", JSON.stringify(trainings));
+    }
+
+    it("sets diagram: null on every exercise across every training (AC DRAW-01)", () => {
+      seedV3Store([
+        { id: "t1", exercises: [{ id: "e1", description: "SSG", image: "" }] },
+        {
+          id: "t2",
+          exercises: [
+            { id: "e2", description: "Rondo", image: "" },
+            { id: "e3", description: "Passing", image: "" },
+          ],
+        },
+      ]);
+
+      const trainings = getCollection("trainings");
+
+      expect(
+        trainings.every((t) => t.exercises.every((ex) => ex.diagram === null))
+      ).toBe(true);
+    });
+
+    it("preserves every other field on the exercise, including the legacy image field", () => {
+      seedV3Store([
+        {
+          id: "t1",
+          exercises: [
+            {
+              id: "e1",
+              description: "SSG",
+              duration: 20,
+              numberOfPlayers: 8,
+              repetitions: 3,
+              image: "",
+            },
+          ],
+        },
+      ]);
+
+      const [training] = getCollection("trainings");
+
+      expect(training.exercises[0]).toEqual({
+        id: "e1",
+        description: "SSG",
+        duration: 20,
+        numberOfPlayers: 8,
+        repetitions: 3,
+        image: "",
+        diagram: null,
+      });
+    });
+
+    it("preserves every other field on the training itself", () => {
+      seedV3Store([{ id: "t1", teamId: "team-1", duration: 90, exercises: [] }]);
+
+      const [training] = getCollection("trainings");
+
+      expect(training).toMatchObject({ id: "t1", teamId: "team-1", duration: 90 });
+    });
+
+    it("bumps the stored schema version to 4", () => {
+      seedV3Store([{ id: "t1", exercises: [] }]);
+
+      getCollection("trainings");
+
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
+    });
+
+    it("a second load does not re-run the migration or duplicate exercises (idempotency)", () => {
+      seedV3Store([{ id: "t1", exercises: [{ id: "e1", image: "" }] }]);
+
+      const afterFirstLoad = getCollection("trainings");
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
+      const afterSecondLoad = getCollection("trainings");
+
+      expect(afterSecondLoad).toEqual(afterFirstLoad);
+      expect(afterSecondLoad[0].exercises).toHaveLength(1);
+    });
+
+    it("a store already at version 4 is not re-migrated — an existing non-null diagram is left as-is", () => {
+      localStorage.setItem("coachplanner:v1:schemaVersion", "4");
+      localStorage.setItem(
+        "coachplanner:v1:trainings",
+        JSON.stringify([
+          {
+            id: "t1",
+            exercises: [
+              { id: "e1", diagram: { v: 1, pitch: "full", shapes: [{ id: "s1", kind: "cone", x: 0.1, y: 0.1 }] } },
+            ],
+          },
+        ])
+      );
+
+      const [training] = getCollection("trainings");
+
+      expect(training.exercises[0].diagram).toEqual({
+        v: 1,
+        pitch: "full",
+        shapes: [{ id: "s1", kind: "cone", x: 0.1, y: 0.1 }],
+      });
+    });
+
+    it("a fresh install (no stored version) seeds directly, without running the migration", () => {
+      const trainings = getCollection("trainings");
+      const seed = createSeed();
+
+      expect(trainings.length).toBe(seed.trainings.length);
+    });
+
+    it("a store two versions behind (v2) runs migrations in order and ends at v4 with diagram backfilled", () => {
+      localStorage.setItem("coachplanner:v1:schemaVersion", "2");
+      localStorage.setItem(
+        "coachplanner:v1:games",
+        JSON.stringify([{ id: 1, opponent: "Benfica" }])
+      );
+      localStorage.setItem(
+        "coachplanner:v1:trainings",
+        JSON.stringify([{ id: "t1", exercises: [{ id: "e1", image: "" }] }])
+      );
+
+      const trainings = getCollection("trainings");
+
+      expect(localStorage.getItem("coachplanner:v1:schemaVersion")).toBe("4");
+      expect(trainings[0].exercises[0].diagram).toBeNull();
+    });
+  });
+
+  describe("exercise diagram persistence via trainingService (AC P1.6)", () => {
+    it("a diagram round-trips through trainingService.update and a store re-read (reload proof)", async () => {
+      const diagram = {
+        v: 1,
+        pitch: "full",
+        shapes: [{ id: "s1", kind: "cone", x: 0.2, y: 0.3 }],
+      };
+      const created = await trainingService.create({
+        teamId: "team-1",
+        day: new Date("2030-01-01T10:00:00Z"),
+        duration: 60,
+        exercises: [
+          { id: "e1", description: "SSG", duration: 20, image: "", diagram },
+        ],
+      });
+
+      await trainingService.update({ ...created });
+
+      const reread = await trainingService.getById(created.id);
+      expect(reread.exercises[0].diagram).toEqual(diagram);
+    });
+
+    it("deleting an exercise removes its diagram with it — no orphan (edge case)", async () => {
+      const diagram = {
+        v: 1,
+        pitch: "full",
+        shapes: [{ id: "s1", kind: "ball", x: 0.5, y: 0.5 }],
+      };
+      const created = await trainingService.create({
+        teamId: "team-1",
+        day: new Date("2030-01-01T10:00:00Z"),
+        duration: 60,
+        exercises: [
+          { id: "e1", description: "SSG", duration: 20, image: "", diagram },
+          { id: "e2", description: "Passing", duration: 10, image: "", diagram: null },
+        ],
+      });
+
+      await trainingService.update({
+        ...created,
+        exercises: created.exercises.filter((ex) => ex.id !== "e1"),
+      });
+
+      const reread = await trainingService.getById(created.id);
+      expect(reread.exercises.find((ex) => ex.id === "e1")).toBeUndefined();
+      expect(reread.exercises).toEqual([
+        { id: "e2", description: "Passing", duration: 10, image: "", diagram: null },
+      ]);
     });
   });
 

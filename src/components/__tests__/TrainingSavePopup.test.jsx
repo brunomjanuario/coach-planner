@@ -814,3 +814,112 @@ test("removing all exercises during an edit saves an empty exercise list rather 
     expect.objectContaining({ exercises: [] })
   );
 });
+
+// --- Diagram feature edge cases: deletion mid-edit, storage quota ---------
+// (spec.md "Edge Cases": exercise deleted before saving; localStorage quota
+// rejected). Both are exercised through the real trainingService against the
+// real store — not a mocked onSubmit — because the point is what the actual
+// save call site (this popup, via trainingService.update) does when the
+// underlying store misbehaves.
+
+test("saving an edit whose training was deleted in the meantime fails without corrupting the store (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const diagram = {
+    v: 1,
+    pitch: "full",
+    shapes: [{ id: "s1", kind: "cone", x: 0.2, y: 0.4 }],
+  };
+  const created = await trainingService.create({
+    teamId: 2,
+    day: new Date("2030-01-01T10:00:00Z"),
+    duration: 60,
+    exercises: [
+      { id: "e1", description: "SSG", duration: 20, image: "", diagram },
+    ],
+  });
+  const survivor = await trainingService.create({
+    teamId: 1,
+    day: new Date("2030-02-01T10:00:00Z"),
+    duration: 45,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderPopup({
+    training: created,
+    onSubmit: (t) => trainingService.update(t),
+  });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  // The editor is open on `created`, but something else (another tab, a
+  // concurrent delete) removes the training from the store before this
+  // popup submits.
+  await trainingService.delete(created.id);
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText("Failed to save the training. Please try again.")
+  ).toBeInTheDocument();
+  expect(errorSpy).toHaveBeenCalledWith(
+    "Failed to save training:",
+    expect.objectContaining({ name: "NotFoundError" })
+  );
+  // No orphan/partial write: the deleted training stays gone and the
+  // untouched training survives exactly as it was.
+  const all = await trainingService.getAll();
+  expect(all.find((t) => t.id === created.id)).toBeUndefined();
+  expect(all.find((t) => t.id === survivor.id)).toBeDefined();
+});
+
+test("a localStorage quota rejection while saving a diagram-carrying exercise surfaces the error and keeps the editor open (edge case)", async () => {
+  vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const diagram = {
+    v: 1,
+    pitch: "full",
+    shapes: [{ id: "s1", kind: "cone", x: 0.3, y: 0.3 }],
+  };
+  const created = await trainingService.create({
+    teamId: 2,
+    day: new Date("2030-01-01T10:00:00Z"),
+    duration: 60,
+    exercises: [
+      { id: "e1", description: "SSG", duration: 20, image: "", diagram },
+    ],
+  });
+  const user = userEvent.setup();
+  renderPopup({
+    training: created,
+    onSubmit: (t) => trainingService.update(t),
+  });
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+  expect(screen.getByText(/SSG/)).toBeInTheDocument();
+
+  const setItemSpy = vi
+    .spyOn(Storage.prototype, "setItem")
+    .mockImplementation(() => {
+      throw new DOMException("Quota exceeded", "QuotaExceededError");
+    });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(
+    await screen.findByText("Failed to save the training. Please try again.")
+  ).toBeInTheDocument();
+  expect(errorSpy).toHaveBeenCalledWith(
+    "Failed to save training:",
+    expect.objectContaining({ name: "StorageQuotaError" })
+  );
+  // The editor/form stays mounted with the work intact, not discarded.
+  expect(
+    screen.getByRole("heading", { name: "Edit Training" })
+  ).toBeInTheDocument();
+  expect(screen.getByText(/SSG/)).toBeInTheDocument();
+  setItemSpy.mockRestore();
+
+  // The rejected write never landed: the diagram-carrying exercise is
+  // exactly what it was before the failed save.
+  const reread = await trainingService.getById(created.id);
+  expect(reread.exercises[0].diagram).toEqual(diagram);
+});
