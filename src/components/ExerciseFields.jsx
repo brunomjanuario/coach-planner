@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { newId } from "../lib/id";
 import Button from "./Button";
+import ExerciseDiagramEditor from "./ExerciseDiagramEditor";
 
 const EMPTY_FORM = {
   description: "",
@@ -53,6 +54,12 @@ export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
   const isEditing = exercise != null;
   const [form, setForm] = useState(() => toFormValues(exercise));
   const [errors, setErrors] = useState({});
+  // The diagram is edited in a stacked popup and held here only — it is
+  // written to the exercise (via onAdd) only when this form is submitted,
+  // so cancelling the exercise form discards it (design.md: no partial
+  // saves).
+  const [diagram, setDiagram] = useState(() => exercise?.diagram ?? null);
+  const [showDiagramEditor, setShowDiagramEditor] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,10 +86,12 @@ export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
       repetitions:
         form.repetitions.trim() === "" ? null : Number(form.repetitions),
       image: exercise ? exercise.image : "",
+      diagram,
     });
 
     setForm(EMPTY_FORM);
     setErrors({});
+    setDiagram(null);
   };
 
   return (
@@ -150,6 +159,15 @@ export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
           <p className="text-sm text-red-500">{errors.repetitions}</p>
         )}
       </div>
+      <div>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setShowDiagramEditor(true)}
+        >
+          Draw diagram
+        </Button>
+      </div>
       <div className="flex justify-end gap-2">
         {isEditing && (
           <Button variant="secondary" onClick={onCancelEdit}>
@@ -160,6 +178,13 @@ export default function ExerciseFields({ onAdd, exercise, onCancelEdit }) {
           {isEditing ? "Save" : "Add"}
         </Button>
       </div>
+      {showDiagramEditor && (
+        <ExerciseDiagramEditor
+          diagram={diagram}
+          onSave={(next) => setDiagram(next)}
+          onClose={() => setShowDiagramEditor(false)}
+        />
+      )}
     </div>
   );
 }

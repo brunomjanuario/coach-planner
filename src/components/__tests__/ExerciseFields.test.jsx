@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ExerciseFields from "../ExerciseFields";
 
@@ -199,6 +199,119 @@ test("clears the fields after a successful add", async () => {
 
   expect(screen.getByLabelText(/description/i)).toHaveValue("");
   expect(screen.getByLabelText(/duration/i)).toHaveValue(null);
+});
+
+// --- T8: diagram wiring (AC P1.1, P1.6) ------------------------------------
+
+test('renders a "Draw diagram" action that opens the diagram editor (AC P1.1)', async () => {
+  const user = userEvent.setup();
+  renderFields();
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Draw diagram" }));
+
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+});
+
+test("a diagram saved in the editor is carried through onAdd's payload alongside the untouched image field (AC P1.6)", async () => {
+  const onAdd = vi.fn();
+  const user = userEvent.setup();
+  renderFields({ onAdd });
+
+  await fillValid(user);
+  await user.click(screen.getByRole("button", { name: "Draw diagram" }));
+  await screen.findByTestId("diagram-stage");
+
+  await user.click(screen.getByRole("button", { name: "Cone" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(onAdd).toHaveBeenCalledTimes(1);
+  const exercise = onAdd.mock.calls[0][0];
+  expect(exercise.image).toBe("");
+  expect(exercise.diagram).toMatchObject({
+    v: 1,
+    shapes: [expect.objectContaining({ kind: "cone" })],
+  });
+});
+
+test("opening the editor for an exercise with no diagram starts empty, and an exercise's stored diagram is passed back in on edit", async () => {
+  const user = userEvent.setup();
+  const storedDiagram = { v: 1, pitch: "full", shapes: [{ id: "s1", kind: "ball", x: 0.4, y: 0.4 }] };
+  renderFields({
+    exercise: {
+      id: "e1",
+      description: "SSG",
+      duration: 20,
+      numberOfPlayers: 8,
+      repetitions: 3,
+      image: "",
+      diagram: storedDiagram,
+    },
+    onCancelEdit: () => {},
+  });
+
+  await user.click(screen.getByRole("button", { name: "Draw diagram" }));
+
+  const shapeNodes = await screen.findAllByTestId("konva-shape");
+  expect(shapeNodes).toHaveLength(1);
+  expect(shapeNodes[0]).toHaveAttribute("data-shape-kind", "ball");
+});
+
+test("cancelling the exercise form after editing the diagram discards it — onAdd is never called (design.md: no partial saves)", async () => {
+  const onAdd = vi.fn();
+  const onCancelEdit = vi.fn();
+  const user = userEvent.setup();
+  renderFields({
+    exercise: {
+      id: "e1",
+      description: "SSG",
+      duration: 20,
+      numberOfPlayers: 8,
+      repetitions: 3,
+      image: "",
+      diagram: null,
+    },
+    onAdd,
+    onCancelEdit,
+  });
+
+  await user.click(screen.getByRole("button", { name: "Draw diagram" }));
+  const dialog = await screen.findByRole("dialog");
+  await within(dialog).findByTestId("diagram-stage");
+  await user.click(within(dialog).getByRole("button", { name: "Cone" }));
+  fireEvent.click(within(dialog).getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(onCancelEdit).toHaveBeenCalledTimes(1);
+  expect(onAdd).not.toHaveBeenCalled();
+});
+
+test("closing the diagram editor's own Cancel leaves the exercise's diagram unchanged, and Add omits any in-editor-only change", async () => {
+  const onAdd = vi.fn();
+  const user = userEvent.setup();
+  renderFields({ onAdd });
+
+  await fillValid(user);
+  await user.click(screen.getByRole("button", { name: "Draw diagram" }));
+  await screen.findByTestId("diagram-stage");
+  await user.click(screen.getByRole("button", { name: "Cone" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  // Cancel the diagram popup itself (not Save) — the in-progress shape must
+  // not reach the exercise.
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(onAdd).toHaveBeenCalledTimes(1);
+  expect(onAdd.mock.calls[0][0].diagram).toBeNull();
 });
 
 test("Add is primary; when editing, Cancel is secondary and Save is primary (AC BTN-04.1)", () => {

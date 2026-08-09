@@ -92,6 +92,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: BTN-04.1 — validation.md Gap #1 (src/components)
 - last seen: 2026-08-06T11:07:54Z
 
+### L-014 — When a spec edge case names a failure mode inherited from an existing service path rather than new code, still add a dedicated test that triggers it through the new feature's own call site — reused error handling is not proof the new caller reaches it.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: 29-exercise-designer
+- evidence: spec.md edge case: 'exercise deleted before saving' (testing)
+- last seen: 2026-08-07T13:03:21Z
+
+### L-015 — For a storage-quota edge case, add a test that mocks the write call to throw specifically on the new feature's own save path, not just rely on an existing quota test elsewhere in the repo for a different popup.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: 29-exercise-designer
+- evidence: spec.md edge case: 'localStorage rejects the write (quota)' (testing)
+- last seen: 2026-08-07T13:03:30Z
+
+### L-016 — When an AC claims a rendering property holds 'at a narrower width' or across container sizes, write a test that actually renders at two sizes and compares — a fixed-viewBox or percentage-based mechanism is not itself proof the AC holds.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: 29-exercise-designer
+- evidence: spec.md P2 AC4: diagram rendered at a narrower width keeps every shape's relative position (testing)
+- last seen: 2026-08-07T13:03:30Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

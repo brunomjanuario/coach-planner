@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { plannedShare } from "../lib/trainingDuration";
+import { deserialize } from "../lib/exerciseDiagram";
 import Button from "./Button";
+import DiagramView from "./DiagramView";
 import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
 
@@ -21,8 +23,10 @@ function Field({ label, value }) {
  * exercise row becomes labelled fields. `exercises` is the training's full
  * list: used to compute this exercise's share of planned time, and to step
  * between exercises with Previous/Next without closing and reopening.
- * `exercise.diagram` is reserved for feature 29 — nothing renders here
- * until that feature fills it.
+ * `exercise.diagram` (feature 29) renders read-only via `DiagramView` in
+ * this slot when present — `deserialize` also treats a corrupt/unrecognised
+ * diagram as absent, so the region renders exactly when there is a diagram
+ * to show, never a throw and never an empty frame.
  */
 export default function ExerciseDetailsPopup({ exercise, exercises, onClose }) {
   const [index, setIndex] = useState(() =>
@@ -32,6 +36,7 @@ export default function ExerciseDetailsPopup({ exercise, exercises, onClose }) {
   const share = plannedShare(current, exercises);
   const canGoPrevious = index > 0;
   const canGoNext = index < exercises.length - 1;
+  const hasDiagram = deserialize(current.diagram) != null;
 
   return (
     <PopupShell
@@ -63,6 +68,12 @@ export default function ExerciseDetailsPopup({ exercise, exercises, onClose }) {
           <p className="text-sm text-gray-500">
             {share}% of the session's planned time
           </p>
+        )}
+        {hasDiagram && (
+          <div>
+            <label className="block text-sm font-medium">Diagram</label>
+            <DiagramView diagram={current.diagram} className="w-full rounded border bg-gray-50" />
+          </div>
         )}
       </div>
     </PopupShell>

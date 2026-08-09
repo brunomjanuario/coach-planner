@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 14,
+  "next_id": 17,
   "lessons": [
     {
       "id": "L-001",
@@ -238,6 +238,60 @@
       ],
       "created": "2026-08-06T11:07:54Z",
       "last_seen": "2026-08-06T11:07:54Z"
+    },
+    {
+      "id": "L-014",
+      "key": "ac_gap::when a spec edge case names a failure mode inherited from an existing service path rather than new code still add a dedicated test that triggers it through the new feature s own call site reused error handling is not proof the new caller reaches it",
+      "text": "When a spec edge case names a failure mode inherited from an existing service path rather than new code, still add a dedicated test that triggers it through the new feature's own call site — reused error handling is not proof the new caller reaches it.",
+      "signal": "ac_gap",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "29-exercise-designer"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md edge case: 'exercise deleted before saving' (testing)"
+      ],
+      "created": "2026-08-07T13:03:21Z",
+      "last_seen": "2026-08-07T13:03:21Z"
+    },
+    {
+      "id": "L-015",
+      "key": "ac_gap::for a storage quota edge case add a test that mocks the write call to throw specifically on the new feature s own save path not just rely on an existing quota test elsewhere in the repo for a different popup",
+      "text": "For a storage-quota edge case, add a test that mocks the write call to throw specifically on the new feature's own save path, not just rely on an existing quota test elsewhere in the repo for a different popup.",
+      "signal": "ac_gap",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "29-exercise-designer"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md edge case: 'localStorage rejects the write (quota)' (testing)"
+      ],
+      "created": "2026-08-07T13:03:30Z",
+      "last_seen": "2026-08-07T13:03:30Z"
+    },
+    {
+      "id": "L-016",
+      "key": "spec_precision_gap::when an ac claims a rendering property holds at a narrower width or across container sizes write a test that actually renders at two sizes and compares a fixed viewbox or percentage based mechanism is not itself proof the ac holds",
+      "text": "When an AC claims a rendering property holds 'at a narrower width' or across container sizes, write a test that actually renders at two sizes and compares — a fixed-viewBox or percentage-based mechanism is not itself proof the AC holds.",
+      "signal": "spec_precision_gap",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "29-exercise-designer"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md P2 AC4: diagram rendered at a narrower width keeps every shape's relative position (testing)"
+      ],
+      "created": "2026-08-07T13:03:30Z",
+      "last_seen": "2026-08-07T13:03:30Z"
     }
   ]
 }
