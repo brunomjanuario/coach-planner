@@ -78,7 +78,7 @@ and its count decreased by one — without triggering any other reload.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| TRUR-01 | P1: Unassigned list refreshes after edit | Tasks | Pending |
+| TRUR-01 | P1: Unassigned list refreshes after edit | Implementing | Verified |
 
 **Coverage:** 1 total, 1 mapped to tasks, 0 unmapped
 
