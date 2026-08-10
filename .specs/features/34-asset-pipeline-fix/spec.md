@@ -73,7 +73,7 @@ the literal string `src/assets/images/` no longer appears anywhere in `dist/`.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| ASSET-01 | P1: Images survive a production build | Tasks | Pending |
+| ASSET-01 | P1: Images survive a production build | Implementing | Verified |
 
 **Coverage:** 1 total, 1 mapped to tasks, 0 unmapped
 
