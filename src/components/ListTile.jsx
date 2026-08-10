@@ -43,7 +43,7 @@ export default function ListTile({
               {" "}
               <Link
                 to={emptyHref}
-                className="text-blue-600 underline focus:outline-2 focus:outline-blue-500"
+                className="text-blue-400 underline focus:outline-2 focus:outline-blue-500"
               >
                 {emptyLinkLabel}
               </Link>
@@ -57,13 +57,13 @@ export default function ListTile({
   return (
     <Tile label={label} note={basis === "past" ? "most recent" : undefined}>
       <div className="text-2xl font-semibold break-words">{count}</div>
-      {breakdown && <div className="text-sm text-gray-500 break-words">{breakdown}</div>}
+      {breakdown && <div className="text-sm text-gray-400 break-words">{breakdown}</div>}
       <ul className="mt-1 space-y-1">
         {rows.map((row) => (
           <li key={row.id}>
             <Link
               to={row.href}
-              className="block text-sm text-blue-600 hover:underline break-words focus:outline-2 focus:outline-blue-500"
+              className="block text-sm text-blue-400 hover:underline break-words focus:outline-2 focus:outline-blue-500"
             >
               {row.label}
             </Link>

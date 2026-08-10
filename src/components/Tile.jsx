@@ -9,8 +9,8 @@ import { Link } from "react-router-dom";
  * implementation; re-measure here if a tile ever grows a fourth line.
  */
 export const TILE_CLASS =
-  "w-full h-full min-h-36 border px-3 py-2 rounded-2xl block";
-const INTERACTIVE_CLASS = "text-left hover:bg-gray-50 focus:outline-2 focus:outline-blue-500";
+  "w-full h-full min-h-36 border px-3 py-2 rounded-2xl block bg-lightblack";
+const INTERACTIVE_CLASS = "text-left hover:bg-hover focus:outline-2 focus:outline-blue-500";
 
 /**
  * The one dashboard tile surface: border, radius, padding, h-full (so a
@@ -23,7 +23,7 @@ const INTERACTIVE_CLASS = "text-left hover:bg-gray-50 focus:outline-2 focus:outl
 export default function Tile({ label, note, children, href, onClick }) {
   const content = (
     <>
-      <div className="text-sm text-gray-500">{label}</div>
+      <div className="text-sm text-gray-400">{label}</div>
       {note && <div className="text-xs text-gray-400">{note}</div>}
       {children}
     </>

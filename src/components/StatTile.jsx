@@ -42,7 +42,7 @@ export default function StatTile({
               {" "}
               <Link
                 to={emptyHref}
-                className="text-blue-600 underline focus:outline-2 focus:outline-blue-500"
+                className="text-blue-400 underline focus:outline-2 focus:outline-blue-500"
               >
                 {emptyLinkLabel}
               </Link>
@@ -56,7 +56,7 @@ export default function StatTile({
   return (
     <Tile label={label} href={href} onClick={onClick}>
       <div className="text-2xl font-semibold break-words">{value}</div>
-      {breakdown && <div className="text-sm text-gray-500 break-words">{breakdown}</div>}
+      {breakdown && <div className="text-sm text-gray-400 break-words">{breakdown}</div>}
     </Tile>
   );
 }
