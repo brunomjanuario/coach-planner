@@ -229,4 +229,107 @@ describe.each(NOUN_SETS)("ReferenceListManager ($nouns.singular)", ({ nouns, sam
     expect(onDelete).toHaveBeenCalledWith("1");
     expect(await screen.findByText(`No ${nouns.plural} yet. Add your first one below.`)).toBeInTheDocument();
   });
+
+  test("submitting a name clears the input on success", async () => {
+    const onCreate = vi.fn(async (name) => ({ id: "new", name }));
+    const user = userEvent.setup();
+    renderManager({ initialItems: [], nouns, onCreate, onRename: async () => {}, onDelete: async () => {} });
+    const input = screen.getByLabelText(`New ${nouns.singular}`);
+
+    await user.type(input, other);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByText(other);
+
+    expect(input).toHaveValue("");
+  });
+
+  test("a rejected create keeps the typed value in the input (AC GREF-02.2)", async () => {
+    const onCreate = vi.fn(async () => {
+      throw new Error(`A ${nouns.singular} named "${other}" already exists.`);
+    });
+    const user = userEvent.setup();
+    renderManager({ initialItems: [], nouns, onCreate, onRename: async () => {}, onDelete: async () => {} });
+    const input = screen.getByLabelText(`New ${nouns.singular}`);
+
+    await user.type(input, other);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByText(`A ${nouns.singular} named "${other}" already exists.`);
+
+    expect(input).toHaveValue(other);
+  });
+
+  test("a long name wraps rather than overflowing (edge case)", () => {
+    const longName = "A".repeat(200);
+    renderManager({
+      initialItems: [{ id: "1", name: longName }],
+      nouns,
+      onCreate: async () => {},
+      onRename: async () => {},
+      onDelete: async () => {},
+    });
+
+    expect(screen.getByText(longName)).toHaveClass("break-words");
+  });
+
+  test("typing after a rejected submission clears the inline error", async () => {
+    const onCreate = vi.fn(async () => {
+      throw new Error(`A ${nouns.singular} named "${other}" already exists.`);
+    });
+    const user = userEvent.setup();
+    renderManager({ initialItems: [], nouns, onCreate, onRename: async () => {}, onDelete: async () => {} });
+    const input = screen.getByLabelText(`New ${nouns.singular}`);
+
+    await user.type(input, other);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await screen.findByText(`A ${nouns.singular} named "${other}" already exists.`);
+
+    await user.type(input, "s");
+
+    expect(
+      screen.queryByText(`A ${nouns.singular} named "${other}" already exists.`)
+    ).not.toBeInTheDocument();
+  });
+
+  test("cancelling a rename discards the change and does not call onRename", async () => {
+    const onRename = vi.fn();
+    const user = userEvent.setup();
+    renderManager({
+      initialItems: [{ id: "1", name: sample }],
+      nouns,
+      onCreate: async () => {},
+      onRename,
+      onDelete: async () => {},
+    });
+
+    await user.click(screen.getByRole("button", { name: `Rename ${sample}` }));
+    const input = screen.getByLabelText(`Rename ${sample}`);
+    await user.clear(input);
+    await user.type(input, other);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText(sample)).toBeInTheDocument();
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  test("Add is primary and the inline rename row's Save/Cancel use the same variants (AC BTN-04.1)", async () => {
+    const user = userEvent.setup();
+    renderManager({
+      initialItems: [{ id: "1", name: sample }],
+      nouns,
+      onCreate: async () => {},
+      onRename: async () => {},
+      onDelete: async () => {},
+    });
+
+    expect(screen.getByRole("button", { name: "Add" }).className).toMatch(
+      /bg-blue-600/
+    );
+
+    await user.click(screen.getByRole("button", { name: `Rename ${sample}` }));
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    expect(saveButton.className).toMatch(/bg-blue-600/);
+    expect(cancelButton.className).toMatch(/border/);
+    expect(cancelButton.className).not.toMatch(/bg-gray-300/);
+  });
 });

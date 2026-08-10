@@ -4,6 +4,7 @@ import ReferenceListsPopup from "../ReferenceListsPopup";
 import { opponentService } from "../../services/opponentService";
 import { competitionService } from "../../services/competitionService";
 import { gameService } from "../../services/gameService";
+import { StorageQuotaError } from "../../lib/storage";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -246,4 +247,48 @@ test("cancelling a delete on the Competitions tab removes nothing (AC GREF-02.5)
 
   expect(screen.getByText("Cup")).toBeInTheDocument();
   expect(deleteSpy).not.toHaveBeenCalled();
+});
+
+test("an empty opponent name is rejected via the real service's validation message (AC GREF-02.2)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("No opponents yet. Add your first one below.");
+
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(
+    await screen.findByText("Opponent name cannot be empty.")
+  ).toBeInTheDocument();
+});
+
+test("a storage-quota failure on create surfaces an error rather than appearing to succeed (edge case)", async () => {
+  mockLists();
+  const createSpy = vi
+    .spyOn(opponentService, "create")
+    .mockRejectedValue(new StorageQuotaError("opponents"));
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByText("No opponents yet. Add your first one below.");
+
+  await user.type(screen.getByLabelText("New opponent"), "Porto");
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(await screen.findByText(/storage quota exceeded/i)).toBeInTheDocument();
+  expect(createSpy).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByText("No opponents yet. Add your first one below.")
+  ).toBeInTheDocument();
+});
+
+test("Close is secondary, Add is primary (AC BTN-04.1)", async () => {
+  mockLists({ opponents: [{ id: "1", name: "Benfica" }] });
+  renderPopup();
+  await screen.findByText("Benfica");
+
+  const closeButton = screen.getByRole("button", { name: "Close" });
+  const addButton = screen.getByRole("button", { name: "Add" });
+  expect(closeButton.className).toMatch(/border/);
+  expect(closeButton.className).not.toMatch(/bg-gray-300/);
+  expect(addButton.className).toMatch(/bg-blue-600/);
 });
