@@ -13,6 +13,14 @@ async function fillRequiredFields(user, container) {
   await user.type(container.querySelector('[name="season"]'), "24/25");
 }
 
+test("every field has a label properly associated by htmlFor/id (AC CRUD-03.1)", () => {
+  render(<TeamPopup team={null} onClose={() => {}} />);
+
+  expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  expect(screen.getByLabelText("Club")).toBeInTheDocument();
+  expect(screen.getByLabelText("Season")).toBeInTheDocument();
+});
+
 test("renders through PopupShell as an accessible dialog titled Team Form", () => {
   render(<TeamPopup team={null} onClose={() => {}} />);
 

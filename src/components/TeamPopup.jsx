@@ -51,8 +51,11 @@ export default function TeamPopup({ team, onClose }) {
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Name</label>
+          <label htmlFor="team-name" className="block text-sm font-medium">
+            Name
+          </label>
           <input
+            id="team-name"
             type="text"
             name="name"
             value={formData.name}
@@ -63,8 +66,11 @@ export default function TeamPopup({ team, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Club</label>
+          <label htmlFor="team-club" className="block text-sm font-medium">
+            Club
+          </label>
           <input
+            id="team-club"
             type="text"
             name="club"
             value={formData.club}
@@ -75,8 +81,11 @@ export default function TeamPopup({ team, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Season</label>
+          <label htmlFor="team-season" className="block text-sm font-medium">
+            Season
+          </label>
           <input
+            id="team-season"
             type="text"
             name="season"
             value={formData.season}

@@ -130,16 +130,16 @@ T3 → T4 → T5
 
 ### T4: Associate every label in TeamPopup with its field
 
-**What**: `useId()`-generated ids on all three fields (Name, Club, Season), `htmlFor`/`id` pairs.
+**What**: Literal string ids on all three fields (Name, Club, Season), `htmlFor`/`id` pairs — corrected from the spec's assumed `useId()` after verifying the actual codebase convention (see spec.md's Assumptions row).
 **Where**: `src/components/TeamPopup.jsx` (modify), `src/components/__tests__/TeamPopup.test.jsx` (modify)
 **Depends on**: T1 (same file — sequenced to avoid two tasks racing edits on one file, not a functional dependency)
-**Reuses**: `TrainingSavePopup.jsx`/`GameSavePopup.jsx`'s existing `useId()` + `htmlFor` convention
+**Reuses**: `Settings.jsx`/`GameSavePopup.jsx`'s actual literal-id + `htmlFor` convention
 **Requirement**: CRUD-03
 
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Each of the three fields has a unique `id` (via `useId()`) and its `<label>` carries the matching `htmlFor`
+- [ ] Each of the three fields has a literal `id` and its `<label>` carries the matching `htmlFor`
 - [ ] `screen.getByLabelText("Name")`, `getByLabelText("Club")`, `getByLabelText("Season")` each resolve to the correct input (AC CRUD-03.1)
 - [ ] Gate passes: `npx vitest run src/components/__tests__/TeamPopup.test.jsx`
 - [ ] Test count: existing count + 1 (a single test asserting all three labels resolve, matching how other popups' equivalent test is shaped)
@@ -162,7 +162,7 @@ T3 → T4 → T5
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
-- [ ] Each of the four fields has a unique `id` (via `useId()`) and its `<label>` carries the matching `htmlFor`
+- [ ] Each of the four fields has a literal `id` and its `<label>` carries the matching `htmlFor`
 - [ ] `screen.getByLabelText("Name")`, `getByLabelText("Age")`, `getByLabelText("Shirt Number")`, `getByLabelText("Position")` each resolve to the correct input (AC CRUD-03.2)
 - [ ] Gate passes: `npm run lint && npm run build && npm test` (last task in the batch)
 - [ ] Test count: existing count + 1
