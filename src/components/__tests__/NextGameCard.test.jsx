@@ -105,3 +105,21 @@ test("is visually distinct from a GameRow via its own bordered rounded-2xl surfa
   expect(card.className).toMatch(/\bborder-2\b/);
   expect(card.className).toMatch(/\brounded-2xl\b/);
 });
+
+test("carries an explicit dark surface and hover class, not the light-mode leftovers (feature 33)", () => {
+  render(<NextGameCard game={baseGame()} onSelect={() => {}} />);
+
+  const card = screen.getByRole("button");
+  expect(card.className).toMatch(/\bbg-lightblack\b/);
+  expect(card.className).toMatch(/hover:bg-hover/);
+  expect(card.className).not.toMatch(/hover:bg-gray-50/);
+});
+
+test("the empty state also carries the explicit dark surface and text-gray-400, not text-gray-500 (feature 33)", () => {
+  render(<NextGameCard game={null} onSelect={() => {}} />);
+
+  const empty = screen.getByText("No upcoming games");
+  expect(empty.className).toMatch(/\bbg-lightblack\b/);
+  expect(empty.className).toMatch(/text-gray-400/);
+  expect(empty.className).not.toMatch(/text-gray-500/);
+});

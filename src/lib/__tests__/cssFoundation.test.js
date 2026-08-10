@@ -9,55 +9,65 @@ import { resolve } from "node:path";
  * class at all (confirmed: that's why the original defect shipped past
  * 1413 passing tests). A static source check is the only reliable guard.
  *
- * `findUnlayeredElementSelectors` walks a CSS source at depth 0, skipping
- * the interior of any @layer/@media/@theme block (those may legitimately
- * declare bare element selectors — Tailwind's own preflight does), and
- * flags any other top-level rule whose selector is a bare HTML element name
- * (":root" and "body"/"html" are accepted top-level exceptions, matching
- * design.md's explicit decision to leave body's non-color structural rules
- * and :root's non-color rules in place).
+ * `findUnlayeredElementSelectors` walks a CSS source, recursively, and
+ * flags any bare-element-name selector (":root" and "body"/"html" are
+ * accepted exceptions) that isn't inside a genuine cascade-layer boundary.
+ *
+ * Only `@layer` and `@theme` grant that boundary and are skipped wholesale
+ * without inspecting their contents (Tailwind's own preflight declares
+ * element selectors inside `@layer base` on purpose). Every OTHER at-rule
+ * — `@media`, `@supports`, `@keyframes`, `@font-face`, etc. — does NOT
+ * establish a cascade layer, so an unlayered selector nested inside one
+ * still beats every Tailwind utility exactly as if it weren't wrapped at
+ * all; those blocks are recursed into, not skipped. (The original scaffold
+ * bug nested `:root`/`a:hover`/`@layer base {...}` all inside one
+ * `@media (prefers-color-scheme: light) {...}` block — a flat "any
+ * @-rule is safe" fast-path would have missed exactly that shape.)
  */
 function findUnlayeredElementSelectors(css) {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const offenders = [];
-  let i = 0;
-  const n = stripped.length;
-
-  function skipBlock() {
-    // Called right after consuming the block's opening '{', so it already
-    // represents depth 1 — loop until the matching close brings depth to 0.
-    let depth = 1;
-    while (depth > 0 && i < n) {
-      if (stripped[i] === "{") depth++;
-      else if (stripped[i] === "}") depth--;
-      i++;
-    }
-  }
-
-  while (i < n) {
-    const start = i;
-    while (i < n && stripped[i] !== "{") i++;
-    if (i >= n) break;
-    const header = stripped.slice(start, i).trim();
-    i++;
-
-    if (/^@(layer|media|theme)\b/.test(header)) {
-      skipBlock();
-      continue;
-    }
-
-    const selectors = header.split(",").map((s) => s.trim());
-    for (const sel of selectors) {
-      const base = sel.split(":")[0].trim();
-      if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(base) && !["body", "html"].includes(base)) {
-        offenders.push(sel);
-      }
-    }
-
-    skipBlock();
-  }
-
+  scan(stripped);
   return offenders;
+
+  function scan(source) {
+    let i = 0;
+    const n = source.length;
+
+    while (i < n) {
+      const start = i;
+      while (i < n && source[i] !== "{") i++;
+      if (i >= n) break;
+      const header = source.slice(start, i).trim();
+      const blockStart = i + 1;
+
+      let depth = 1;
+      i = blockStart;
+      while (depth > 0 && i < n) {
+        if (source[i] === "{") depth++;
+        else if (source[i] === "}") depth--;
+        i++;
+      }
+      const inner = source.slice(blockStart, i - 1);
+
+      if (/^@(layer|theme)\b/.test(header)) {
+        continue; // genuine cascade-layer boundary — fully trusted
+      }
+      if (header.startsWith("@")) {
+        scan(inner); // no layer immunity — its contents are still exposed
+        continue;
+      }
+
+      const selectors = header.split(",").map((s) => s.trim());
+      for (const sel of selectors) {
+        const base = sel.split(":")[0].trim();
+        if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(base) && !["body", "html"].includes(base)) {
+          offenders.push(sel);
+        }
+      }
+      // a plain rule's block is declarations, not nested rules — no recursion
+    }
+  }
 }
 
 const INDEX_CSS_PATH = resolve(import.meta.dirname, "../../index.css");
@@ -143,4 +153,33 @@ test("does not flag class or id selectors", () => {
   const offenders = findUnlayeredElementSelectors(classSelectors);
 
   expect(offenders).toEqual([]);
+});
+
+test("flags an unlayered selector nested inside @media — a media query grants no cascade-layer immunity", () => {
+  const nested = `
+    @media (prefers-color-scheme: light) {
+      h1 { font-size: 2em; }
+    }
+  `;
+
+  const offenders = findUnlayeredElementSelectors(nested);
+
+  expect(offenders).toContain("h1");
+});
+
+test("does NOT flag a selector inside @layer even when that @layer is itself nested inside @media — reproduces the original scaffold's exact nesting shape", () => {
+  const originalShape = `
+    @media (prefers-color-scheme: light) {
+      :root { color: #213547; }
+      a:hover { color: #747bff; }
+      @layer base {
+        button { background-color: #f9f9f9; }
+      }
+    }
+  `;
+
+  const offenders = findUnlayeredElementSelectors(originalShape);
+
+  expect(offenders).toContain("a:hover");
+  expect(offenders).not.toContain("button");
 });
