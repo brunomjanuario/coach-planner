@@ -63,6 +63,15 @@ export function AuthProvider({ children }) {
     if (email === DEMO_EMAIL) {
       return { success: false, message: "Email already taken" };
     }
+    if (!username || !username.trim()) {
+      return { success: false, message: "Username cannot be empty" };
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      return { success: false, message: "Enter a valid email address" };
+    }
+    if (!password) {
+      return { success: false, message: "Password cannot be empty" };
+    }
     const userObj = { username, email, password };
     setUser(userObj);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
