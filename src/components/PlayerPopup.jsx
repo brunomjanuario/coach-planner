@@ -58,8 +58,11 @@ export default function PlayerPopup({ player, teamId, onClose }) {
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Name</label>
+          <label htmlFor="player-name" className="block text-sm font-medium">
+            Name
+          </label>
           <input
+            id="player-name"
             type="text"
             name="name"
             value={formData.name}
@@ -70,8 +73,11 @@ export default function PlayerPopup({ player, teamId, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Age</label>
+          <label htmlFor="player-age" className="block text-sm font-medium">
+            Age
+          </label>
           <input
+            id="player-age"
             type="number"
             name="age"
             value={formData.age}
@@ -82,8 +88,11 @@ export default function PlayerPopup({ player, teamId, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Shirt Number</label>
+          <label htmlFor="player-shirtNumber" className="block text-sm font-medium">
+            Shirt Number
+          </label>
           <input
+            id="player-shirtNumber"
             type="number"
             name="shirtNumber"
             value={formData.shirtNumber}
@@ -94,8 +103,11 @@ export default function PlayerPopup({ player, teamId, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Position</label>
+          <label htmlFor="player-position" className="block text-sm font-medium">
+            Position
+          </label>
           <input
+            id="player-position"
             type="text"
             name="position"
             value={formData.position}

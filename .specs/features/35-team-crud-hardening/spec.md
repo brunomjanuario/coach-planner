@@ -149,9 +149,9 @@ input in both popups (fails today — currently only reachable via
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| CRUD-01 | P1: Failed writes surface an error | Tasks | Pending |
-| CRUD-02 | P2: Delete cascades to cards/ratings | Tasks | Pending |
-| CRUD-03 | P3: Labels are associated | Tasks | Pending |
+| CRUD-01 | P1: Failed writes surface an error | Implementing | Verified |
+| CRUD-02 | P2: Delete cascades to cards/ratings | Implementing | Verified |
+| CRUD-03 | P3: Labels are associated | Implementing | Verified |
 
 **Coverage:** 3 total, 3 mapped to tasks, 0 unmapped
 

@@ -28,6 +28,15 @@ async function fillRequiredFields(user, container) {
   await user.type(container.querySelector('[name="position"]'), "ST");
 }
 
+test("every field has a label properly associated by htmlFor/id (AC CRUD-03.2)", () => {
+  render(<PlayerPopup player={null} teamId={1} onClose={() => {}} />);
+
+  expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  expect(screen.getByLabelText("Age")).toBeInTheDocument();
+  expect(screen.getByLabelText("Shirt Number")).toBeInTheDocument();
+  expect(screen.getByLabelText("Position")).toBeInTheDocument();
+});
+
 test("renders through PopupShell as an accessible dialog at natural height (AC POPUP-03)", () => {
   render(<PlayerPopup player={null} teamId={1} onClose={() => {}} />);
 
