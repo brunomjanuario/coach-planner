@@ -1,11 +1,13 @@
 # Coach Planner — Feature Roadmap
 
-Three planning rounds. **Round one** (`00`–`11`) built the app: twelve features
+Four planning rounds. **Round one** (`00`–`11`) built the app: twelve features
 derived from ten ideas, plus two foundations. **Round two** (`12`–`24`) is
 thirteen features derived from the user's change list. Both rounds are
 implemented and merged. **Round three** (`25`–`32`) is eight features derived
 from the user's second change list — one feature per item, each independently
-shippable.
+shippable. **Round four** (`33`–`38`) is six features derived from a code audit
+rather than a change list — the first round whose input is defects the user
+never reported because the test suite hid them.
 
 Every feature has a `spec.md` (WHAT, with traceable requirement IDs) and a
 `tasks.md` (atomic tasks with dependencies, tests and gates).
@@ -189,6 +191,83 @@ matching the `20 → 21 → 22 → 23` pattern.
 
 ---
 
+## Round four — planned
+
+Six features from an audit of `main` at `9520108`. Unlike rounds one to three,
+the input was not a user change list: it was a read of the codebase against a
+green suite. **1413 tests passed while three bugs were visible on screen** —
+every one of them a CSS-cascade defect that jsdom cannot see and class-string
+assertions cannot catch. That gap, not any single bug, is what `33` is really
+about.
+
+```
+33-css-foundation-reset ──► resets the visual baseline the rest are verified against
+      │
+      ├──► 34-asset-pipeline-fix      (also touches TeamCard/PlayerCard)
+      │
+      ├──► 35-team-crud-hardening
+      ├──► 36-auth-mock-hardening
+      ├──► 37-trainings-unassigned-refresh
+      └──► 38-housekeeping
+
+34, 35, 36, 37, 38 are independent of each other — only 33 must go first.
+```
+
+| # | Feature | Bugs it fixes | Scope | Tasks | Depends on |
+|---|---------|---------------|-------|-------|------------|
+| 33 | css-foundation-reset | 1, 2, 3 — `h1` override, light-mode contrast collapse, leaked button background | **Large** | 7 | — |
+| 34 | asset-pipeline-fix | 4 — images 404 in production builds | Small | 3 | 33 |
+| 35 | team-crud-hardening | 5, 6, 9 — silent write failures, missing delete cascade, unassociated labels | Medium | 5 | 33 |
+| 36 | auth-mock-hardening | 8, 10 — `signUp` skips validation, `signOut` doesn't survive a refresh | Medium | 4 | — |
+| 37 | trainings-unassigned-refresh | 7 — editing a training leaves a stale Unassigned list | Small | 2 | — |
+| 38 | housekeeping | 12, 13, 11(partial) — no 404 route, dead `App.css`, truthy-vs-`!= null` | Small | 3 | — |
+
+**24 atomic tasks.** Every feature fits a single ~7-task batch, so all six
+execute inline — no sub-agent delegation offer. Each gets its own branch off
+`main` and its own PR, matching the round-three pattern.
+
+### Suggested order
+
+1. **`33`** — first, and not negotiable. It changes what every screen looks
+   like, so any feature verified before it is verified against a baseline that
+   is about to move. It is also the only round-four feature with a design phase.
+2. **`34`** and **`37`** — small, independent, and immediately visible. `34`
+   comes after `33` only because both edit `TeamCard`/`PlayerCard`.
+3. **`35`** and **`36`** — the robustness pair. Neither is user-visible on a
+   happy path; both remove a way for the app to lose data quietly.
+4. **`38`** — last. Pure hygiene, nothing depends on it.
+
+### Why these groupings
+
+- **Bugs 1, 2 and 3 are one feature, not three.** They look unrelated on screen
+  — a giant heading, unreadable cards in light mode, a dark tab that should be
+  transparent — but all three come from the same ~40 lines of unremoved Vite
+  scaffold CSS in `src/index.css` fighting Tailwind's cascade layers. Splitting
+  them would mean three features editing the same file, and the second and third
+  would keep re-deciding the colour-scheme question the first one settled.
+- **Removing the scaffold is not a delete.** `SelectableListItem` has *no*
+  background utility: its dark row comes entirely from the leaked
+  `@layer base { button { background-color: #1a1a1a } }`. Several components
+  are unknowingly built on the very CSS being removed, so `33` has to give them
+  explicit styles in the same change. That blast radius is why it is Large.
+- **Bug 3 is a self-inflicted regression.** Feature `31` shipped a segmented
+  control whose inactive tab renders as a dark box, directly contradicting its
+  own AC TABUI-01.3, and its test passed because it asserted a class string
+  (`not.toMatch(/bg-white/)`) rather than a rendered colour. `33` carries the
+  fix *and* a guard so the next restyle cannot lie the same way.
+- **Bug 11 is deliberately only half-fixed.** Normalising the mixed numeric/UUID
+  ids means a schema-v5 migration rewriting every id and every cross-reference,
+  for a defect that has never fired — call sites already defend with
+  `String(x) === y`. `38` fixes the one real inconsistency
+  (`trainingService.getAllNumbered`'s truthy `teamId` check) and documents the
+  convention. The migration is listed under "not here".
+- **Bug 10 was already known and accepted.** `docs/08-authentication.md`
+  documents that a refresh after sign-out re-authenticates. `36` reopens it
+  because "sign out doesn't sign you out" is the kind of accepted quirk that
+  stops being acceptable once it is written down next to twelve other defects.
+
+---
+
 ## How to execute one
 
 Each `tasks.md` opens with the execution protocol. In short:
@@ -211,6 +290,14 @@ none) that decides the whole architecture. Every other round-three feature
 settles its modelling questions in its Assumptions table. If one turns out to
 need design once its turn comes, run the Design phase then, against the
 codebase as it actually is.
+
+**Round four has exactly one: `33-css-foundation-reset`** — it settles a
+product decision (dark-only; the `prefers-color-scheme: light` path was Vite
+scaffold, never a designed theme), it has a blast radius across components that
+are unknowingly built on the CSS being removed, and it has to answer a testing
+question the other five do not: how a suite that runs in jsdom can catch a
+cascade-layer defect at all. Every other round-four feature settles its
+questions in its Assumptions table.
 
 ## Project decisions
 
@@ -238,6 +325,16 @@ Round three added five:
 - **AD-016** — opponents and competitions share one manager and one popup.
   AD-010 stands: still reference lists, still not foreign keys.
 
+Round four proposes two, both recorded when `33` and `36` are designed:
+
+- **AD-017** (proposed, `33`) — Coach Planner is a **dark-only** app. No
+  `prefers-color-scheme` branch, no `color-scheme: light dark`. `src/index.css`
+  carries no unlayered element selectors, because unlayered CSS outranks every
+  Tailwind utility and silently wins.
+- **AD-018** (proposed, `36`) — the auth mock separates the *stored account*
+  from the *active session*. AD-011 stands on everything else: still plaintext,
+  still consistent-not-secure, still replaced wholesale by a real backend.
+
 ## What is deliberately not here
 
 | Idea | Why not planned |
@@ -247,7 +344,10 @@ Round three added five:
 | Per-competition league tables | `20` deliberately stops at a named entity. Scoping standings per competition is a real feature with its own questions. |
 | Head-to-head records per opponent | A consumer of `21`'s data, not part of creating it. |
 | Focus trapping and Escape-to-close on popups | `13` fixes the height bug and does not regress focus. Full modal accessibility deserves its own ACs. |
-| Fixing `TeamCard`/`PlayerCard` image paths | Still broken in production builds (`src/assets/images/*.png` resolves only in dev). Untouched by all three rounds; worth its own small feature. |
+| ~~Fixing `TeamCard`/`PlayerCard` image paths~~ | **Now planned as `34-asset-pipeline-fix`.** Confirmed still broken: `dist/assets/` emits no images at all, because neither file is ever `import`ed, while the bundled JS still carries the literal `src/assets/images/*.png` string. |
+| Normalising the mixed numeric/UUID id types | The seed uses `id: 1, 2`; `newId()` returns UUIDs. No failure has ever been observed — call sites defend with `String(x) === y`. A real fix is a schema-v5 migration rewriting every id and every cross-reference (`teamId`, `playerId`, `gameId`) across six collections: a Large, high-regression change for a latent defect. `38` fixes the one live inconsistency and documents the convention instead. |
+| Full modal accessibility (focus trap, Escape-to-close) | Still deferred from round two. `35` associates the labels inside two popups; it does not take on focus management, which remains its own feature. |
+| Automated visual-regression testing | `33` adds a source-level guard against *this* class of defect (unlayered element selectors, dark backgrounds with no explicit text colour). Screenshot diffing is a tooling decision with its own infrastructure cost, and would not have caught these three bugs any faster than reading the CSS did. |
 | An opponent belonging to a competition (a real foreign key) | AD-016 reads "opponents are linked to competitions" as a UI request and merges the popups. The relational version reverses AD-010, rewrites every game record and reopens standings — a feature, not a restyle. |
 | Animating, exporting or sharing an exercise diagram | `29` gets to a static, editable, storable diagram. Each of those three is a separate product question. |
 | Adopting `Button` for page-level buttons | `27` stops at the popup boundary, where the contrast bug lives. Page headers have different sizing; a follow-up can adopt the same component. |
