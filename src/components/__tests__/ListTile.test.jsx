@@ -35,6 +35,22 @@ test("renders a breakdown line alongside the count when given", () => {
   expect(screen.getByText("2 past · 3 upcoming")).toBeInTheDocument();
 });
 
+test("the breakdown line uses text-gray-400, not text-gray-500 (feature 33)", () => {
+  renderTile({ count: 5, rows, breakdown: "2 past · 3 upcoming" });
+
+  const breakdown = screen.getByText("2 past · 3 upcoming");
+  expect(breakdown.className).toMatch(/text-gray-400/);
+  expect(breakdown.className).not.toMatch(/text-gray-500/);
+});
+
+test("row links use text-blue-400, not text-blue-600 (feature 33)", () => {
+  renderTile({ count: 5, rows });
+
+  const link = screen.getByRole("link", { name: "Amadora Sub-11" });
+  expect(link.className).toMatch(/text-blue-400/);
+  expect(link.className).not.toMatch(/text-blue-600/);
+});
+
 test("renders a +N more indicator matching the given overflow (AC DTILE-01.4)", () => {
   renderTile({ count: 5, rows, overflow: 2 });
 
@@ -61,6 +77,14 @@ test("renders the empty state and emptyHref link when count is 0 (AC DTILE-01.5)
   expect(screen.getByText("No data yet")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Add one" })).toHaveAttribute("href", "/teams");
   expect(screen.queryByRole("link", { name: "Amadora Sub-11" })).not.toBeInTheDocument();
+});
+
+test("the empty-state link uses text-blue-400, not text-blue-600 (feature 33)", () => {
+  renderTile({ count: 0, rows: [], emptyHref: "/teams", emptyLinkLabel: "Add one" });
+
+  const link = screen.getByRole("link", { name: "Add one" });
+  expect(link.className).toMatch(/text-blue-400/);
+  expect(link.className).not.toMatch(/text-blue-600/);
 });
 
 test("renders the empty state when count is null, not a rendered 'null'", () => {

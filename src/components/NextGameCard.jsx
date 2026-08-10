@@ -10,7 +10,7 @@ import { formatGameDate, homeAwayPrefix } from "../lib/gameSchedule";
 export default function NextGameCard({ game, teamName, onSelect }) {
   if (!game) {
     return (
-      <div className="w-full border-2 rounded-2xl p-4 text-center text-sm text-gray-500">
+      <div className="w-full border-2 rounded-2xl p-4 text-center text-sm text-gray-400 bg-lightblack">
         No upcoming games
       </div>
     );
@@ -20,13 +20,13 @@ export default function NextGameCard({ game, teamName, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect && onSelect(game)}
-      className="w-full text-left border-2 rounded-2xl p-4 hover:bg-gray-50 focus:outline-2 focus:outline-blue-500"
+      className="w-full text-left border-2 rounded-2xl p-4 bg-lightblack hover:bg-hover focus:outline-2 focus:outline-blue-500"
     >
-      <div className="text-xs text-gray-500 uppercase tracking-wide">Next Game</div>
+      <div className="text-xs text-gray-400 uppercase tracking-wide">Next Game</div>
       <div className="text-lg font-semibold break-words">
         {homeAwayPrefix(game)} {game.opponent}
       </div>
-      <div className="text-sm text-gray-500">{formatGameDate(game.date)}</div>
+      <div className="text-sm text-gray-400">{formatGameDate(game.date)}</div>
       {game.competition && (
         <div className="text-xs text-gray-400">{game.competition}</div>
       )}

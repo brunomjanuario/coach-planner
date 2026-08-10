@@ -75,7 +75,7 @@ export default function PlayerRatingHistory({ playerId, onChange }) {
     <div className="mt-4">
       <h3 className="text-sm font-medium mb-2">Rating History</h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-gray-500">No ratings recorded yet.</p>
+        <p className="text-sm text-gray-400">No ratings recorded yet.</p>
       ) : (
         <ul className="space-y-2 max-h-40 overflow-y-auto">
           {entries.map((entry) => {
@@ -99,7 +99,7 @@ export default function PlayerRatingHistory({ playerId, onChange }) {
                 </span>
                 <button
                   type="button"
-                  className="text-gray-500 hover:text-red-600 focus:text-red-600"
+                  className="text-gray-400 hover:text-red-600 focus:text-red-600"
                   aria-label={`Delete ${typeLabel.toLowerCase()} rating of ${entry.value} on ${dateLabel}`}
                   onClick={() => setToDelete(entry)}
                 >

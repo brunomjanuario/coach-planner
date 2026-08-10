@@ -82,7 +82,7 @@ export default function SquadRanking({ team }) {
         </div>
       </div>
       {loading ? null : ranking.length === 0 || !hasAnyRating ? (
-        <p className="text-sm text-gray-500">No rated players yet.</p>
+        <p className="text-sm text-gray-400">No rated players yet.</p>
       ) : (
         <ol className="space-y-1">
           {ranking.map((entry, index) => (

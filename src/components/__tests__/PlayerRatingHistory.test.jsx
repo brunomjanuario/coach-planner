@@ -296,7 +296,7 @@ test("the empty-history message stays on the dark surface without being darkened
 
   const message = await screen.findByText("No ratings recorded yet.");
   expect(message.className).not.toContain("text-gray-900");
-  expect(message.className).toContain("text-gray-500");
+  expect(message.className).toContain("text-gray-400");
 });
 
 test("the delete control keeps a readable colour on hover and focus (edge case)", async () => {

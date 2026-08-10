@@ -278,7 +278,7 @@ test("the empty-ranking message stays readable on the page background (AC CONTR-
   render(<SquadRanking team={team} />);
 
   const message = await screen.findByText("No rated players yet.");
-  expect(message.className).toContain("text-gray-500");
+  expect(message.className).toContain("text-gray-400");
   expect(message.className).not.toContain("text-gray-900");
 });
 

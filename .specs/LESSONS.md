@@ -116,6 +116,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/components/__tests__/Tabs.test.jsx:93-121 (mutation: flip ArrowRight/ArrowLeft delta in src/components/Tabs.jsx:23) (components/tests)
 - last seen: 2026-08-10T15:23:43Z
 
+### L-018 — When a parser has a fast-path branch that skips a block, add a test fixture where removing that branch actually changes the outcome, not just fixtures where the fallback path produces the same result anyway.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: 33-css-foundation-reset
+- evidence: src/lib/__tests__/cssFoundation.test.js:44 (mutant: broke the @layer/@media/@theme fast-path regex, all 7 tests still passed) (testing)
+- last seen: 2026-08-10T16:25:44Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

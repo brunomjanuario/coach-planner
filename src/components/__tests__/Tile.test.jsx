@@ -60,7 +60,7 @@ test("focus/hover styling comes from the shared definition for the Link variant 
   renderTile({ href: "/teams" });
 
   const link = screen.getByRole("link");
-  expect(link.className).toMatch(/hover:bg-gray-50/);
+  expect(link.className).toMatch(/hover:bg-hover/);
   expect(link.className).toMatch(/focus:outline-2/);
 });
 
@@ -68,7 +68,7 @@ test("focus/hover styling comes from the shared definition for the button varian
   renderTile({ onClick: vi.fn() });
 
   const button = screen.getByRole("button");
-  expect(button.className).toMatch(/hover:bg-gray-50/);
+  expect(button.className).toMatch(/hover:bg-hover/);
   expect(button.className).toMatch(/focus:outline-2/);
 });
 

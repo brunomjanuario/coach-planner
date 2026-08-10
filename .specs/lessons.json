@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 18,
+  "next_id": 19,
   "lessons": [
     {
       "id": "L-001",
@@ -310,6 +310,24 @@
       ],
       "created": "2026-08-10T15:23:43Z",
       "last_seen": "2026-08-10T15:23:43Z"
+    },
+    {
+      "id": "L-018",
+      "key": "surviving_mutant::when a parser has a fast path branch that skips a block add a test fixture where removing that branch actually changes the outcome not just fixtures where the fallback path produces the same result anyway",
+      "text": "When a parser has a fast-path branch that skips a block, add a test fixture where removing that branch actually changes the outcome, not just fixtures where the fallback path produces the same result anyway.",
+      "signal": "surviving_mutant",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "33-css-foundation-reset"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/lib/__tests__/cssFoundation.test.js:44 (mutant: broke the @layer/@media/@theme fast-path regex, all 7 tests still passed) (testing)"
+      ],
+      "created": "2026-08-10T16:25:44Z",
+      "last_seen": "2026-08-10T16:25:44Z"
     }
   ]
 }

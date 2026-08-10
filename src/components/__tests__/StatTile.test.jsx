@@ -19,6 +19,22 @@ test("renders a label, a primary value and an optional breakdown line", () => {
   expect(screen.getByText("2 past · 2 upcoming")).toBeInTheDocument();
 });
 
+test("the breakdown line uses text-gray-400, not text-gray-500 (feature 33)", () => {
+  renderTile({ value: 4, breakdown: "2 past · 2 upcoming" });
+
+  const breakdown = screen.getByText("2 past · 2 upcoming");
+  expect(breakdown.className).toMatch(/text-gray-400/);
+  expect(breakdown.className).not.toMatch(/text-gray-500/);
+});
+
+test("the empty-state link uses text-blue-400, not text-blue-600 (feature 33)", () => {
+  renderTile({ value: 0, emptyHref: "/teams" });
+
+  const link = screen.getByRole("link", { name: "Add one" });
+  expect(link.className).toMatch(/text-blue-400/);
+  expect(link.className).not.toMatch(/text-blue-600/);
+});
+
 test("renders without a breakdown line when none is given", () => {
   const { container } = renderTile({ value: 4 });
 

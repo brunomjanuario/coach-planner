@@ -65,3 +65,13 @@ test("does not shrink when placed beside a wide main region (edge case)", () => 
   const root = screen.getByRole("link", { name: "Home" }).closest(".bg-lightblack");
   expect(root.className).toMatch(/flex-shrink-0/);
 });
+
+test("every nav link carries an explicit hover utility, replacing the deleted global a:hover rule", () => {
+  renderSidebar();
+
+  for (const name of ["Home", "Teams", "Trainings", "Games", "Calendar", "Settings", "Logout"]) {
+    const link = screen.getByRole("link", { name });
+    expect(link.className).toMatch(/hover:bg-lightgrey/);
+    expect(link.className).toMatch(/rounded-xl/);
+  }
+});
