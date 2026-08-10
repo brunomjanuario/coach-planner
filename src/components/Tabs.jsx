@@ -1,8 +1,17 @@
 import { useId } from "react";
 
 const TAB_CLASS =
-  "px-4 py-2 rounded-t-md border-b-2 focus:outline-2 focus:outline-blue-500";
+  "px-4 py-2 rounded-md font-medium focus:outline-2 focus:outline-blue-500";
 
+/**
+ * Segmented control: a bg-gray-100 track holds the tabs, with the active one
+ * lifted onto a white pill (with a shadow) instead of a bottom-border
+ * hairline. Both states share the same font weight so switching tabs never
+ * shifts a label's width. Hand-verified contrast (WCAG relative luminance,
+ * jsdom can't measure this): inactive text-gray-700 on the bg-gray-100 track
+ * ≈ 9.4:1; active text-gray-900 on the white pill ≈ 17.7:1 — both clear the
+ * 4.5:1 AA floor.
+ */
 export default function Tabs({ tabs, active, onChange }) {
   const baseId = useId();
   const activeTab = tabs.find((tab) => tab.id === active) ?? tabs[0];
@@ -22,9 +31,8 @@ export default function Tabs({ tabs, active, onChange }) {
     <div>
       <div
         role="tablist"
-        className="flex overflow-x-auto border-b border-gray-200"
+        className="flex gap-1 p-1 bg-gray-100 rounded-lg overflow-x-auto"
       >
-
         {tabs.map((tab) => {
           const selected = tab.id === activeTab.id;
           return (
@@ -40,8 +48,8 @@ export default function Tabs({ tabs, active, onChange }) {
               onKeyDown={handleKeyDown}
               className={`${TAB_CLASS} ${
                 selected
-                  ? "border-blue-500 font-semibold"
-                  : "border-transparent hover:bg-gray-50"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-700 hover:bg-gray-200"
               }`}
             >
               {tab.label}

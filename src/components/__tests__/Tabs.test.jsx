@@ -133,3 +133,91 @@ test("the tablist stays reachable rather than clipped at a narrow width", () => 
 
   expect(screen.getByRole("tablist").className).toMatch(/overflow-x-auto/);
 });
+
+test("the strip renders as a segmented track with a background and radius, not a border-bottom hairline (AC TABUI-01.1)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const tablist = screen.getByRole("tablist");
+  expect(tablist.className).toMatch(/bg-gray-100/);
+  expect(tablist.className).toMatch(/rounded-lg/);
+  screen.getAllByRole("tab").forEach((tab) => {
+    expect(tab.className).not.toMatch(/border-b-2/);
+  });
+});
+
+test("the active tab carries the pill class set and the inactive tab does not (AC TABUI-01.2, TABUI-01.3)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const activeTab = screen.getByRole("tab", { name: "Profile" });
+  const inactiveTab = screen.getByRole("tab", { name: "Advanced" });
+  expect(activeTab.className).toMatch(/bg-white/);
+  expect(activeTab.className).toMatch(/shadow-sm/);
+  expect(inactiveTab.className).not.toMatch(/bg-white/);
+  expect(inactiveTab.className).not.toMatch(/shadow-sm/);
+});
+
+test("switching the active tab swaps the pill class set", () => {
+  const { rerender } = render(
+    <Tabs tabs={TABS} active="profile" onChange={() => {}} />
+  );
+
+  expect(screen.getByRole("tab", { name: "Profile" }).className).toMatch(
+    /bg-white/
+  );
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).not.toMatch(
+    /bg-white/
+  );
+
+  rerender(<Tabs tabs={TABS} active="advanced" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).toMatch(
+    /bg-white/
+  );
+  expect(screen.getByRole("tab", { name: "Profile" }).className).not.toMatch(
+    /bg-white/
+  );
+});
+
+test("neither state carries font-semibold, so no tab's width changes on select (AC TABUI-01.4)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  screen.getAllByRole("tab").forEach((tab) => {
+    expect(tab.className).not.toMatch(/font-semibold/);
+  });
+});
+
+test("the focus-ring class is present on both the active and the inactive tab (AC TABUI-01.5)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const activeTab = screen.getByRole("tab", { name: "Profile" });
+  const inactiveTab = screen.getByRole("tab", { name: "Advanced" });
+  expect(activeTab.className).toMatch(/focus:outline/);
+  expect(inactiveTab.className).toMatch(/focus:outline/);
+});
+
+test("the inactive tab carries a hover class (AC TABUI-01.3)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).toMatch(
+    /hover:/
+  );
+});
+
+test("a long label does not force truncation and the strip keeps its horizontal-scroll class (edge case)", () => {
+  const longLabelTabs = [
+    { id: "profile", label: "Profile", panel: <p>Profile content</p> },
+    {
+      id: "advanced",
+      label: "A very long tab label that would overflow a narrow strip",
+      panel: <p>Advanced content</p>,
+    },
+  ];
+  render(<Tabs tabs={longLabelTabs} active="profile" onChange={() => {}} />);
+
+  expect(
+    screen.getByText(
+      "A very long tab label that would overflow a narrow strip"
+    )
+  ).toBeInTheDocument();
+  expect(screen.getByRole("tablist").className).toMatch(/overflow-x-auto/);
+});
