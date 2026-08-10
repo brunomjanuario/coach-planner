@@ -12,8 +12,7 @@ import NextGameCard from "../components/NextGameCard";
 import SelectableListItem from "../components/SelectableListItem";
 import LeagueTable from "../components/LeagueTable";
 import RivalRowPopup from "../components/RivalRowPopup";
-import CompetitionsPopup from "../components/CompetitionsPopup";
-import OpponentsPopup from "../components/OpponentsPopup";
+import ReferenceListsPopup from "../components/ReferenceListsPopup";
 import { nextGame, sortPlayed } from "../lib/gameSchedule";
 
 /** Resolves a game's teamId to "Club Name", or null for a missing/dangling team. */
@@ -35,8 +34,7 @@ export default function Games() {
   const [standingsRows, setStandingsRows] = useState([]);
   const [showRivalRowPopup, setShowRivalRowPopup] = useState(false);
   const [deepLinkNotFound, setDeepLinkNotFound] = useState(false);
-  const [showCompetitionsPopup, setShowCompetitionsPopup] = useState(false);
-  const [showOpponentsPopup, setShowOpponentsPopup] = useState(false);
+  const [showReferenceListsPopup, setShowReferenceListsPopup] = useState(false);
 
   const loadUnassigned = async () => {
     const data = await gameService.getUnassigned();
@@ -157,15 +155,9 @@ export default function Games() {
         <div className="flex items-center gap-2">
           <button
             className="bg-lightgrey text-white px-4 py-2 rounded-md"
-            onClick={() => setShowCompetitionsPopup(true)}
+            onClick={() => setShowReferenceListsPopup(true)}
           >
-            Competitions
-          </button>
-          <button
-            className="bg-lightgrey text-white px-4 py-2 rounded-md"
-            onClick={() => setShowOpponentsPopup(true)}
-          >
-            Opponents
+            Manage lists
           </button>
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded-md m-5 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -188,18 +180,10 @@ export default function Games() {
             No teams yet. Add one on the Teams page first.
           </p>
         )}
-        {showCompetitionsPopup && (
-          <CompetitionsPopup
+        {showReferenceListsPopup && (
+          <ReferenceListsPopup
             onClose={() => {
-              setShowCompetitionsPopup(false);
-              filterGames(selectedTeam?.id ?? null);
-            }}
-          />
-        )}
-        {showOpponentsPopup && (
-          <OpponentsPopup
-            onClose={() => {
-              setShowOpponentsPopup(false);
+              setShowReferenceListsPopup(false);
               filterGames(selectedTeam?.id ?? null);
             }}
           />
