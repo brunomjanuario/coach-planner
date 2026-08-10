@@ -283,6 +283,7 @@ export default function Trainings() {
               onSubmit={async (training) => {
                 const updated = await trainingService.update(training);
                 await filterTrainings(selectedTeam?.id ?? null);
+                await loadUnassigned();
                 if (selectedTeam && updated.teamId !== selectedTeam.id) {
                   setCreateMessage(
                     `Training moved to ${teamLabel(updated.teamId)} — it won't show under the "${teamLabel(selectedTeam.id)}" filter.`

@@ -191,7 +191,7 @@ matching the `20 → 21 → 22 → 23` pattern.
 
 ---
 
-## Round four — planned
+## Round four — shipped (pending final merge)
 
 Six features from an audit of `main` at `9520108`. Unlike rounds one to three,
 the input was not a user change list: it was a read of the codebase against a
@@ -199,6 +199,38 @@ green suite. **1413 tests passed while three bugs were visible on screen** —
 every one of them a CSS-cascade defect that jsdom cannot see and class-string
 assertions cannot catch. That gap, not any single bug, is what `33` is really
 about.
+
+All six features are implemented, independently verified (author ≠ verifier
+sub-agent, spec-anchored AC check + discrimination sensor for every one), and
+PR'd — five merged, one ([#40](https://github.com/brunomjanuario/coach-planner/pull/40),
+bundling `37`+`38`) open and clean/mergeable at time of writing:
+
+| # | Feature | PR | Status |
+|---|---|---|---|
+| 33 | css-foundation-reset | [#36](https://github.com/brunomjanuario/coach-planner/pull/36) | ✅ Merged |
+| 34 | asset-pipeline-fix | [#37](https://github.com/brunomjanuario/coach-planner/pull/37) | ✅ Merged |
+| 35 | team-crud-hardening | [#38](https://github.com/brunomjanuario/coach-planner/pull/38) | ✅ Merged |
+| 36 | auth-mock-hardening | [#39](https://github.com/brunomjanuario/coach-planner/pull/39) | ✅ Merged |
+| 37 | trainings-unassigned-refresh | [#40](https://github.com/brunomjanuario/coach-planner/pull/40) | ⬜ Open |
+| 38 | housekeeping | [#40](https://github.com/brunomjanuario/coach-planner/pull/40) | ⬜ Open |
+
+`37` and `38` share one branch/PR (both Small, both independent of everything
+else) rather than one each — a deliberate deviation from the
+one-feature-one-PR pattern every other round-four feature followed, made
+because splitting two features this small into separate PRs would have cost
+more review overhead than either feature's diff.
+
+**23 atomic tasks actually landed** (the planning table below predicted 24;
+`33` shipped in 6 tasks, not the originally estimated 7 — see its own
+`tasks.md` for why the plan tightened by one during Design). Two Verifier
+passes found real gaps and both were closed before merge, not deferred:
+`33`'s guard treated `@media` as fully cascade-safe alongside `@layer`/
+`@theme`, which was a genuine correctness hole (fixed by making the parser
+recurse into any at-rule that isn't `@layer`/`@theme`); `36`'s `signUp`
+success path had no test isolating its own session-flag write from the
+sibling `signIn`/`signOut` calls that happened to also exercise it (fixed
+with a dedicated remount test). Both are recorded in their features'
+`validation.md` under "Follow-up (implementer)".
 
 ```
 33-css-foundation-reset ──► resets the visual baseline the rest are verified against
@@ -213,18 +245,20 @@ about.
 34, 35, 36, 37, 38 are independent of each other — only 33 must go first.
 ```
 
-| # | Feature | Bugs it fixes | Scope | Tasks | Depends on |
-|---|---------|---------------|-------|-------|------------|
-| 33 | css-foundation-reset | 1, 2, 3 — `h1` override, light-mode contrast collapse, leaked button background | **Large** | 7 | — |
-| 34 | asset-pipeline-fix | 4 — images 404 in production builds | Small | 3 | 33 |
-| 35 | team-crud-hardening | 5, 6, 9 — silent write failures, missing delete cascade, unassociated labels | Medium | 5 | 33 |
-| 36 | auth-mock-hardening | 8, 10 — `signUp` skips validation, `signOut` doesn't survive a refresh | Medium | 4 | — |
-| 37 | trainings-unassigned-refresh | 7 — editing a training leaves a stale Unassigned list | Small | 2 | — |
-| 38 | housekeeping | 12, 13, 11(partial) — no 404 route, dead `App.css`, truthy-vs-`!= null` | Small | 3 | — |
+| # | Feature | Bugs it fixes | Scope | Tasks planned | Tasks shipped | Depends on |
+|---|---------|---------------|-------|-------|-------|------------|
+| 33 | css-foundation-reset | 1, 2, 3 — `h1` override, light-mode contrast collapse, leaked button background | **Large** | 7 | 6 | — |
+| 34 | asset-pipeline-fix | 4 — images 404 in production builds | Small | 3 | 3 | 33 |
+| 35 | team-crud-hardening | 5, 6, 9 — silent write failures, missing delete cascade, unassociated labels | Medium | 5 | 5 | 33 |
+| 36 | auth-mock-hardening | 8, 10 — `signUp` skips validation, `signOut` doesn't survive a refresh | Medium | 4 | 4 | — |
+| 37 | trainings-unassigned-refresh | 7 — editing a training leaves a stale Unassigned list | Small | 2 | 2 | — |
+| 38 | housekeeping | 12, 13, 11(partial) — no 404 route, dead `App.css`, truthy-vs-`!= null` | Small | 3 | 3 | — |
 
-**24 atomic tasks.** Every feature fits a single ~7-task batch, so all six
-execute inline — no sub-agent delegation offer. Each gets its own branch off
-`main` and its own PR, matching the round-three pattern.
+**24 tasks planned, 23 shipped.** Every feature fit a single ~7-task batch, so
+all six executed inline — no sub-agent delegation was offered or needed. Each
+feature (or, for `37`/`38`, feature pair) got its own branch and PR, matching
+the round-three pattern; see the shipped-status table above for the actual
+count (five features/PRs merged, `37`+`38` sharing one open PR).
 
 ### Suggested order
 
@@ -325,13 +359,13 @@ Round three added five:
 - **AD-016** — opponents and competitions share one manager and one popup.
   AD-010 stands: still reference lists, still not foreign keys.
 
-Round four proposes two, both recorded when `33` and `36` are designed:
+Round four added two, both `active` in `.specs/STATE.md`:
 
-- **AD-017** (proposed, `33`) — Coach Planner is a **dark-only** app. No
+- **AD-017** (`33`) — Coach Planner is a **dark-only** app. No
   `prefers-color-scheme` branch, no `color-scheme: light dark`. `src/index.css`
   carries no unlayered element selectors, because unlayered CSS outranks every
   Tailwind utility and silently wins.
-- **AD-018** (proposed, `36`) — the auth mock separates the *stored account*
+- **AD-018** (`36`) — the auth mock separates the *stored account*
   from the *active session*. AD-011 stands on everything else: still plaintext,
   still consistent-not-secure, still replaced wholesale by a real backend.
 
@@ -344,7 +378,7 @@ Round four proposes two, both recorded when `33` and `36` are designed:
 | Per-competition league tables | `20` deliberately stops at a named entity. Scoping standings per competition is a real feature with its own questions. |
 | Head-to-head records per opponent | A consumer of `21`'s data, not part of creating it. |
 | Focus trapping and Escape-to-close on popups | `13` fixes the height bug and does not regress focus. Full modal accessibility deserves its own ACs. |
-| ~~Fixing `TeamCard`/`PlayerCard` image paths~~ | **Now planned as `34-asset-pipeline-fix`.** Confirmed still broken: `dist/assets/` emits no images at all, because neither file is ever `import`ed, while the bundled JS still carries the literal `src/assets/images/*.png` string. |
+| ~~Fixing `TeamCard`/`PlayerCard` image paths~~ | **Fixed by `34-asset-pipeline-fix`** ([#37](https://github.com/brunomjanuario/coach-planner/pull/37), merged) — both now use a standard ES module import; `dist/assets/` emits fingerprinted files for both, confirmed via a real `npm run build`. |
 | Normalising the mixed numeric/UUID id types | The seed uses `id: 1, 2`; `newId()` returns UUIDs. No failure has ever been observed — call sites defend with `String(x) === y`. A real fix is a schema-v5 migration rewriting every id and every cross-reference (`teamId`, `playerId`, `gameId`) across six collections: a Large, high-regression change for a latent defect. `38` fixes the one live inconsistency and documents the convention instead. |
 | Full modal accessibility (focus trap, Escape-to-close) | Still deferred from round two. `35` associates the labels inside two popups; it does not take on focus management, which remains its own feature. |
 | Automated visual-regression testing | `33` adds a source-level guard against *this* class of defect (unlayered element selectors, dark backgrounds with no explicit text colour). Screenshot diffing is a tooling decision with its own infrastructure cost, and would not have caught these three bugs any faster than reading the CSS did. |
