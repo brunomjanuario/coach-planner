@@ -6,6 +6,172 @@ function renderAuth() {
   return renderHook(() => useAuth(), { wrapper: AuthProvider });
 }
 
+describe("signUp validation (feature 36, AC AUTH-01)", () => {
+  test("rejects an email that fails the email pattern, writing nothing (AC AUTH-01.1)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("Coach", "not-an-email", "hunter2");
+    });
+
+    expect(signUpResult).toEqual({
+      success: false,
+      message: "Enter a valid email address",
+    });
+    expect(localStorage.getItem("user")).toBeNull();
+  });
+
+  test("rejects an empty username, writing nothing (AC AUTH-01.2)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("", "coach@club.pt", "hunter2");
+    });
+
+    expect(signUpResult).toEqual({
+      success: false,
+      message: "Username cannot be empty",
+    });
+    expect(localStorage.getItem("user")).toBeNull();
+  });
+
+  test("treats a whitespace-only username as empty (edge case)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("   ", "coach@club.pt", "hunter2");
+    });
+
+    expect(signUpResult).toEqual({
+      success: false,
+      message: "Username cannot be empty",
+    });
+  });
+
+  test("rejects an empty password, writing nothing (AC AUTH-01.3)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("Coach", "coach@club.pt", "");
+    });
+
+    expect(signUpResult).toEqual({
+      success: false,
+      message: "Password cannot be empty",
+    });
+    expect(localStorage.getItem("user")).toBeNull();
+  });
+
+  test("the existing duplicate-email check still fires first, unaffected (AC AUTH-01.4)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("", "user@email.com", "");
+    });
+
+    expect(signUpResult).toEqual({
+      success: false,
+      message: "Email already taken",
+    });
+  });
+
+  test("valid username, email and password still succeed (AC AUTH-01.5)", () => {
+    const { result } = renderAuth();
+
+    let signUpResult;
+    act(() => {
+      signUpResult = result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+
+    expect(signUpResult).toEqual({ success: true });
+    expect(result.current.user).toMatchObject({
+      username: "Coach",
+      email: "coach@club.pt",
+    });
+  });
+});
+
+describe("session persistence (feature 36, AC AUTH-02, AD-018)", () => {
+  test("signUp itself sets the session flag, surviving a remount with no signIn/signOut in between", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({
+      username: "Coach",
+      email: "coach@club.pt",
+    });
+  });
+
+  test("signing out then remounting the provider (simulating a refresh) leaves user null (AC AUTH-02.2)", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    expect(result.current.user).not.toBeNull();
+
+    act(() => {
+      result.current.signOut();
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toBeNull();
+  });
+
+  test("signing in then remounting the provider (simulating a refresh) restores the user", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+      result.current.signOut();
+    });
+    act(() => {
+      result.current.signIn("coach@club.pt", "hunter2");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({ email: "coach@club.pt" });
+  });
+
+  test("a session flag with no stored account is treated as signed out, not a fabricated user (edge case)", () => {
+    localStorage.setItem("session", "active");
+    const { result } = renderAuth();
+
+    expect(result.current.user).toBeNull();
+  });
+
+  test("signing in with the hard-coded demo pair also sets the session, surviving a remount (edge case)", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signIn("user@email.com", "password");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({ email: "user@email.com" });
+  });
+
+  test("a browser that has never signed in behaves exactly as before: signed out, demo credentials work (AC AUTH-02.4)", () => {
+    const { result } = renderAuth();
+
+    expect(result.current.user).toBeNull();
+    let signInResult;
+    act(() => {
+      signInResult = result.current.signIn("user@email.com", "password");
+    });
+    expect(signInResult).toEqual({ success: true });
+  });
+});
+
 test("signUp stores the chosen password and a later signIn with that pair succeeds", () => {
   const { result } = renderAuth();
 
@@ -253,6 +419,7 @@ test("a legacy stored user with username and no name is read as having that name
     "user",
     JSON.stringify({ username: "Legacy Coach", email: "legacy@club.pt" })
   );
+  localStorage.setItem("session", "active");
   const { result } = renderAuth();
 
   expect(result.current.user.name).toBe("Legacy Coach");

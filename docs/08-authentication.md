@@ -24,7 +24,7 @@
 | `loading` | `boolean` | `true` until the `localStorage` read completes on mount. |
 | `signIn` | `(email, password) => Result` | Checks the stored user, falling back to the demo pair. |
 | `signUp` | `(username, email, password) => Result` | Accepts any email except the demo one; now stores the password. |
-| `signOut` | `() => void` | Clears the session but leaves stored credentials in `localStorage`. |
+| `signOut` | `() => void` | Clears the active session (including the `localStorage` session flag — see below) but leaves the stored account credentials untouched. |
 | `updateProfile` | `({ name, email }) => Result` | Validates and persists a new name/email. |
 | `changePassword` | `({ current, next, confirm }) => Result` | Validates and persists a new password. |
 
@@ -69,18 +69,21 @@ record in `localStorage`:
 Any other combination returns `{ success: false, message: "Invalid email or
 password" }` — sign-in never reveals which field was wrong.
 
-**Sign up** rejects `user@email.com` with "Email already taken" and otherwise
-stores `{ username, email, password }`, immediately creating a session. Unlike
-before `24`, the password is **not** discarded, so an account created via
-sign-up can be signed back in to after logout with the same credentials.
+**Sign up** rejects `user@email.com` with "Email already taken", an empty or
+whitespace-only username ("Username cannot be empty"), an email that fails
+the same pattern `updateProfile` checks ("Enter a valid email address"), and
+an empty password ("Password cannot be empty") — `36-auth-mock-hardening`
+brought `signUp` up to the same validation depth `updateProfile` already had.
+Valid input stores `{ username, email, password }` and immediately creates a
+session. The password is **not** discarded, so an account created via sign-up
+can be signed back in to after logout with the same credentials.
 
-**Sign out** clears the in-memory `user` session but deliberately does **not**
-remove the `localStorage` record, so `signIn` can still check a later attempt
-against it. One consequence of the single-key design: refreshing the page
-immediately after signing out re-hydrates the same stored record on mount,
-signing the coach back in. This is a known trade-off of reusing one
-`localStorage` key for both "the account that exists" and "the session that's
-active" — not something `24` set out to fix.
+**Sign out** clears the in-memory `user` session and the active-session flag
+(see "Session persistence" below) but deliberately leaves the stored account
+record untouched, so `signIn` can still check a later attempt against it.
+Refreshing the page immediately after signing out no longer re-authenticates
+the coach — `36-auth-mock-hardening` (AD-018) separated "the account that
+exists" from "the session that's active" into two `localStorage` keys.
 
 **Editing the profile** (`updateProfile`, `changePassword`, both surfaced on
 the Settings → Profile tab) validates and persists changes to the same stored
@@ -93,19 +96,29 @@ it never touches the `user` key, so a coach's profile survives a reset.
 
 ## Session persistence
 
-The user object is serialized to `localStorage` under the key `user`:
+Two `localStorage` keys, deliberately separate (AD-018,
+`36-auth-mock-hardening`):
+
+| Key | Holds | Written by | Cleared by |
+| --- | --- | --- | --- |
+| `user` | The account record (`{ email, name?, username?, password? }`) | `signUp`, `updateProfile`, `changePassword` | Never automatically — only `localStorage.removeItem("user")` by hand |
+| `session` | The literal string `"active"` when someone is currently signed in | `signIn`, `signUp` (every success path, including the hard-coded demo pair) | `signOut` |
 
 ```js
 localStorage.setItem("user", JSON.stringify(userObj));
+localStorage.setItem("session", "active");
 ```
 
-On mount, `AuthProvider` reads it back — migrating a legacy `username` field to
-`name` if present — and rehydrates `user`, then sets `loading` to `false`.
-That is why a refresh keeps you signed in even though the app data itself
-resets. A corrupt (non-JSON) value in the key is treated as signed out rather
-than thrown from `JSON.parse`.
+On mount, `AuthProvider` reads `user` back — migrating a legacy `username`
+field to `name` if present — but only rehydrates `user` state when the
+`session` key also reads `"active"`; otherwise it stays `null` even though an
+account record exists. That is why a refresh keeps you signed in **while a
+session is active**, and why a refresh immediately after signing out no
+longer does. A corrupt (non-JSON) `user` value, or a `session` flag with no
+matching account record, are both treated as signed out rather than thrown or
+fabricating a user.
 
-Because the guard trusts whatever is in `localStorage`, writing a value there by
+Because the guard trusts whatever is in `localStorage`, writing both keys by
 hand grants access to every private route. That is expected for a mock and
 unacceptable for a real deployment.
 
@@ -113,6 +126,7 @@ Clear the credentials entirely (not just the session) with:
 
 ```js
 localStorage.removeItem("user")
+localStorage.removeItem("session")
 ```
 
 ## The route guard
@@ -139,8 +153,8 @@ note to that effect.
 
 ```
 /signin → submit → signIn(email, password)
-  success (stored user exists)  → setUser → navigate("/")
-  success (no user stored yet)  → setUser + localStorage.setItem → navigate("/")
+  success (stored user exists)  → setUser + session flag → navigate("/")
+  success (no user stored yet)  → setUser + localStorage.setItem + session flag → navigate("/")
   failure → render result.message in red under the form
 ```
 
@@ -151,8 +165,9 @@ truthy, so an already-signed-in visitor never sees the form.
 
 ```
 /signup → submit → signUp(username, email, password)
-  success → setUser + localStorage.setItem → setSuccess(true) → navigate("/")
-  failure → render "Email already taken"
+  success → setUser + localStorage.setItem + session flag → setSuccess(true) → navigate("/")
+  failure → render the validation message (duplicate email, empty username,
+            invalid email, or empty password)
 ```
 
 The success banner is rendered in the JSX but never visible in practice, because

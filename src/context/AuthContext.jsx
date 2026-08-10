@@ -6,6 +6,7 @@ import { AuthContext } from "./AuthContextInstance";
 // session token and no hashing. See docs/08-authentication.md.
 
 const STORAGE_KEY = "user";
+const SESSION_KEY = "session";
 const DEMO_EMAIL = "user@email.com";
 const DEMO_PASSWORD = "password";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,7 +35,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(readStoredUser());
+    const stored = readStoredUser();
+    const hasActiveSession = localStorage.getItem(SESSION_KEY) === "active";
+    setUser(hasActiveSession ? stored : null);
     setLoading(false);
   }, []);
 
@@ -45,6 +48,7 @@ export function AuthProvider({ children }) {
       const storedPassword = stored.password ?? DEMO_PASSWORD;
       if (emailsMatch(stored.email, email) && password === storedPassword) {
         setUser(stored);
+        localStorage.setItem(SESSION_KEY, "active");
         return { success: true };
       }
       return { success: false, message: "Invalid email or password" };
@@ -54,6 +58,7 @@ export function AuthProvider({ children }) {
       const userObj = { email: DEMO_EMAIL };
       setUser(userObj);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
+      localStorage.setItem(SESSION_KEY, "active");
       return { success: true };
     }
     return { success: false, message: "Invalid email or password" };
@@ -63,14 +68,25 @@ export function AuthProvider({ children }) {
     if (email === DEMO_EMAIL) {
       return { success: false, message: "Email already taken" };
     }
+    if (!username || !username.trim()) {
+      return { success: false, message: "Username cannot be empty" };
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      return { success: false, message: "Enter a valid email address" };
+    }
+    if (!password) {
+      return { success: false, message: "Password cannot be empty" };
+    }
     const userObj = { username, email, password };
     setUser(userObj);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
+    localStorage.setItem(SESSION_KEY, "active");
     return { success: true };
   };
 
   const signOut = () => {
     setUser(null);
+    localStorage.removeItem(SESSION_KEY);
   };
 
   const updateProfile = ({ name, email }) => {

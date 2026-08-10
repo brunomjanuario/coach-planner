@@ -122,6 +122,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/lib/__tests__/cssFoundation.test.js:44 (mutant: broke the @layer/@media/@theme fast-path regex, all 7 tests still passed) (testing)
 - last seen: 2026-08-10T16:25:44Z
 
+### L-019 — When a success path writes a session/auth flag, add a test that isolates that exact path with a remount and no other auth call in between — a test that remounts only after signOut+signIn will not detect a missing flag write on signUp/other sibling paths.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/context/AuthContext.jsx` · harmful: 0
+- features: 36-auth-mock-hardening
+- evidence: src/context/AuthContext.jsx:83 (signUp session-flag write) (src/context/AuthContext.jsx)
+- last seen: 2026-08-10T20:43:48Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

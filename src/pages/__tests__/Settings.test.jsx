@@ -25,6 +25,7 @@ const SIGNED_IN_USER = { username: "Coach Bruno", email: "user@email.com" };
 
 beforeEach(() => {
   localStorage.setItem("user", JSON.stringify(SIGNED_IN_USER));
+  localStorage.setItem("session", "active");
 });
 
 function LocationDisplay() {

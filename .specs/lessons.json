@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 19,
+  "next_id": 20,
   "lessons": [
     {
       "id": "L-001",
@@ -328,6 +328,24 @@
       ],
       "created": "2026-08-10T16:25:44Z",
       "last_seen": "2026-08-10T16:25:44Z"
+    },
+    {
+      "id": "L-019",
+      "key": "surviving_mutant::when a success path writes a session auth flag add a test that isolates that exact path with a remount and no other auth call in between a test that remounts only after signout signin will not detect a missing flag write on signup other sibling paths",
+      "text": "When a success path writes a session/auth flag, add a test that isolates that exact path with a remount and no other auth call in between — a test that remounts only after signOut+signIn will not detect a missing flag write on signUp/other sibling paths.",
+      "signal": "surviving_mutant",
+      "scope": "src/context/AuthContext.jsx",
+      "status": "candidate",
+      "features": [
+        "36-auth-mock-hardening"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/context/AuthContext.jsx:83 (signUp session-flag write) (src/context/AuthContext.jsx)"
+      ],
+      "created": "2026-08-10T20:43:48Z",
+      "last_seen": "2026-08-10T20:43:48Z"
     }
   ]
 }
