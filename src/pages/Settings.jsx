@@ -178,7 +178,7 @@ function AdvancedPanel() {
 
   return (
     <div className="p-4">
-      <p className="text-sm text-gray-600 mb-3">
+      <p className="text-sm text-gray-400 mb-3">
         Resetting clears all your teams, players, trainings and games, and
         restores the original demo data. This cannot be undone.
       </p>
