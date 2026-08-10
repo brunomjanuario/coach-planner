@@ -148,6 +148,8 @@ T5 → T6
 ### T4: Bump the remaining too-dim text colors
 
 **What**: `SquadRanking.jsx:85`, `Settings.jsx:181`, `PlayerRatingHistory.jsx:78` — `text-gray-500`/`text-gray-600` → `text-gray-400`.
+
+**Found during implementation, not anticipated at design time**: `PlayerRatingHistory.jsx:102`'s delete-rating icon button was also `text-gray-500` (measured 3.71:1 on `bg-lightblack`), missed by the design audit because it wasn't paired with visible text content in the grep pass. Bumped alongside its sibling in the same file.
 **Where**: `src/components/SquadRanking.jsx`, `src/pages/Settings.jsx`, `src/components/PlayerRatingHistory.jsx` (modify), `src/components/__tests__/SquadRanking.test.jsx`, `src/components/__tests__/PlayerRatingHistory.test.jsx` (modify)
 **Depends on**: T1
 **Reuses**: n/a — one-line class swaps, same fix as T3, different files
