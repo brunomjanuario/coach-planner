@@ -424,7 +424,7 @@ test("an empty competitions list offers only 'None' and points at the manager (A
   ).toBeInTheDocument();
 });
 
-test("choosing 'Add new…' on the opponent select opens the opponents manager over the form (AC GSEL-01.6)", async () => {
+test("choosing 'Add new…' on the opponent select opens the merged manager over the form with the Opponents tab active (AC GREF-03.1)", async () => {
   mockLists();
   const user = userEvent.setup();
   renderPopup();
@@ -434,10 +434,13 @@ test("choosing 'Add new…' on the opponent select opens the opponents manager o
 
   const dialogs = screen.getAllByRole("dialog");
   expect(dialogs).toHaveLength(2);
-  expect(within(dialogs[1]).getByText("Opponents")).toBeInTheDocument();
+  expect(within(dialogs[1]).getByText("Manage lists")).toBeInTheDocument();
+  expect(
+    within(dialogs[1]).getByRole("tab", { name: "Opponents" })
+  ).toHaveAttribute("aria-selected", "true");
 });
 
-test("choosing 'Add new…' on the competition select opens the competitions manager over the form (AC GSEL-01.6)", async () => {
+test("choosing 'Add new…' on the competition select opens the merged manager over the form with the Competitions tab active (AC GREF-03.2)", async () => {
   mockLists();
   const user = userEvent.setup();
   renderPopup();
@@ -447,7 +450,10 @@ test("choosing 'Add new…' on the competition select opens the competitions man
 
   const dialogs = screen.getAllByRole("dialog");
   expect(dialogs).toHaveLength(2);
-  expect(within(dialogs[1]).getByText("Competitions")).toBeInTheDocument();
+  expect(within(dialogs[1]).getByText("Manage lists")).toBeInTheDocument();
+  expect(
+    within(dialogs[1]).getByRole("tab", { name: "Competitions" })
+  ).toHaveAttribute("aria-selected", "true");
 });
 
 test("the stacked manager is interactive above the form (regression guard on 13's nested-popup edge case)", async () => {
@@ -532,6 +538,58 @@ test("closing the competitions manager re-reads the list and selects a name adde
   await user.click(within(dialog).getByRole("button", { name: "Close" }));
 
   expect(competitionSelect()).toHaveValue("Taça");
+});
+
+test("adding one of each in a single visit updates both fields (AC GREF-03.5)", async () => {
+  mockLists({
+    opponents: [{ id: "1", name: "Benfica" }],
+    competitions: [{ id: "1", name: "Cup" }],
+  });
+  let opponentsData = [{ id: "1", name: "Benfica" }];
+  let competitionsData = [{ id: "1", name: "Cup" }];
+  vi.spyOn(opponentService, "getAll").mockImplementation(async () => [...opponentsData]);
+  vi.spyOn(opponentService, "create").mockImplementation(async (name) => {
+    const created = { id: "new-o", name };
+    opponentsData = [...opponentsData, created];
+    return created;
+  });
+  vi.spyOn(competitionService, "getAll").mockImplementation(async () => [
+    ...competitionsData,
+  ]);
+  vi.spyOn(competitionService, "create").mockImplementation(async (name) => {
+    const created = { id: "new-c", name };
+    competitionsData = [...competitionsData, created];
+    return created;
+  });
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+  const dialog = screen.getAllByRole("dialog")[1];
+  await user.type(within(dialog).getByLabelText("New opponent"), "Porto");
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  await within(dialog).findByText("Porto");
+  await user.click(within(dialog).getByRole("tab", { name: "Competitions" }));
+  await user.type(within(dialog).getByLabelText("New competition"), "Taça");
+  await user.click(within(dialog).getByRole("button", { name: "Add" }));
+  await within(dialog).findByText("Taça");
+  await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+  expect(opponentSelect()).toHaveValue("Porto");
+  expect(competitionSelect()).toHaveValue("Taça");
+});
+
+test("the game form stays mounted behind the merged manager (edge case)", async () => {
+  mockLists();
+  const user = userEvent.setup();
+  renderPopup();
+  await screen.findByRole("option", { name: "Amadora Sub-11" });
+
+  await user.selectOptions(opponentSelect(), "Add new…");
+
+  expect(teamSelect()).toBeInTheDocument();
+  expect(opponentSelect()).toBeInTheDocument();
 });
 
 test("the form contains no type=\"text\" input for opponent or competition", async () => {

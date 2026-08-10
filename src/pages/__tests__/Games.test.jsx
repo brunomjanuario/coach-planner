@@ -1000,24 +1000,50 @@ test("the rendered card count in each fixture section equals the data length (AC
   expect(within(getPlayedList()).getAllByRole("listitem")).toHaveLength(1);
 });
 
-describe("Competitions manager (feature 20)", () => {
-  test("the Competitions button in the header opens the manager (AC COMP-03.1)", async () => {
-    const user = userEvent.setup();
+async function openManager(user, tabName) {
+  await user.click(screen.getByRole("button", { name: "Manage lists" }));
+  const dialog = await screen.findByRole("dialog");
+  if (tabName && tabName !== "Opponents") {
+    await user.click(within(dialog).getByRole("tab", { name: tabName }));
+  }
+  return dialog;
+}
+
+describe("Reference lists manager (feature 30)", () => {
+  test("the header renders one 'Manage lists' button and neither a 'Competitions' nor an 'Opponents' button remains (AC GREF-01.1)", async () => {
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
 
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("District League")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Manage lists" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Competitions" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Opponents" })
+    ).not.toBeInTheDocument();
   });
 
-  test("requesting a delete opens a confirmation naming how many games use that competition (AC COMP-05.4)", async () => {
+  test("activating it opens the merged popup on the Opponents tab and does not disturb the add-game button (AC GREF-01.2)", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+
+    const dialog = await openManager(user);
+
+    expect(within(dialog).getByText("Benfica")).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("tab", { name: "Opponents" })
+    ).toHaveAttribute("aria-selected", "true");
+    expect(container.querySelector(".bg-blue-500")).toBeInTheDocument();
+  });
+
+  test("requesting a delete on the Competitions tab names how many games use that competition (AC COMP-05.4 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Competitions");
     await within(dialog).findByText("District League");
 
     await user.click(
@@ -1033,8 +1059,7 @@ describe("Competitions manager (feature 20)", () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Competitions");
     await within(dialog).findByText("District League");
 
     await user.type(within(dialog).getByLabelText("New competition"), "Cup");
@@ -1050,12 +1075,11 @@ describe("Competitions manager (feature 20)", () => {
     ).toBeInTheDocument();
   });
 
-  test("confirming a delete removes the competition and leaves the games' stored competition untouched (AC COMP-05.5)", async () => {
+  test("confirming a delete removes the competition and leaves the games' stored competition untouched (AC COMP-05.5 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Competitions");
     await within(dialog).findByText("District League");
 
     await user.click(
@@ -1076,12 +1100,11 @@ describe("Competitions manager (feature 20)", () => {
     ).toHaveLength(2);
   });
 
-  test("cancelling a delete changes nothing (AC COMP-05.6)", async () => {
+  test("cancelling a delete on the Competitions tab changes nothing (AC COMP-05.6 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Competitions");
     await within(dialog).findByText("District League");
 
     await user.click(
@@ -1097,62 +1120,11 @@ describe("Competitions manager (feature 20)", () => {
     ).toBeDefined();
   });
 
-  test("closing the manager returns to the page with no other state disturbed", async () => {
-    const user = userEvent.setup();
-    const { container } = renderGames();
-    await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(
-      within(getTeamsColumn(container)).getByText("Areias Sub-19")
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "Upcoming (0)" })
-      ).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("button", { name: "Competitions" }));
-    const dialog = await screen.findByRole("dialog");
-    await user.click(within(dialog).getByRole("button", { name: "Close" }));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Upcoming (0)" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Played (0)" })
-    ).toBeInTheDocument();
-  });
-});
-
-describe("Opponents manager (feature 21)", () => {
-  test("the Opponents button in the header opens the manager (AC OPP-03.1)", async () => {
+  test("requesting a delete on the Opponents tab names how many games use that opponent (AC OPP-05.4 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-
-    await user.click(screen.getByRole("button", { name: "Opponents" }));
-
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Benfica")).toBeInTheDocument();
-  });
-
-  test("both the Competitions and Opponents controls coexist without disturbing the add-game button or layout (AC OPP-05, regression on 19/20)", async () => {
-    const { container } = renderGames();
-    await screen.findByRole("button", { name: "Amadora Sub-11" });
-
-    expect(
-      screen.getByRole("button", { name: "Competitions" })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Opponents" })).toBeInTheDocument();
-    expect(container.querySelector(".bg-blue-500")).toBeInTheDocument();
-  });
-
-  test("requesting a delete opens a confirmation naming how many games use that opponent (AC OPP-05.4)", async () => {
-    const user = userEvent.setup();
-    renderGames();
-    await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Opponents" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Opponents");
     await within(dialog).findByText("Benfica");
 
     await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
@@ -1166,8 +1138,7 @@ describe("Opponents manager (feature 21)", () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Opponents" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Opponents");
     await within(dialog).findByText("Benfica");
 
     await user.type(within(dialog).getByLabelText("New opponent"), "Braga");
@@ -1181,12 +1152,11 @@ describe("Opponents manager (feature 21)", () => {
     ).toBeInTheDocument();
   });
 
-  test("confirming a delete removes the opponent and leaves the games' stored opponent untouched (AC OPP-05.5)", async () => {
+  test("confirming a delete removes the opponent and leaves the games' stored opponent untouched (AC OPP-05.5 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Opponents" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Opponents");
     await within(dialog).findByText("Benfica");
 
     await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
@@ -1201,12 +1171,11 @@ describe("Opponents manager (feature 21)", () => {
     expect(games.filter((g) => g.opponent === "Benfica")).toHaveLength(1);
   });
 
-  test("cancelling a delete changes nothing (AC OPP-05.6)", async () => {
+  test("cancelling a delete on the Opponents tab changes nothing (AC OPP-05.6 ported)", async () => {
     const user = userEvent.setup();
     renderGames();
     await screen.findByRole("button", { name: "Amadora Sub-11" });
-    await user.click(screen.getByRole("button", { name: "Opponents" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await openManager(user, "Opponents");
     await within(dialog).findByText("Benfica");
 
     await user.click(within(dialog).getByRole("button", { name: "Delete Benfica" }));
@@ -1216,6 +1185,31 @@ describe("Opponents manager (feature 21)", () => {
     expect(
       (await opponentService.getAll()).find((o) => o.name === "Benfica")
     ).toBeDefined();
+  });
+
+  test("closing the manager re-reads the page's games, as both old handlers did (AC GREF-01.5)", async () => {
+    const user = userEvent.setup();
+    const { container } = renderGames();
+    await screen.findByRole("button", { name: "Amadora Sub-11" });
+    await user.click(
+      within(getTeamsColumn(container)).getByText("Areias Sub-19")
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Upcoming (0)" })
+      ).toBeInTheDocument();
+    });
+
+    const dialog = await openManager(user);
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Upcoming (0)" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Played (0)" })
+    ).toBeInTheDocument();
   });
 });
 
