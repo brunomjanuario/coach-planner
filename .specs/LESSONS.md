@@ -110,6 +110,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: spec.md P2 AC4: diagram rendered at a narrower width keeps every shape's relative position (testing)
 - last seen: 2026-08-07T13:03:30Z
 
+### L-017 — When testing keyboard-direction behavior (arrow-key movement, cycling, wrap), use a fixture with 3+ items — a 2-item fixture makes forward and backward movement mathematically identical and cannot discriminate a flipped direction.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `components/tests` · harmful: 0
+- features: 31-settings-tabs-polish
+- evidence: src/components/__tests__/Tabs.test.jsx:93-121 (mutation: flip ArrowRight/ArrowLeft delta in src/components/Tabs.jsx:23) (components/tests)
+- last seen: 2026-08-10T15:23:43Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

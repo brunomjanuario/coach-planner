@@ -120,6 +120,46 @@ test("ArrowLeft wraps from the first tab to the last", async () => {
   expect(screen.getByRole("tab", { name: "Advanced" })).toHaveFocus();
 });
 
+test("with three tabs, ArrowRight from the first lands on the second, not the third — proving direction rather than just wrap (AC TABUI-02.3)", async () => {
+  const THREE_TABS = [
+    { id: "a", label: "A", panel: <p>A content</p> },
+    { id: "b", label: "B", panel: <p>B content</p> },
+    { id: "c", label: "C", panel: <p>C content</p> },
+  ];
+  function ThreeTabs() {
+    const [active, setActive] = useState("a");
+    return <Tabs tabs={THREE_TABS} active={active} onChange={setActive} />;
+  }
+  const user = userEvent.setup();
+  render(<ThreeTabs />);
+
+  screen.getByRole("tab", { name: "A" }).focus();
+  await user.keyboard("{ArrowRight}");
+
+  expect(screen.getByRole("tab", { name: "B" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "C" })).not.toHaveFocus();
+});
+
+test("with three tabs, ArrowLeft from the first wraps to the third, not the second — proving direction rather than just wrap (AC TABUI-02.3)", async () => {
+  const THREE_TABS = [
+    { id: "a", label: "A", panel: <p>A content</p> },
+    { id: "b", label: "B", panel: <p>B content</p> },
+    { id: "c", label: "C", panel: <p>C content</p> },
+  ];
+  function ThreeTabs() {
+    const [active, setActive] = useState("a");
+    return <Tabs tabs={THREE_TABS} active={active} onChange={setActive} />;
+  }
+  const user = userEvent.setup();
+  render(<ThreeTabs />);
+
+  screen.getByRole("tab", { name: "A" }).focus();
+  await user.keyboard("{ArrowLeft}");
+
+  expect(screen.getByRole("tab", { name: "C" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "B" })).not.toHaveFocus();
+});
+
 test("a visible focus indicator class is present on each tab", () => {
   render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
 
@@ -131,5 +171,124 @@ test("a visible focus indicator class is present on each tab", () => {
 test("the tablist stays reachable rather than clipped at a narrow width", () => {
   render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
 
+  expect(screen.getByRole("tablist").className).toMatch(/overflow-x-auto/);
+});
+
+test("the strip renders as a segmented track with a background and radius, not a border-bottom hairline (AC TABUI-01.1)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const tablist = screen.getByRole("tablist");
+  expect(tablist.className).toMatch(/bg-gray-100/);
+  expect(tablist.className).toMatch(/rounded-lg/);
+  screen.getAllByRole("tab").forEach((tab) => {
+    expect(tab.className).not.toMatch(/border-b-2/);
+  });
+});
+
+test("the active tab carries the pill class set and the inactive tab does not (AC TABUI-01.2, TABUI-01.3)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const activeTab = screen.getByRole("tab", { name: "Profile" });
+  const inactiveTab = screen.getByRole("tab", { name: "Advanced" });
+  expect(activeTab.className).toMatch(/bg-white/);
+  expect(activeTab.className).toMatch(/shadow-sm/);
+  expect(inactiveTab.className).not.toMatch(/bg-white/);
+  expect(inactiveTab.className).not.toMatch(/shadow-sm/);
+});
+
+test("switching the active tab swaps the pill class set", () => {
+  const { rerender } = render(
+    <Tabs tabs={TABS} active="profile" onChange={() => {}} />
+  );
+
+  expect(screen.getByRole("tab", { name: "Profile" }).className).toMatch(
+    /bg-white/
+  );
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).not.toMatch(
+    /bg-white/
+  );
+
+  rerender(<Tabs tabs={TABS} active="advanced" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).toMatch(
+    /bg-white/
+  );
+  expect(screen.getByRole("tab", { name: "Profile" }).className).not.toMatch(
+    /bg-white/
+  );
+});
+
+test("neither state carries font-semibold, so no tab's width changes on select (AC TABUI-01.4)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  screen.getAllByRole("tab").forEach((tab) => {
+    expect(tab.className).not.toMatch(/font-semibold/);
+  });
+});
+
+test("the focus-ring class is present on both the active and the inactive tab (AC TABUI-01.5)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  const activeTab = screen.getByRole("tab", { name: "Profile" });
+  const inactiveTab = screen.getByRole("tab", { name: "Advanced" });
+  expect(activeTab.className).toMatch(/focus:outline/);
+  expect(inactiveTab.className).toMatch(/focus:outline/);
+});
+
+test("the inactive tab carries a hover class (AC TABUI-01.3)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Advanced" }).className).toMatch(
+    /hover:/
+  );
+});
+
+test("an inactive tab carries tabIndex={-1} so the strip is one tab stop (AC TABUI-02.4)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
+    "tabIndex",
+    "0"
+  );
+  expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
+    "tabIndex",
+    "-1"
+  );
+});
+
+test("a single-tab strip renders it active and survives an arrow press (edge case)", async () => {
+  const user = userEvent.setup();
+  const SINGLE_TAB = [
+    { id: "only", label: "Only", panel: <p>Only content</p> },
+  ];
+  const onChange = vi.fn();
+  render(<Tabs tabs={SINGLE_TAB} active="only" onChange={onChange} />);
+
+  const tab = screen.getByRole("tab", { name: "Only" });
+  expect(tab).toHaveAttribute("aria-selected", "true");
+
+  tab.focus();
+  await user.keyboard("{ArrowRight}");
+
+  expect(onChange).toHaveBeenCalledWith("only");
+  expect(tab).toHaveFocus();
+});
+
+test("a long label does not force truncation and the strip keeps its horizontal-scroll class (edge case)", () => {
+  const longLabelTabs = [
+    { id: "profile", label: "Profile", panel: <p>Profile content</p> },
+    {
+      id: "advanced",
+      label: "A very long tab label that would overflow a narrow strip",
+      panel: <p>Advanced content</p>,
+    },
+  ];
+  render(<Tabs tabs={longLabelTabs} active="profile" onChange={() => {}} />);
+
+  expect(
+    screen.getByText(
+      "A very long tab label that would overflow a narrow strip"
+    )
+  ).toBeInTheDocument();
   expect(screen.getByRole("tablist").className).toMatch(/overflow-x-auto/);
 });

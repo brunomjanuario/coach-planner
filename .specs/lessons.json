@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 17,
+  "next_id": 18,
   "lessons": [
     {
       "id": "L-001",
@@ -292,6 +292,24 @@
       ],
       "created": "2026-08-07T13:03:30Z",
       "last_seen": "2026-08-07T13:03:30Z"
+    },
+    {
+      "id": "L-017",
+      "key": "surviving_mutant::when testing keyboard direction behavior arrow key movement cycling wrap use a fixture with 3 items a 2 item fixture makes forward and backward movement mathematically identical and cannot discriminate a flipped direction",
+      "text": "When testing keyboard-direction behavior (arrow-key movement, cycling, wrap), use a fixture with 3+ items — a 2-item fixture makes forward and backward movement mathematically identical and cannot discriminate a flipped direction.",
+      "signal": "surviving_mutant",
+      "scope": "components/tests",
+      "status": "candidate",
+      "features": [
+        "31-settings-tabs-polish"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/components/__tests__/Tabs.test.jsx:93-121 (mutation: flip ArrowRight/ArrowLeft delta in src/components/Tabs.jsx:23) (components/tests)"
+      ],
+      "created": "2026-08-10T15:23:43Z",
+      "last_seen": "2026-08-10T15:23:43Z"
     }
   ]
 }

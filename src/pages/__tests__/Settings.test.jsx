@@ -6,6 +6,17 @@ import Settings from "../Settings";
 import { teamService } from "../../services/teamService";
 import { AuthProvider } from "../../context/AuthContext";
 import { useAuth } from "../../context/useAuth";
+import Tabs from "../../components/Tabs";
+
+// Spies on the real Tabs implementation (no behaviour change) so the tests
+// below can assert exactly what `active` value Settings computed and passed
+// down — independently of Tabs.jsx's own `tabs.find(...) ?? tabs[0]`
+// fallback, which would otherwise rescue a bogus value and mask a removed
+// TAB_IDS guard (AC TABUI-03.1, closing 23's SETT-04.3 test-strength gap).
+vi.mock("../../components/Tabs", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, default: vi.fn(actual.default) };
+});
 
 const CONFIRM_MESSAGE =
   "Reset all data to the demo seed? This cannot be undone.";
@@ -234,7 +245,7 @@ test("selecting a tab updates the URL with no page reload", async () => {
   );
 });
 
-test("an unrecognised tab value falls back to Profile without an error", () => {
+test("an unrecognised tab value falls back to Profile without an error (AC TABUI-03.2)", () => {
   render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
 
   expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
@@ -253,6 +264,20 @@ test("a missing tab param opens Profile", () => {
     "aria-selected",
     "true"
   );
+});
+
+test("Settings' own TAB_IDS guard resolves a bogus ?tab= to 'profile' before it ever reaches Tabs (AC TABUI-03.1)", () => {
+  render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
+
+  const lastCall = Tabs.mock.calls[Tabs.mock.calls.length - 1][0];
+  expect(lastCall.active).toBe("profile");
+});
+
+test("Settings' own TAB_IDS guard resolves a missing ?tab= to 'profile' before it ever reaches Tabs", () => {
+  render(<Settings />, { initialEntries: ["/settings"] });
+
+  const lastCall = Tabs.mock.calls[Tabs.mock.calls.length - 1][0];
+  expect(lastCall.active).toBe("profile");
 });
 
 test("reopening the page with the same URL restores the same tab", () => {
