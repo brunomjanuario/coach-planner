@@ -12,9 +12,11 @@ worth its own branch:
    to an unknown path under the authenticated shell (e.g. `/nonexistent`)
    renders the `Sidebar` with a blank `<main>` — nothing matches, nothing
    renders, no feedback.
-2. **Dead `App.css` import.** `src/App.css` is a zero-byte file, imported by
-   `App.jsx` and `pages/Calendar.jsx`. `CLAUDE.md` already documents this as
-   a known rough edge.
+2. **Dead `App.css` import.** `src/App.css` is a zero-byte file. `CLAUDE.md`
+   documented it as imported by both `App.jsx` and `pages/Calendar.jsx` —
+   re-checked during this feature: `Calendar.jsx` no longer imports it (fixed
+   by an earlier feature without updating that note); only `App.jsx` still
+   does.
 3. **A truthy-vs-`!= null` inconsistency.** `trainingService.getAllNumbered`
    filters with `teamId ? numbered.filter(...) : numbered` (line 41);
    `gameService.getAll` does the equivalent filter with `teamId != null`.

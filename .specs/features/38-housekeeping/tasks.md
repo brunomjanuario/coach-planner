@@ -82,9 +82,9 @@ T2 → T3
 
 ### T2: Remove the dead App.css import
 
-**What**: Delete the `import "./App.css"` line from `App.jsx` and `pages/Calendar.jsx`.
-**Where**: `src/App.jsx` (modify), `src/pages/Calendar.jsx` (modify)
-**Depends on**: T1 (same file, `App.jsx` — sequenced to avoid two tasks racing edits, not a functional dependency)
+**What**: Delete the `import "./App.css"` line from `App.jsx`. Re-checked `pages/Calendar.jsx` during implementation — it no longer imports `App.css` (an earlier feature already removed it without updating `CLAUDE.md`'s note), so only one file needs the fix.
+**Where**: `src/App.jsx` (modify)
+**Depends on**: T1 (same file — sequenced to avoid two tasks racing edits, not a functional dependency)
 **Reuses**: n/a
 **Requirement**: HOUSE-02
 

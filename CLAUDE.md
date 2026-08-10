@@ -99,7 +99,6 @@ Don't be surprised by these; fix them only when the task calls for it.
 
 - `index.html` links `/src/styles.css`, which does not exist (`main.jsx` imports
   `src/index.css` instead).
-- `src/App.css` is empty but still imported by `App.jsx` and `pages/Calendar.jsx`.
 - List items rendered with `.map()` are missing React `key` props in
   `pages/Teams.jsx` and `pages/Trainings.jsx`.
 - `TeamCard` and `PlayerCard` reference images as `src/assets/images/*.png`,
