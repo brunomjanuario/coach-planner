@@ -142,8 +142,8 @@ same credentials and assert it succeeds.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| AUTH-01 | P1: signUp validation | Tasks | Pending |
-| AUTH-02 | P2: Sign-out survives a refresh | Tasks | Pending |
+| AUTH-01 | P1: signUp validation | Implementing | Verified |
+| AUTH-02 | P2: Sign-out survives a refresh | Implementing | Verified |
 
 **Coverage:** 2 total, 2 mapped to tasks, 0 unmapped
 

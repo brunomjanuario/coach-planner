@@ -155,6 +155,15 @@
 - **Date**: 2026-08-10
 - **Status**: active
 
+### AD-018
+
+- **Decision**: The auth mock separates the *stored account* (`localStorage` key `user`) from the *active session* (`localStorage` key `session`, value `"active"`). `signIn`/`signUp` set the session flag on every success path; `signOut` clears only the session flag, never the account; the mount effect only restores `user` state when both the account record and the session flag are present.
+- **Reason**: `signOut` only ever called `setUser(null)` — it never touched `localStorage`, so the mount effect (which re-reads `localStorage` on every mount) silently re-authenticated the user on a refresh immediately after signing out. `docs/08-authentication.md` had documented this as an accepted trade-off of the single-key design since `24-profile-settings`; a code-audit session flagged it as a defect worth fixing rather than continuing to accept.
+- **Trade-off**: A second `localStorage` key to keep in sync. Two existing test files (`App.test.jsx`, `Settings.test.jsx`) simulated "already signed in" by writing the `user` key directly without ever calling `signIn` — now an inconsistent state under the new model — and needed the session key added to their setup. AD-011 stands on everything else: still plaintext, still consistent-not-secure, still replaced wholesale by a real backend.
+- **Scope**: `36-auth-mock-hardening`, `src/context/AuthContext.jsx`. Also closes a related gap in the same feature: `signUp` now validates username/email/password to the same depth `updateProfile` already did (it previously only checked for the duplicate demo email).
+- **Date**: 2026-08-10
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `28-training-exercise-details` — **done and verified (PASS, one flagged Minor gap closed immediately, no formal re-verify cycle needed).** Fifth round-three feature executed; the foundation `29-exercise-designer` builds on.
