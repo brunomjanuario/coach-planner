@@ -19,11 +19,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a:hover {
-  background-color: rgb(71, 71, 71);
-  border-radius: 12px;
-}
-
 body {
   margin: 0;
   display: flex;
