@@ -120,6 +120,46 @@ test("ArrowLeft wraps from the first tab to the last", async () => {
   expect(screen.getByRole("tab", { name: "Advanced" })).toHaveFocus();
 });
 
+test("with three tabs, ArrowRight from the first lands on the second, not the third — proving direction rather than just wrap (AC TABUI-02.3)", async () => {
+  const THREE_TABS = [
+    { id: "a", label: "A", panel: <p>A content</p> },
+    { id: "b", label: "B", panel: <p>B content</p> },
+    { id: "c", label: "C", panel: <p>C content</p> },
+  ];
+  function ThreeTabs() {
+    const [active, setActive] = useState("a");
+    return <Tabs tabs={THREE_TABS} active={active} onChange={setActive} />;
+  }
+  const user = userEvent.setup();
+  render(<ThreeTabs />);
+
+  screen.getByRole("tab", { name: "A" }).focus();
+  await user.keyboard("{ArrowRight}");
+
+  expect(screen.getByRole("tab", { name: "B" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "C" })).not.toHaveFocus();
+});
+
+test("with three tabs, ArrowLeft from the first wraps to the third, not the second — proving direction rather than just wrap (AC TABUI-02.3)", async () => {
+  const THREE_TABS = [
+    { id: "a", label: "A", panel: <p>A content</p> },
+    { id: "b", label: "B", panel: <p>B content</p> },
+    { id: "c", label: "C", panel: <p>C content</p> },
+  ];
+  function ThreeTabs() {
+    const [active, setActive] = useState("a");
+    return <Tabs tabs={THREE_TABS} active={active} onChange={setActive} />;
+  }
+  const user = userEvent.setup();
+  render(<ThreeTabs />);
+
+  screen.getByRole("tab", { name: "A" }).focus();
+  await user.keyboard("{ArrowLeft}");
+
+  expect(screen.getByRole("tab", { name: "C" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "B" })).not.toHaveFocus();
+});
+
 test("a visible focus indicator class is present on each tab", () => {
   render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
 
