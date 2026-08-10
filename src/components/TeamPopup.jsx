@@ -13,22 +13,26 @@ export default function TeamPopup({ team, onClose }) {
     season: team != null ? team.season : "",
     players: team != null ? team.players : [],
   });
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (team != null) {
-      teamService.update(formData);
-    } else {
-      teamService.create(formData);
+    try {
+      if (team != null) {
+        await teamService.update(formData);
+      } else {
+        await teamService.create(formData);
+      }
+      onClose();
+    } catch (err) {
+      console.error("Failed to save team:", err);
+      setError("Failed to save the team. Please try again.");
     }
-
-    onClose();
   };
 
   return (
@@ -47,8 +51,11 @@ export default function TeamPopup({ team, onClose }) {
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Name</label>
+          <label htmlFor="team-name" className="block text-sm font-medium">
+            Name
+          </label>
           <input
+            id="team-name"
             type="text"
             name="name"
             value={formData.name}
@@ -59,8 +66,11 @@ export default function TeamPopup({ team, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Club</label>
+          <label htmlFor="team-club" className="block text-sm font-medium">
+            Club
+          </label>
           <input
+            id="team-club"
             type="text"
             name="club"
             value={formData.club}
@@ -71,8 +81,11 @@ export default function TeamPopup({ team, onClose }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Season</label>
+          <label htmlFor="team-season" className="block text-sm font-medium">
+            Season
+          </label>
           <input
+            id="team-season"
             type="text"
             name="season"
             value={formData.season}
@@ -81,6 +94,8 @@ export default function TeamPopup({ team, onClose }) {
             required
           />
         </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </form>
     </PopupShell>
   );

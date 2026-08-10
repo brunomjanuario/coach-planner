@@ -8,11 +8,18 @@ import logo from "../assets/images/logo.png";
 export default function TeamCard({ team, onClose, onUpdated }) {
   const [toDeleteTeam, setToDeleteTeam] = useState(false);
   const [showEditTeam, setShowEditTeam] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
-  const deleteTeam = () => {
-    setToDeleteTeam(false);
-    teamService.delete(team.id);
-    onClose();
+  const deleteTeam = async () => {
+    try {
+      await teamService.delete(team.id);
+      setToDeleteTeam(false);
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete team:", err);
+      setToDeleteTeam(false);
+      setDeleteError("Failed to delete the team. Please try again.");
+    }
   };
 
   return (
@@ -59,6 +66,11 @@ export default function TeamCard({ team, onClose, onUpdated }) {
           )}
         </div>
       </div>
+      {deleteError && (
+        <p role="alert" className="mb-3 text-sm font-semibold text-red-600">
+          {deleteError}
+        </p>
+      )}
       <div>
         <p>{team.season}</p>
       </div>
