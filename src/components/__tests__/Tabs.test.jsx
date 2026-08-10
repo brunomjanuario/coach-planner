@@ -203,6 +203,37 @@ test("the inactive tab carries a hover class (AC TABUI-01.3)", () => {
   );
 });
 
+test("an inactive tab carries tabIndex={-1} so the strip is one tab stop (AC TABUI-02.4)", () => {
+  render(<Tabs tabs={TABS} active="profile" onChange={() => {}} />);
+
+  expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
+    "tabIndex",
+    "0"
+  );
+  expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
+    "tabIndex",
+    "-1"
+  );
+});
+
+test("a single-tab strip renders it active and survives an arrow press (edge case)", async () => {
+  const user = userEvent.setup();
+  const SINGLE_TAB = [
+    { id: "only", label: "Only", panel: <p>Only content</p> },
+  ];
+  const onChange = vi.fn();
+  render(<Tabs tabs={SINGLE_TAB} active="only" onChange={onChange} />);
+
+  const tab = screen.getByRole("tab", { name: "Only" });
+  expect(tab).toHaveAttribute("aria-selected", "true");
+
+  tab.focus();
+  await user.keyboard("{ArrowRight}");
+
+  expect(onChange).toHaveBeenCalledWith("only");
+  expect(tab).toHaveFocus();
+});
+
 test("a long label does not force truncation and the strip keeps its horizontal-scroll class (edge case)", () => {
   const longLabelTabs = [
     { id: "profile", label: "Profile", panel: <p>Profile content</p> },
