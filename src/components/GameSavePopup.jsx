@@ -7,8 +7,7 @@ import { toOptions } from "../lib/selectOptions";
 import Button from "./Button";
 import PopupActions from "./PopupActions";
 import PopupShell from "./PopupShell";
-import OpponentsPopup from "./OpponentsPopup";
-import CompetitionsPopup from "./CompetitionsPopup";
+import ReferenceListsPopup from "./ReferenceListsPopup";
 
 const ADD_NEW_OPPONENT = "__add_new_opponent__";
 const ADD_NEW_COMPETITION = "__add_new_competition__";
@@ -22,8 +21,7 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
   const [competitions, setCompetitions] = useState([]);
   const [loadingCompetitions, setLoadingCompetitions] = useState(true);
   const [error, setError] = useState("");
-  const [showOpponentsManager, setShowOpponentsManager] = useState(false);
-  const [showCompetitionsManager, setShowCompetitionsManager] = useState(false);
+  const [showManagerTab, setShowManagerTab] = useState(null);
   const [formData, setFormData] = useState(() => ({
     id: game?.id,
     teamId: game?.teamId ?? null,
@@ -92,14 +90,14 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
 
     if (name === "opponent") {
       if (value === ADD_NEW_OPPONENT) {
-        setShowOpponentsManager(true);
+        setShowManagerTab("opponents");
         return;
       }
       if (error) setError("");
     }
 
     if (name === "competition" && value === ADD_NEW_COMPETITION) {
-      setShowCompetitionsManager(true);
+      setShowManagerTab("competitions");
       return;
     }
 
@@ -110,29 +108,34 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
   };
 
   /**
-   * Re-reads the list after the stacked manager closes; a name added while
-   * it was open becomes the selected value with no second interaction
-   * (edge case). Closing without adding anything leaves the form untouched.
+   * Re-reads both lists after the stacked manager closes; a name added on
+   * either tab becomes that field's selected value with no second
+   * interaction (edge case), independently — adding one of each in the same
+   * visit updates both fields. Closing without adding anything leaves the
+   * form untouched.
    */
-  const handleCloseOpponentsManager = async () => {
-    setShowOpponentsManager(false);
-    const previousNames = new Set(opponents.map((o) => o.name));
-    const data = await opponentService.getAll();
-    setOpponents(data);
-    const added = data.find((o) => !previousNames.has(o.name));
-    if (added) {
-      setFormData((prev) => ({ ...prev, opponent: added.name }));
-    }
-  };
-
-  const handleCloseCompetitionsManager = async () => {
-    setShowCompetitionsManager(false);
-    const previousNames = new Set(competitions.map((c) => c.name));
-    const data = await competitionService.getAll();
-    setCompetitions(data);
-    const added = data.find((c) => !previousNames.has(c.name));
-    if (added) {
-      setFormData((prev) => ({ ...prev, competition: added.name }));
+  const handleCloseManager = async () => {
+    setShowManagerTab(null);
+    const previousOpponentNames = new Set(opponents.map((o) => o.name));
+    const previousCompetitionNames = new Set(competitions.map((c) => c.name));
+    const [opponentData, competitionData] = await Promise.all([
+      opponentService.getAll(),
+      competitionService.getAll(),
+    ]);
+    setOpponents(opponentData);
+    setCompetitions(competitionData);
+    const addedOpponent = opponentData.find(
+      (o) => !previousOpponentNames.has(o.name)
+    );
+    const addedCompetition = competitionData.find(
+      (c) => !previousCompetitionNames.has(c.name)
+    );
+    if (addedOpponent || addedCompetition) {
+      setFormData((prev) => ({
+        ...prev,
+        ...(addedOpponent ? { opponent: addedOpponent.name } : {}),
+        ...(addedCompetition ? { competition: addedCompetition.name } : {}),
+      }));
     }
   };
 
@@ -310,11 +313,11 @@ export default function GameSavePopup({ game, teamId, onClose, onSubmit }) {
           </div>
         </form>
       </PopupShell>
-      {showOpponentsManager && (
-        <OpponentsPopup onClose={handleCloseOpponentsManager} />
-      )}
-      {showCompetitionsManager && (
-        <CompetitionsPopup onClose={handleCloseCompetitionsManager} />
+      {showManagerTab && (
+        <ReferenceListsPopup
+          initialTab={showManagerTab}
+          onClose={handleCloseManager}
+        />
       )}
     </>
   );
