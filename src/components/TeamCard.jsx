@@ -3,6 +3,7 @@ import { teamService } from "../services/teamService";
 import { useState } from "react";
 import ConfirmationPopup from "./ConfirmationPopup";
 import TeamPopup from "./TeamPopup";
+import logo from "../assets/images/logo.png";
 
 export default function TeamCard({ team, onClose, onUpdated }) {
   const [toDeleteTeam, setToDeleteTeam] = useState(false);
@@ -18,7 +19,8 @@ export default function TeamCard({ team, onClose, onUpdated }) {
     <div className="bg-lightblack rounded-2xl shadow-lg p-4 w-full max-w-sm hover:shadow-xl transition-all duration-300">
       <div className="flex items-center gap-4 justify-between">
         <img
-          src="src/assets/images/logo.png"
+          src={logo}
+          alt={`${team.club} ${team.name} crest`}
           className="w-16 h-16 rounded-full object-cover bg-white"
         />
         <div>
