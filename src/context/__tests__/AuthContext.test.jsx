@@ -97,6 +97,20 @@ describe("signUp validation (feature 36, AC AUTH-01)", () => {
 });
 
 describe("session persistence (feature 36, AC AUTH-02, AD-018)", () => {
+  test("signUp itself sets the session flag, surviving a remount with no signIn/signOut in between", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({
+      username: "Coach",
+      email: "coach@club.pt",
+    });
+  });
+
   test("signing out then remounting the provider (simulating a refresh) leaves user null (AC AUTH-02.2)", () => {
     const { result, unmount } = renderAuth();
     act(() => {
