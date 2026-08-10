@@ -120,6 +120,8 @@ T5 → T6
 ### T3: Give the Tile family an explicit dark surface
 
 **What**: `Tile.jsx`'s `TILE_CLASS` and `INTERACTIVE_CLASS`, and `NextGameCard.jsx`'s matching hand-copied variant, gain `bg-lightblack` and swap `hover:bg-gray-50` → `hover:bg-hover`. `Tile.jsx`, `NextGameCard.jsx`, `StatTile.jsx`, `ListTile.jsx` swap every `text-gray-500` → `text-gray-400`.
+
+**Found during implementation, not anticipated at design time**: `StatTile.jsx`/`ListTile.jsx`'s `text-blue-600` empty-state/row links measured 3.47–3.83:1 against the new explicit dark surfaces — below AA, same defect class as the gray shades (an explicit-but-too-dim color) but missed by the design audit because it wasn't a gray. Bumped to `text-blue-400` (measured 6.80–7.79:1). Included in this task rather than opening a new one since it's the same two files, same commit, same root cause.
 **Where**: `src/components/Tile.jsx`, `src/components/NextGameCard.jsx`, `src/components/StatTile.jsx`, `src/components/ListTile.jsx` (all modify), `src/components/__tests__/Tile.test.jsx` (modify)
 **Depends on**: T1
 **Reuses**: `--color-lightblack`, `--color-hover` — the exact surface/hover convention `TeamCard`/`PlayerCard`/`TrainingCard` already use
