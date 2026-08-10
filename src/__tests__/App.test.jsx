@@ -99,3 +99,44 @@ test("an unauthenticated visit to a private route redirects to /signin with no s
   expect(screen.getByRole("heading", { name: /sign in/i })).toBeInTheDocument();
   expect(container.querySelector(".h-screen.overflow-hidden")).not.toBeInTheDocument();
 });
+
+test("an authenticated visit to an unmatched path renders NotFound, not a blank <main> (AC HOUSE-01.1)", async () => {
+  signIn();
+  renderApp(["/does-not-exist"]);
+  await screen.findByRole("heading", { name: "Page not found" });
+
+  const main = document.querySelector("main");
+  expect(main.textContent.trim()).not.toBe("");
+});
+
+test("NotFound includes a link back to Home (AC HOUSE-01.2)", async () => {
+  signIn();
+  renderApp(["/does-not-exist"]);
+  await screen.findByRole("heading", { name: "Page not found" });
+
+  expect(screen.getByRole("link", { name: "Back to Home" })).toHaveAttribute(
+    "href",
+    "/"
+  );
+});
+
+test("a defined route still renders its own page when NotFound is present in the route table (AC HOUSE-01.3)", async () => {
+  signIn();
+  renderApp(["/teams"]);
+
+  expect(
+    await screen.findByRole("heading", { name: "Teams" })
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Page not found" })
+  ).not.toBeInTheDocument();
+});
+
+test("an unauthenticated visit to an unmatched path still redirects to /signin before the catch-all is reached (edge case)", () => {
+  renderApp(["/does-not-exist"]);
+
+  expect(screen.getByRole("heading", { name: /sign in/i })).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Page not found" })
+  ).not.toBeInTheDocument();
+});

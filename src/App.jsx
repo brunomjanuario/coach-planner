@@ -9,6 +9,7 @@ import Calendar from "./pages/Calendar";
 import Settings from "./pages/Settings";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import NotFound from "./pages/NotFound";
 import { useAuth } from "./context/useAuth";
 
 function PrivateRoute({ children }) {
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/games" element={<Games />} />
                   <Route path="/calendar" element={<Calendar />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
             </div>
