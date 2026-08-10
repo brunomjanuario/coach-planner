@@ -41,9 +41,29 @@ export const teamService = {
     return teams[index];
   },
 
+  /**
+   * Deletes a team and cascades to its players' cards and ratings, mirroring
+   * deletePlayer's own cascade — otherwise every card/rating belonging to a
+   * deleted team's players becomes permanently unreachable, quietly growing
+   * storage toward AD-002's ~5MB ceiling. Games are deliberately left
+   * untouched: gameService.getUnassigned already treats a dangling teamId
+   * as reassignable, not orphaned.
+   */
   delete: async (id) => {
-    const teams = getTeams().filter((team) => team.id !== id);
-    saveTeams(teams);
+    const teams = getTeams();
+    const team = teams.find((t) => t.id === id);
+    saveTeams(teams.filter((t) => t.id !== id));
+
+    if (team) {
+      await Promise.all(
+        team.players.map((player) =>
+          Promise.all([
+            cardService.removeByPlayer(player.id),
+            ratingService.removeByPlayer(player.id),
+          ])
+        )
+      );
+    }
   },
 
   addPlayer: async (teamId, playerData) => {

@@ -2,6 +2,9 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TeamCard from "../TeamCard";
 import { teamService } from "../../services/teamService";
+import { cardService } from "../../services/cardService";
+import { ratingService } from "../../services/ratingService";
+import { gameService } from "../../services/gameService";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -68,4 +71,111 @@ test("cancelling delete does not call teamService.delete", async () => {
   await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
   expect(deleteSpy).not.toHaveBeenCalled();
+});
+
+describe("delete cascade (feature 35)", () => {
+  async function createTeamWithPlayer() {
+    const created = await teamService.create({
+      name: "Cascade Sub-11",
+      club: "Cascade FC",
+      season: "24/25",
+      players: [],
+    });
+    const player = await teamService.addPlayer(created.id, {
+      name: "Test Player",
+      age: 12,
+      shirtNumber: 9,
+      goals: 0,
+      assists: 0,
+      concededGoals: 0,
+      position: "ST",
+    });
+    return { created, player };
+  }
+
+  test("removes every card belonging to the deleted team's players (AC CRUD-02.1)", async () => {
+    const { created, player } = await createTeamWithPlayer();
+    const game = await gameService.create({
+      teamId: created.id,
+      opponent: "Rivals",
+      date: new Date("2030-01-01T10:00:00Z"),
+      isHome: true,
+      competition: "League",
+    });
+    await cardService.record({ playerId: player.id, gameId: game.id, type: "yellow" });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <TeamCard team={created} onClose={() => {}} onUpdated={() => {}} />
+    );
+    await user.click(container.querySelector(".tabler-icon-trash"));
+    await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+    await vi.waitFor(async () => {
+      expect(await cardService.getByPlayer(player.id)).toEqual([]);
+    });
+  });
+
+  test("removes every rating belonging to the deleted team's players (AC CRUD-02.2)", async () => {
+    const { created, player } = await createTeamWithPlayer();
+    await ratingService.setRating({
+      playerId: player.id,
+      eventType: "training",
+      eventId: "t1",
+      value: 7,
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <TeamCard team={created} onClose={() => {}} onUpdated={() => {}} />
+    );
+    await user.click(container.querySelector(".tabler-icon-trash"));
+    await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+    await vi.waitFor(async () => {
+      expect(await ratingService.getByPlayer(player.id)).toEqual([]);
+    });
+  });
+
+  test("leaves the deleted team's games untouched, not deleted (AC CRUD-02.3)", async () => {
+    const { created } = await createTeamWithPlayer();
+    const game = await gameService.create({
+      teamId: created.id,
+      opponent: "Rivals",
+      date: new Date("2030-01-01T10:00:00Z"),
+      isHome: true,
+      competition: "League",
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <TeamCard team={created} onClose={() => {}} onUpdated={() => {}} />
+    );
+    await user.click(container.querySelector(".tabler-icon-trash"));
+    await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+    await vi.waitFor(async () => {
+      const allGames = await gameService.getAll();
+      expect(allGames.find((g) => g.id === game.id)).toBeDefined();
+    });
+  });
+
+  test("deleting a team with no players does not error (edge case, AC CRUD-02.4)", async () => {
+    const created = await teamService.create({
+      name: "Empty Sub-11",
+      club: "Empty FC",
+      season: "24/25",
+      players: [],
+    });
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    const { container } = render(
+      <TeamCard team={created} onClose={onClose} onUpdated={() => {}} />
+    );
+
+    await user.click(container.querySelector(".tabler-icon-trash"));
+    await user.click(await screen.findByRole("button", { name: "Submit" }));
+
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
 });
