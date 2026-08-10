@@ -480,6 +480,62 @@ test("assigning a team to an unassigned training persists it and removes it from
   });
 });
 
+test("editing an unassigned training via the details popup to add a team removes it from the Unassigned list (AC TRUR-01.1, TRUR-01.2)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 55,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("heading", { name: /^Unassigned \(1\)/ });
+  const row = within(getUnassignedList()).getByText(/55 min/).closest("li");
+
+  await user.click(within(row).getByRole("button"));
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  const form = (
+    await screen.findByRole("heading", { name: "Edit Training" })
+  ).closest("div").querySelector("form");
+  await user.selectOptions(
+    form.querySelector('[name="teamId"]'),
+    "Amadora Sub-11"
+  );
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(screen.queryByRole("heading", { name: /^Unassigned/ })).not.toBeInTheDocument();
+  });
+});
+
+test("editing an already-assigned training still refreshes the unassigned list with no error (edge case)", async () => {
+  await trainingService.create({
+    teamId: null,
+    day: new Date("2030-06-01T10:00:00Z"),
+    duration: 56,
+    exercises: [],
+  });
+  const user = userEvent.setup();
+  renderTrainings();
+  await screen.findByRole("button", { name: "Amadora Sub-11" });
+  await waitFor(() => {
+    expect(within(getPastList()).getAllByRole("listitem")).toHaveLength(2);
+  });
+  const row = within(getPastList()).getAllByRole("listitem")[0];
+  await user.click(within(row).getByRole("button"));
+  await user.click(await screen.findByRole("button", { name: "Edit" }));
+  await screen.findByRole("heading", { name: "Edit Training" });
+
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => {
+    expect(
+      screen.queryByRole("heading", { name: "Edit Training" })
+    ).not.toBeInTheDocument();
+  });
+  expect(screen.getByRole("heading", { name: /^Unassigned \(1\)/ })).toBeInTheDocument();
+});
+
 test("a training reassigned to the active filter's team appears in its filtered list", async () => {
   const created = await trainingService.create({
     teamId: null,
