@@ -146,6 +146,15 @@
 - **Date**: 2026-08-06
 - **Status**: active
 
+### AD-017
+
+- **Decision**: Coach Planner is **dark-only**. No `color-scheme` declaration, no `prefers-color-scheme` branch, and `src/index.css` carries no unlayered/bare element selectors — every color/background is set as an explicit Tailwind utility on the component that owns it. The app's one page-level background/text pair lives on `App.jsx`'s authenticated shell wrapper (`bg-neutral-950 text-gray-100`) and reaches every descendant with no color of its own via ordinary CSS inheritance.
+- **Reason**: ~40 lines of unremoved Vite scaffold CSS (`h1 { font-size: 3.2em }`, `@layer base { button {...#1a1a1a...} }`, `:root`'s color/background, a `prefers-color-scheme: light` block) silently outranked Tailwind everywhere, and jsdom cannot see any of it — a rendered-DOM contrast test cannot catch this bug class, which is *why* it shipped past 1413 passing tests. The `prefers-color-scheme: light` path was never a designed theme; user decision (asked directly, during a code-audit session) was dark-only rather than building a second one.
+- **Trade-off**: No light mode. A future light theme is a separate, much larger feature — every dark-surface component (`TeamCard`, `PlayerCard`, `SelectableListItem`, `GameRow`, the Tile family) would need a second, independently-verified color set, not just a flipped variable. `src/lib/__tests__/cssFoundation.test.js` guards against the exact defect shape reappearing (a bare element selector outside `@layer`) — verified during implementation by reintroducing the real `h1` rule and confirming the guard fails, naming it.
+- **Scope**: `33-css-foundation-reset`, `src/index.css`, `src/App.jsx`, and every component that previously depended on inherited `:root` color (confirmed via grep: `TeamCard`, `PlayerCard`, `SelectableListItem`, `GameRow` needed no code change — inheritance from the new explicit source reaches them for free) or carried an explicit-but-too-dim color against the new surfaces (`text-gray-500`/`600` → `text-gray-400`; `text-blue-600` → `text-blue-400`; found in the Tile family, `SquadRanking`, `Settings`, `PlayerRatingHistory`).
+- **Date**: 2026-08-10
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `28-training-exercise-details` — **done and verified (PASS, one flagged Minor gap closed immediately, no formal re-verify cycle needed).** Fifth round-three feature executed; the foundation `29-exercise-designer` builds on.

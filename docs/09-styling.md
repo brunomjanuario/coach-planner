@@ -52,24 +52,34 @@ rows all use it. `hover:bg-lightgrey` is the standard hover for icon buttons.
 
 **3. Global element styles**
 
-Plain CSS applied outside Tailwind:
+As of `33-css-foundation-reset`, this is deliberately small. Every rule that
+used to compete with Tailwind utilities — a bare `h1` selector, a bare
+`button` selector, `:root`'s color/background, the `prefers-color-scheme:
+light` path — was Vite scaffold CSS, unremoved since the project's creation,
+and it was winning: unlayered/same-layer-later CSS beats `@layer utilities`
+regardless of specificity, so `text-xl` never won against the scaffold's
+`h1 { font-size: 3.2em }`, and every plain `<button>` rendered a dark box
+regardless of its own classes. What remains:
 
-- `:root` — system font stack, `line-height: 1.5`, `color-scheme: light dark`,
-  light text on a grey background, font smoothing.
-- `a:hover` — grey background with a 12px radius (this is what gives the sidebar
-  links their hover pill).
+- `:root` — system font stack, `line-height: 1.5`, `font-weight: 400`, font
+  smoothing. No color, no background, no `color-scheme` — see "Dark and light
+  mode" below.
 - `body` — zero margin, `display: flex`, `place-items: center`,
-  `min-width: 320px`, `min-height: 100vh`.
-- `h1` — `font-size: 3.2em`. This is large and global; pages that want a normal
-  heading override it with Tailwind (`text-lg font-semibold`).
-- `button` — 8px radius, padding, dark background, `#646cff` border on hover,
-  focus ring.
-- A `@media (prefers-color-scheme: light)` block that flips `:root` to dark text
-  on white and lightens buttons.
+  `min-width: 320px`, `min-height: 100vh`. Structural only; deliberately left
+  bare since it declares no color/background and so doesn't compete with
+  Tailwind the way the removed rules did.
+- No global `h1`, `button` or `a:hover` rule. Headings size themselves with
+  Tailwind utilities (`text-lg font-semibold`, etc.) with nothing to fight.
+  Buttons get Tailwind's own preflight default (`background-color:
+  transparent; color: inherit`) unless a component gives one its own `bg-*`.
+  `Sidebar.jsx`'s hover pills are `hover:bg-lightgrey rounded-xl` on each
+  `Link`, not a global `a:hover` rule.
 
-The base `button` rule is why buttons look consistent even where no Tailwind
-classes are applied — but it also means Tailwind background utilities on buttons
-compete with a global `background-color`.
+A `src/lib/__tests__/cssFoundation.test.js` guard fails the suite if a future
+change reintroduces a bare element selector outside `@layer` — the exact
+defect shape above. It's a static source check, not a rendered-DOM contrast
+test, because jsdom applies no external stylesheet cascade at all; that gap is
+*why* the original scaffold CSS shipped past 1413 passing tests undetected.
 
 [`src/App.css`](../src/App.css) is **empty** and still imported by `App.jsx` and
 `pages/Calendar.jsx`.
@@ -121,14 +131,28 @@ other days, `#d1eaff` for game events, `#ffe6b3` for training events.
 **Prefer Tailwind for new work.** Converting these three files is a good
 standalone cleanup task.
 
-## Dark and light mode
+## Dark mode only (AD-017)
 
-`index.css` sets `color-scheme: light dark` and defines a
-`prefers-color-scheme: light` override, so the global chrome does adapt. The
-component-level colors do not — cards are hard-coded to `bg-lightblack` with
-light text, and modals are hard-coded to `bg-white text-black`. In practice the
-app reads as a dark UI regardless of system preference, and the inline-styled
-pages read as light. Unifying this is worth doing before any visual polish.
+Coach Planner is dark-only. There is no `color-scheme` declaration and no
+`prefers-color-scheme` branch — that path was never a designed second theme,
+just Vite scaffold, and building one is out of scope until a future feature
+deliberately takes it on.
+
+The app's one explicit background/text pair lives on `App.jsx`'s
+authenticated shell wrapper: `bg-neutral-950 text-gray-100`. Every descendant
+that declares no color of its own inherits it via ordinary CSS
+inheritance — confirmed safe app-wide since the codebase uses no
+`ReactDOM.createPortal`. `bg-lightblack` (`#171717`) stays the card/surface
+color, distinct from the page background so cards remain visually separated.
+Popups keep their own explicit `bg-white text-black` surface, unaffected by
+any of this.
+
+A component that sets its own text color must clear 4.5:1 (WCAG AA) against
+whatever it actually renders on — `text-gray-500` and `text-gray-600` measure
+below that floor against both the page background and `bg-lightblack` cards;
+`text-gray-400` is the floor that clears both (verified: 7.06–7.80:1).
+`text-blue-600` links measure 3.47–3.83:1 against the same surfaces;
+`text-blue-400` clears both (6.80–7.79:1).
 
 ## Assets
 
