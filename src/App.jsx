@@ -26,7 +26,7 @@ function App() {
         path="/*"
         element={
           <PrivateRoute>
-            <div className="flex w-screen h-screen overflow-hidden">
+            <div className="flex w-screen h-screen overflow-hidden bg-neutral-950 text-gray-100">
               <Sidebar></Sidebar>
               <main className="flex-1 min-w-0 overflow-y-auto">
                 <Routes>
