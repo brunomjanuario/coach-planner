@@ -13,22 +13,26 @@ export default function TeamPopup({ team, onClose }) {
     season: team != null ? team.season : "",
     players: team != null ? team.players : [],
   });
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (team != null) {
-      teamService.update(formData);
-    } else {
-      teamService.create(formData);
+    try {
+      if (team != null) {
+        await teamService.update(formData);
+      } else {
+        await teamService.create(formData);
+      }
+      onClose();
+    } catch (err) {
+      console.error("Failed to save team:", err);
+      setError("Failed to save the team. Please try again.");
     }
-
-    onClose();
   };
 
   return (
@@ -81,6 +85,8 @@ export default function TeamPopup({ team, onClose }) {
             required
           />
         </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </form>
     </PopupShell>
   );
