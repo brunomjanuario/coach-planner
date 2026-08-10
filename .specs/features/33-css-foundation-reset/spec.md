@@ -187,9 +187,9 @@ unlayered; confirm the guard test fails with a message naming `h1`. Revert.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| CSSF-01 | P1: Rendered app matches Tailwind classes | Implementing | Verified (pending independent Verifier pass) |
-| CSSF-02 | P2: Every pairing clears WCAG AA | Implementing | Verified (pending independent Verifier pass) |
-| CSSF-03 | P3: Regression guard | Implementing | Verified (pending independent Verifier pass) |
+| CSSF-01 | P1: Rendered app matches Tailwind classes | Implementing | Verified |
+| CSSF-02 | P2: Every pairing clears WCAG AA | Implementing | Verified |
+| CSSF-03 | P3: Regression guard | Implementing | Verified |
 
 **Coverage:** 3 total, 3 mapped to tasks, 0 unmapped
 
