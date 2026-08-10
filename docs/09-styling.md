@@ -164,15 +164,15 @@ Images live in [`src/assets/images/`](../src/assets/images):
 | `person.png` | `PlayerCard` avatar placeholder |
 | `coach-planner.png`, `coach-planner-logo.png` | not referenced in code |
 
-`TeamCard` and `PlayerCard` reference these with a raw relative path
-(`src="src/assets/images/logo.png"`). Vite does not process string literals in
-`src` attributes, so the path works only because the dev server happens to serve
-the project root — it **breaks in the production build**. Use an import instead:
+As of `34-asset-pipeline-fix`, `TeamCard` and `PlayerCard` import both images
+as standard ES modules rather than referencing them by a raw string path —
+the raw-string form only ever resolved in dev (the dev server happens to
+serve the project root) and 404s in a production build:
 
 ```jsx
 import logo from "../assets/images/logo.png";
 …
-<img src={logo} />
+<img src={logo} alt={`${team.club} ${team.name} crest`} />
 ```
 
 The favicon is an inline SVG data URI in `index.html` rendering the ⚽️ emoji.

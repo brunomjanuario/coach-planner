@@ -45,6 +45,26 @@ async function seedGameForTeamAt(teamId, date) {
   });
 }
 
+test("renders the avatar image via an imported asset, not a raw source-tree path (AC ASSET-01.2)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  const img = await screen.findByRole("img", { name: `${player.name} avatar` });
+  expect(img).toHaveAttribute("src");
+  expect(img.getAttribute("src")).not.toBe("src/assets/images/person.png");
+});
+
+test("the avatar image has descriptive alt text naming the player (AC ASSET-01.3)", async () => {
+  const teams = await teamService.getAll();
+  const player = teams[0].players[1];
+
+  render(<PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} />);
+
+  expect(await screen.findByAltText(`${player.name} avatar`)).toBeInTheDocument();
+});
+
 test("renders yellow and red totals beside Goals and Conceded Goals (AC CARD-04.1)", async () => {
   const teams = await teamService.getAll();
   const player = teams[0].players[1];
