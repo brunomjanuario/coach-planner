@@ -38,7 +38,7 @@ export const trainingService = {
       number: numbered.number,
     }));
 
-    return teamId
+    return teamId != null
       ? numbered.filter((training) => training.teamId === teamId)
       : numbered;
   },

@@ -113,8 +113,8 @@ low-risk, and already documented as known issues.
 
 | Requirement ID | Story | Phase | Status |
 |---|---|---|---|
-| HOUSE-01 | P1: Catch-all 404 route | Tasks | Pending |
-| HOUSE-02 | P2: Dead import + null-check cleanup | Tasks | Pending |
+| HOUSE-01 | P1: Catch-all 404 route | Implementing | Verified |
+| HOUSE-02 | P2: Dead import + null-check cleanup | Implementing | Verified |
 
 **Coverage:** 2 total, 2 mapped to tasks, 0 unmapped
 
