@@ -96,6 +96,68 @@ describe("signUp validation (feature 36, AC AUTH-01)", () => {
   });
 });
 
+describe("session persistence (feature 36, AC AUTH-02, AD-018)", () => {
+  test("signing out then remounting the provider (simulating a refresh) leaves user null (AC AUTH-02.2)", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+    });
+    expect(result.current.user).not.toBeNull();
+
+    act(() => {
+      result.current.signOut();
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toBeNull();
+  });
+
+  test("signing in then remounting the provider (simulating a refresh) restores the user", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signUp("Coach", "coach@club.pt", "hunter2");
+      result.current.signOut();
+    });
+    act(() => {
+      result.current.signIn("coach@club.pt", "hunter2");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({ email: "coach@club.pt" });
+  });
+
+  test("a session flag with no stored account is treated as signed out, not a fabricated user (edge case)", () => {
+    localStorage.setItem("session", "active");
+    const { result } = renderAuth();
+
+    expect(result.current.user).toBeNull();
+  });
+
+  test("signing in with the hard-coded demo pair also sets the session, surviving a remount (edge case)", () => {
+    const { result, unmount } = renderAuth();
+    act(() => {
+      result.current.signIn("user@email.com", "password");
+    });
+    unmount();
+
+    const remounted = renderAuth();
+    expect(remounted.result.current.user).toMatchObject({ email: "user@email.com" });
+  });
+
+  test("a browser that has never signed in behaves exactly as before: signed out, demo credentials work (AC AUTH-02.4)", () => {
+    const { result } = renderAuth();
+
+    expect(result.current.user).toBeNull();
+    let signInResult;
+    act(() => {
+      signInResult = result.current.signIn("user@email.com", "password");
+    });
+    expect(signInResult).toEqual({ success: true });
+  });
+});
+
 test("signUp stores the chosen password and a later signIn with that pair succeeds", () => {
   const { result } = renderAuth();
 
@@ -343,6 +405,7 @@ test("a legacy stored user with username and no name is read as having that name
     "user",
     JSON.stringify({ username: "Legacy Coach", email: "legacy@club.pt" })
   );
+  localStorage.setItem("session", "active");
   const { result } = renderAuth();
 
   expect(result.current.user.name).toBe("Legacy Coach");

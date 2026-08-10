@@ -8,6 +8,7 @@ function signIn() {
     "user",
     JSON.stringify({ email: "user@email.com", password: "password" })
   );
+  localStorage.setItem("session", "active");
 }
 
 function renderApp(initialEntries = ["/trainings"]) {
