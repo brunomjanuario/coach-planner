@@ -7,6 +7,9 @@ import { teamService } from "../../services/teamService";
 import { AuthProvider } from "../../context/AuthContext";
 import { useAuth } from "../../context/useAuth";
 import Tabs from "../../components/Tabs";
+import { apiFetch, silentRefresh } from "../../lib/apiClient";
+import { setTokens, clearTokens, getRefreshToken } from "../../lib/tokenStore";
+import { ValidationError, AuthError } from "../../lib/errors";
 
 // Spies on the real Tabs implementation (no behaviour change) so the tests
 // below can assert exactly what `active` value Settings computed and passed
@@ -18,14 +21,96 @@ vi.mock("../../components/Tabs", async (importOriginal) => {
   return { ...actual, default: vi.fn(actual.default) };
 });
 
+// AuthContext now talks to the real API through apiClient.js. These tests
+// don't run against a live backend, so apiFetch is mocked with a tiny
+// in-memory fake that mimics the endpoints Settings/AuthContext exercise
+// (GET/PATCH /users/me, PUT /users/me/password, POST /auth/login|logout).
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
 const CONFIRM_MESSAGE =
   "Reset all data to the demo seed? This cannot be undone.";
 
-const SIGNED_IN_USER = { username: "Coach Bruno", email: "user@email.com" };
+const DEFAULT_ACCOUNT = {
+  id: "u1",
+  name: "Coach Bruno",
+  email: "user@email.com",
+  password: "password",
+};
+
+let account;
+
+function publicUser() {
+  return { id: account.id, name: account.name, email: account.email };
+}
+
+function isValidEmail(email) {
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/** A minimal fake backend behind apiFetch, stateful across calls within a test. */
+function fakeBackend(path, { method = "GET", body } = {}) {
+  if (path === "/users/me" && method === "GET") {
+    return Promise.resolve(publicUser());
+  }
+
+  if (path === "/users/me" && method === "PATCH") {
+    const { name, email } = body;
+    if (!name || name.trim() === "") {
+      return Promise.reject(new ValidationError("Name cannot be empty"));
+    }
+    if (!isValidEmail(email)) {
+      return Promise.reject(new ValidationError("Enter a valid email address"));
+    }
+    account = { ...account, name, email };
+    return Promise.resolve(publicUser());
+  }
+
+  if (path === "/users/me/password" && method === "PUT") {
+    const { currentPassword, newPassword } = body;
+    if (currentPassword !== account.password) {
+      return Promise.reject(new ValidationError("Incorrect current password"));
+    }
+    if (!newPassword) {
+      return Promise.reject(
+        new ValidationError("Validation failed", {
+          newPassword: "New password cannot be empty",
+        })
+      );
+    }
+    account = { ...account, password: newPassword };
+    return Promise.resolve(null);
+  }
+
+  if (path === "/auth/login" && method === "POST") {
+    const { email, password } = body;
+    if (email !== account.email || password !== account.password) {
+      return Promise.reject(new AuthError("Invalid email or password"));
+    }
+    return Promise.resolve({
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      user: publicUser(),
+    });
+  }
+
+  if (path === "/auth/logout" && method === "POST") {
+    return Promise.resolve(null);
+  }
+
+  return Promise.reject(new Error(`Unhandled apiFetch call in test: ${method} ${path}`));
+}
 
 beforeEach(() => {
-  localStorage.setItem("user", JSON.stringify(SIGNED_IN_USER));
-  localStorage.setItem("session", "active");
+  account = { ...DEFAULT_ACCOUNT };
+  apiFetch.mockReset();
+  apiFetch.mockImplementation(fakeBackend);
+  silentRefresh.mockReset();
+  silentRefresh.mockResolvedValue("access-token");
+  clearTokens();
+  setTokens("access-token", "refresh-token");
 });
 
 function LocationDisplay() {
@@ -34,33 +119,51 @@ function LocationDisplay() {
 }
 
 // Mirrors App.jsx's PrivateRoute: don't mount children until AuthProvider's
-// mount-time localStorage read has resolved, so `user` is never null here —
-// exactly the guarantee the real route guard gives Settings in production.
+// mount-time boot flow has resolved, so `user` is never null here — exactly
+// the guarantee the real route guard gives Settings in production. Used only
+// by the round-trip harness below, which needs to render its own inline
+// sign-in UI once `user` goes null (production instead swaps routes, which
+// this in-page harness deliberately doesn't depend on).
 function Gate({ children }) {
   const { loading } = useAuth();
   if (loading) return null;
   return children;
 }
 
-function render(ui, { initialEntries = ["/settings"] } = {}) {
-  return rtlRender(
+// Same idea as Gate, but also unmounts once `user` goes null — the accurate
+// mirror of PrivateRoute for pages like Settings that assume a signed-in
+// user and would otherwise crash reading `user.name` after a sign-out
+// triggered mid-test (e.g. a successful password change, F3 AC4).
+function SettingsGate({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return null;
+  return children;
+}
+
+async function render(ui, { initialEntries = ["/settings"] } = {}) {
+  const utils = rtlRender(
     <MemoryRouter initialEntries={initialEntries}>
       <AuthProvider>
-        <Gate>
+        <SettingsGate>
           {ui}
           <LocationDisplay />
-        </Gate>
+        </SettingsGate>
       </AuthProvider>
     </MemoryRouter>
   );
+  // AuthProvider's boot-time silent refresh is async (F1 AC6); wait for it
+  // to resolve and SettingsGate to mount its children before interacting.
+  await screen.findByText("Settings");
+  return utils;
 }
 
 async function goToAdvanced(user) {
   await user.click(screen.getByRole("tab", { name: "Advanced" }));
 }
 
-test("opens on the Profile tab and the reset button is not in the document", () => {
-  render(<Settings />);
+test("opens on the Profile tab and the reset button is not in the document", async () => {
+  await render(<Settings />);
 
   expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
     "aria-selected",
@@ -73,7 +176,7 @@ test("opens on the Profile tab and the reset button is not in the document", () 
 
 test("switching to Advanced shows its panel and hides Profile's", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await goToAdvanced(user);
 
@@ -85,7 +188,7 @@ test("switching to Advanced shows its panel and hides Profile's", async () => {
 
 test("switching back to Profile hides the Advanced panel again", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await goToAdvanced(user);
   await user.click(screen.getByRole("tab", { name: "Profile" }));
@@ -98,7 +201,7 @@ test("switching back to Profile hides the Advanced panel again", async () => {
 
 test("selecting a tab marks only that tab selected", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await goToAdvanced(user);
 
@@ -114,7 +217,7 @@ test("selecting a tab marks only that tab selected", async () => {
 
 test("the Advanced panel explains what reset does before it is clicked", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await goToAdvanced(user);
 
@@ -132,7 +235,7 @@ test("clicking reset on Advanced opens a confirmation popup without resetting an
     players: [],
   });
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
 
@@ -150,7 +253,7 @@ test("confirming the popup clears stored data and re-seeds", async () => {
     players: [],
   });
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
   await user.click(screen.getByRole("button", { name: "Submit" }));
@@ -162,15 +265,14 @@ test("confirming the popup clears stored data and re-seeds", async () => {
 test("confirming the popup leaves the auth session untouched", async () => {
   const user = userEvent.setup();
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
   await user.click(screen.getByRole("button", { name: "Submit" }));
 
-  expect(JSON.parse(localStorage.getItem("user"))).toEqual({
-    username: "Coach Bruno",
-    email: "user@email.com",
-  });
+  expect(getRefreshToken()).toBe("refresh-token");
+  await user.click(screen.getByRole("tab", { name: "Profile" }));
+  expect(screen.getByLabelText("Name")).toBeInTheDocument();
 });
 
 test("canceling the popup changes nothing", async () => {
@@ -182,7 +284,7 @@ test("canceling the popup changes nothing", async () => {
     players: [],
   });
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
   await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -195,7 +297,7 @@ test("canceling the popup changes nothing", async () => {
 test("after a reset the page stays on the Advanced tab", async () => {
   const user = userEvent.setup();
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
   await user.click(screen.getByRole("button", { name: "Submit" }));
@@ -212,7 +314,7 @@ test("after a reset the page stays on the Advanced tab", async () => {
 test("declining to reset leaves the tab on Advanced and nothing changed", async () => {
   const user = userEvent.setup();
 
-  render(<Settings />);
+  await render(<Settings />);
   await goToAdvanced(user);
   await user.click(screen.getByRole("button", { name: "Reset demo data" }));
   await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -223,8 +325,8 @@ test("declining to reset leaves the tab on Advanced and nothing changed", async 
   );
 });
 
-test("?tab=advanced in the URL opens the Advanced panel", () => {
-  render(<Settings />, { initialEntries: ["/settings?tab=advanced"] });
+test("?tab=advanced in the URL opens the Advanced panel", async () => {
+  await render(<Settings />, { initialEntries: ["/settings?tab=advanced"] });
 
   expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
     "aria-selected",
@@ -237,7 +339,7 @@ test("?tab=advanced in the URL opens the Advanced panel", () => {
 
 test("selecting a tab updates the URL with no page reload", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await goToAdvanced(user);
 
@@ -246,8 +348,8 @@ test("selecting a tab updates the URL with no page reload", async () => {
   );
 });
 
-test("an unrecognised tab value falls back to Profile without an error (AC TABUI-03.2)", () => {
-  render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
+test("an unrecognised tab value falls back to Profile without an error (AC TABUI-03.2)", async () => {
+  await render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
 
   expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
     "aria-selected",
@@ -258,8 +360,8 @@ test("an unrecognised tab value falls back to Profile without an error (AC TABUI
   ).not.toBeInTheDocument();
 });
 
-test("a missing tab param opens Profile", () => {
-  render(<Settings />, { initialEntries: ["/settings"] });
+test("a missing tab param opens Profile", async () => {
+  await render(<Settings />, { initialEntries: ["/settings"] });
 
   expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute(
     "aria-selected",
@@ -267,22 +369,22 @@ test("a missing tab param opens Profile", () => {
   );
 });
 
-test("Settings' own TAB_IDS guard resolves a bogus ?tab= to 'profile' before it ever reaches Tabs (AC TABUI-03.1)", () => {
-  render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
+test("Settings' own TAB_IDS guard resolves a bogus ?tab= to 'profile' before it ever reaches Tabs (AC TABUI-03.1)", async () => {
+  await render(<Settings />, { initialEntries: ["/settings?tab=bogus"] });
 
   const lastCall = Tabs.mock.calls[Tabs.mock.calls.length - 1][0];
   expect(lastCall.active).toBe("profile");
 });
 
-test("Settings' own TAB_IDS guard resolves a missing ?tab= to 'profile' before it ever reaches Tabs", () => {
-  render(<Settings />, { initialEntries: ["/settings"] });
+test("Settings' own TAB_IDS guard resolves a missing ?tab= to 'profile' before it ever reaches Tabs", async () => {
+  await render(<Settings />, { initialEntries: ["/settings"] });
 
   const lastCall = Tabs.mock.calls[Tabs.mock.calls.length - 1][0];
   expect(lastCall.active).toBe("profile");
 });
 
-test("reopening the page with the same URL restores the same tab", () => {
-  render(<Settings />, { initialEntries: ["/settings?tab=advanced"] });
+test("reopening the page with the same URL restores the same tab", async () => {
+  await render(<Settings />, { initialEntries: ["/settings?tab=advanced"] });
 
   expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
     "aria-selected",
@@ -291,8 +393,8 @@ test("reopening the page with the same URL restores the same tab", () => {
 });
 
 describe("profile name/email form", () => {
-  test("renders editable name and email fields pre-filled with the current values", () => {
-    render(<Settings />);
+  test("renders editable name and email fields pre-filled with the current values", async () => {
+    await render(<Settings />);
 
     expect(screen.getByLabelText("Name")).toHaveValue("Coach Bruno");
     expect(screen.getByLabelText("Email")).toHaveValue("user@email.com");
@@ -300,7 +402,7 @@ describe("profile name/email form", () => {
 
   test("saving a changed name persists it and reflects it in the UI without a page reload", async () => {
     const user = userEvent.setup();
-    const { unmount } = render(<Settings />);
+    const { unmount } = await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "New Name");
@@ -311,13 +413,13 @@ describe("profile name/email form", () => {
     // Re-mount the same tree (an SPA navigation, not a browser reload) to
     // confirm the new name was actually persisted, not just left in the input.
     unmount();
-    render(<Settings />);
+    await render(<Settings />);
     expect(screen.getByLabelText("Name")).toHaveValue("New Name");
   });
 
   test("an invalid email is rejected with a message and saves nothing", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Email"));
     await user.type(screen.getByLabelText("Email"), "not-an-email");
@@ -326,14 +428,12 @@ describe("profile name/email form", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Enter a valid email address"
     );
-    expect(JSON.parse(localStorage.getItem("user")).email).toBe(
-      "user@email.com"
-    );
+    expect(account.email).toBe("user@email.com");
   });
 
   test("an empty name is rejected with a message and saves nothing", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Name"));
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -341,14 +441,12 @@ describe("profile name/email form", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Name cannot be empty"
     );
-    const stored = JSON.parse(localStorage.getItem("user"));
-    expect(stored.name).toBeUndefined();
-    expect(stored.username).toBe("Coach Bruno");
+    expect(account.name).toBe("Coach Bruno");
   });
 
   test("a failed save keeps the typed values in the form", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Email"));
     await user.type(screen.getByLabelText("Email"), "not-an-email");
@@ -359,7 +457,7 @@ describe("profile name/email form", () => {
 
   test("a successful save renders an explicit confirmation", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "New Name");
@@ -368,8 +466,8 @@ describe("profile name/email form", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Profile updated");
   });
 
-  test("the read-only display from feature 23 is replaced, not duplicated", () => {
-    render(<Settings />);
+  test("the read-only display from feature 23 is replaced, not duplicated", async () => {
+    await render(<Settings />);
 
     expect(
       screen.queryByText("Editing your profile is coming soon.")
@@ -379,12 +477,11 @@ describe("profile name/email form", () => {
 });
 
 describe("password form", () => {
-  // SIGNED_IN_USER has no stored password, so it falls back to the demo
-  // password ("password") — see AuthContext's PROF-01.4 behaviour.
+  // The fake backend's DEFAULT_ACCOUNT starts with this password.
   const CURRENT_PASSWORD = "password";
 
-  test("current, new and confirm render as password inputs", () => {
-    render(<Settings />);
+  test("current, new and confirm render as password inputs", async () => {
+    await render(<Settings />);
 
     expect(screen.getByLabelText("Current password")).toHaveAttribute(
       "type",
@@ -402,7 +499,7 @@ describe("password form", () => {
 
   test("a wrong current password renders its own message", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.type(screen.getByLabelText("Current password"), "wrong");
     await user.type(screen.getByLabelText("New password"), "newpass");
@@ -416,7 +513,7 @@ describe("password form", () => {
 
   test("a mismatched confirmation renders its own, different message", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.type(
       screen.getByLabelText("Current password"),
@@ -436,7 +533,7 @@ describe("password form", () => {
 
   test("an empty new password renders its own, different message", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.type(
       screen.getByLabelText("Current password"),
@@ -449,9 +546,9 @@ describe("password form", () => {
     );
   });
 
-  test("a successful change clears all three fields, confirms, and keeps the user signed in", async () => {
+  test("a successful change confirms, clears the fields, and signs the user out (AC PROF-04.4)", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.type(
       screen.getByLabelText("Current password"),
@@ -461,17 +558,16 @@ describe("password form", () => {
     await user.type(screen.getByLabelText("Confirm new password"), "newpass");
     await user.click(screen.getByRole("button", { name: "Change password" }));
 
-    expect(screen.getByRole("status")).toHaveTextContent("Password updated");
-    expect(screen.getByLabelText("Current password")).toHaveValue("");
-    expect(screen.getByLabelText("New password")).toHaveValue("");
-    expect(screen.getByLabelText("Confirm new password")).toHaveValue("");
-    // Still signed in: the Profile panel (with its own form) is still on screen.
-    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    // The API has already revoked the session server-side (F3 AC4): the
+    // local refresh token is cleared and Settings (which requires a
+    // signed-in user) unmounts via SettingsGate, mirroring PrivateRoute.
+    expect(getRefreshToken()).toBeNull();
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
 
   test("a failed change leaves the fields as typed", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.type(screen.getByLabelText("Current password"), "wrong");
     await user.type(screen.getByLabelText("New password"), "newpass");
@@ -487,7 +583,7 @@ describe("password form", () => {
 
   test("is a separate form from the name/email form — submitting one does not submit the other", async () => {
     const user = userEvent.setup();
-    render(<Settings />);
+    await render(<Settings />);
 
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "New Name");
@@ -503,7 +599,9 @@ describe("password form", () => {
 // A minimal sign-in/sign-out harness for the round-trip test below — Settings
 // alone can't prove the credential round trip, since sign-in/sign-out live
 // outside it. This mirrors how App.jsx swaps Settings for SignIn once `user`
-// goes null, without depending on either page's own routing.
+// goes null, without depending on either page's own routing. Uses the plain
+// (loading-only) Gate, not SettingsGate, because it renders its own inline
+// sign-in UI whenever `user` is null instead of assuming one is always set.
 function RoundTripHarness() {
   const { user, signOut, signIn } = useAuth();
   const [creds, setCreds] = useState({ email: "", password: "" });
@@ -531,7 +629,9 @@ function RoundTripHarness() {
         />
         <button
           type="button"
-          onClick={() => setResult(signIn(creds.email, creds.password))}
+          onClick={async () =>
+            setResult(await signIn(creds.email, creds.password))
+          }
         >
           Attempt sign in
         </button>
@@ -554,7 +654,7 @@ function RoundTripHarness() {
   );
 }
 
-test("change the email and password, sign out, then the old pair is rejected and the new pair signs in (AC PROF-04.6)", async () => {
+test("change the email and password, then the old pair is rejected and the new pair signs in (AC PROF-04.6)", async () => {
   const user = userEvent.setup();
   rtlRender(
     <MemoryRouter initialEntries={["/settings"]}>
@@ -566,6 +666,8 @@ test("change the email and password, sign out, then the old pair is rejected and
     </MemoryRouter>
   );
 
+  await screen.findByLabelText("Email");
+
   await user.clear(screen.getByLabelText("Email"));
   await user.type(screen.getByLabelText("Email"), "new@club.pt");
   await user.click(screen.getByRole("button", { name: "Save" }));
@@ -575,8 +677,9 @@ test("change the email and password, sign out, then the old pair is rejected and
   await user.type(screen.getByLabelText("Confirm new password"), "newpass");
   await user.click(screen.getByRole("button", { name: "Change password" }));
 
-  await user.click(screen.getByRole("button", { name: "Sign out" }));
-
+  // Changing the password revokes the session server-side (F3 AC4) — the
+  // harness swaps straight to its own sign-in form, no separate Sign out
+  // step needed.
   await user.type(screen.getByLabelText("Sign-in email"), "user@email.com");
   await user.type(screen.getByLabelText("Sign-in password"), "password");
   await user.click(screen.getByRole("button", { name: "Attempt sign in" }));
@@ -597,7 +700,7 @@ test("change the email and password, sign out, then the old pair is rejected and
 
 test("editing the profile and then resetting demo data leaves the profile unchanged and the user still signed in", async () => {
   const user = userEvent.setup();
-  render(<Settings />);
+  await render(<Settings />);
 
   await user.clear(screen.getByLabelText("Name"));
   await user.type(screen.getByLabelText("Name"), "New Name");
@@ -611,15 +714,15 @@ test("editing the profile and then resetting demo data leaves the profile unchan
   expect(screen.getByLabelText("Name")).toHaveValue("New Name");
 });
 
-test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", () => {
-  const { container } = render(<Settings />);
+test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
+  const { container } = await render(<Settings />);
 
   expect(container.querySelector(".h-screen")).not.toBeInTheDocument();
   expect(container.querySelector(".min-h-screen")).not.toBeInTheDocument();
 });
 
-test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", () => {
-  const { container } = render(<Settings />);
+test("has no overflow-y-auto container of its own — the shell's <main> is the only scroll region (AC SHELL-03.2)", async () => {
+  const { container } = await render(<Settings />);
 
   expect(container.querySelector(".overflow-y-auto")).not.toBeInTheDocument();
 });
