@@ -7,6 +7,74 @@ import { gameService } from "../../services/gameService";
 import { cardService } from "../../services/cardService";
 import { ratingService } from "../../services/ratingService";
 import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch is
+// replaced with the shared stateful fake so every fixture read/write below
+// round-trips deterministically with zero real network calls. This suite
+// was written against the deleted model/seed.js shape (recovered via
+// `git show 32050f9^:src/model/seed.js`) rather than fakeApi's default
+// seed: "Amadora Sub-11" has 5 players all literally named "João"
+// (shirts 1-5), and "Areias Sub-19" has 3 (all shirt 3) — several
+// assertions depend on that exact shape ("1 João",
+// `getAllByText(/João/)` having length 5). The team ids are plain "1"/"2"
+// (not fakeApi's usual "team-1" style) because a few deep-link tests
+// literally assert the URL `?team=1`, matching the old mock's numeric ids.
+const TEAMS_SEED = {
+  teams: [
+    {
+      id: "1",
+      name: "Sub-11",
+      club: "Amadora",
+      season: "23/24",
+      players: [1, 2, 3, 4, 5].map((shirtNumber) => ({
+        id: `p${shirtNumber}`,
+        teamId: "1",
+        name: "João",
+        age: 15,
+        shirtNumber,
+        goals: 3,
+        assists: 1,
+        concededGoals: 0,
+        position: "CAM",
+      })),
+    },
+    {
+      id: "2",
+      name: "Sub-19",
+      club: "Areias",
+      season: "23/24",
+      players: [6, 7, 8].map((n) => ({
+        id: `p${n}`,
+        teamId: "2",
+        name: "João",
+        age: 15,
+        shirtNumber: 3,
+        goals: 3,
+        assists: 1,
+        concededGoals: 0,
+        position: "CAM",
+      })),
+    },
+  ],
+  trainings: [],
+  games: [],
+  cards: [],
+  ratings: [],
+  rivalRows: [],
+  competitions: [],
+  opponents: [],
+};
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi(TEAMS_SEED).apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

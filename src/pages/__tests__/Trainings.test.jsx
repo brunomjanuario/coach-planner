@@ -5,6 +5,146 @@ import Trainings from "../Trainings";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { toInputValue } from "../../lib/datetime";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch is
+// replaced with the shared stateful fake so every fixture read/write below
+// round-trips deterministically with zero real network calls. This suite
+// was written against the deleted model/seed.js shape (recovered via
+// `git show 32050f9^:src/model/seed.js`) rather than fakeApi's default
+// seed: "Amadora Sub-11" has 5 players and "Areias Sub-19" has 3 (all
+// named "João", matching Teams.test.jsx's seed), and Amadora Sub-11 has
+// exactly 2 past trainings, 0 upcoming — several assertions depend on that
+// exact count ("Past Trainings (2)", etc). Team ids are plain "1"/"2" (not
+// fakeApi's usual "team-1" style) because a few deep-link tests create a
+// training with a literal numeric `teamId: 1`/`teamId: 2`, matching the
+// old mock's numeric ids.
+const TRAININGS_SEED = {
+  teams: [
+    {
+      id: "1",
+      name: "Sub-11",
+      club: "Amadora",
+      season: "23/24",
+      players: [1, 2, 3, 4, 5].map((shirtNumber) => ({
+        id: `p${shirtNumber}`,
+        teamId: "1",
+        name: "João",
+        age: 15,
+        shirtNumber,
+        goals: 3,
+        assists: 1,
+        concededGoals: 0,
+        position: "CAM",
+      })),
+    },
+    {
+      id: "2",
+      name: "Sub-19",
+      club: "Areias",
+      season: "23/24",
+      players: [6, 7, 8].map((n) => ({
+        id: `p${n}`,
+        teamId: "2",
+        name: "João",
+        age: 15,
+        shirtNumber: 3,
+        goals: 3,
+        assists: 1,
+        concededGoals: 0,
+        position: "CAM",
+      })),
+    },
+  ],
+  trainings: [
+    {
+      id: "training-1",
+      teamId: "1",
+      day: "2024-10-24T15:00:00.000Z",
+      duration: 90,
+      exercises: [
+        {
+          id: "exercise-1",
+          trainingId: "training-1",
+          description: "Corrida",
+          numberOfPlayers: 21,
+          duration: 10,
+          repetitions: 1,
+          image: "",
+        },
+        {
+          id: "exercise-2",
+          trainingId: "training-1",
+          description: "SSG",
+          numberOfPlayers: 21,
+          duration: 20,
+          repetitions: 2,
+          image: "",
+        },
+        {
+          id: "exercise-3",
+          trainingId: "training-1",
+          description: "Jogo",
+          numberOfPlayers: 21,
+          duration: 10,
+          repetitions: 3,
+          image: "",
+        },
+      ],
+    },
+    {
+      id: "training-2",
+      teamId: "1",
+      day: "2023-06-24T15:00:00.000Z",
+      duration: 90,
+      exercises: [
+        {
+          id: "exercise-4",
+          trainingId: "training-2",
+          description: "Corrida",
+          numberOfPlayers: 21,
+          duration: 10,
+          repetitions: 1,
+          image: "",
+        },
+        {
+          id: "exercise-5",
+          trainingId: "training-2",
+          description: "SSG",
+          numberOfPlayers: 21,
+          duration: 20,
+          repetitions: 2,
+          image: "",
+        },
+        {
+          id: "exercise-6",
+          trainingId: "training-2",
+          description: "Jogo",
+          numberOfPlayers: 21,
+          duration: 10,
+          repetitions: 3,
+          image: "",
+        },
+      ],
+    },
+  ],
+  games: [],
+  cards: [],
+  ratings: [],
+  rivalRows: [],
+  competitions: [],
+  opponents: [],
+};
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi(TRAININGS_SEED).apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
