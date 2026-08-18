@@ -6,7 +6,7 @@ the real API, not just mocked `fetch`.
 
 ```
 Phase 0  Foundation           T1–T5   ← blocks everything
-Phase 1  Auth                 T6–T8   ← blocks every other page
+Phase 1  Auth                 T6–T8a  ← blocks every other page
 Phase 2  Teams & players      T9
 Phase 3  Trainings            T10
 Phase 4  Games & standings    T11–T12
@@ -17,6 +17,29 @@ Phase 7  Cleanup & docs       T15–T16
 
 Phases 2–6 are independent of each other once Phase 1 lands and can be
 reordered or parallelized across workers.
+
+### T8a — Fix pre-existing tests broken by the async, API-backed AuthContext
+
+**Files**: `src/__tests__/App.test.jsx`, `src/pages/__tests__/Settings.test.jsx`
+**Why**: T6/T7 made `AuthContext` async and moved profile/password
+validation server-side (per F2/F3's ACs). These two pre-existing suites
+still seed a signed-in session via the old mock's `localStorage`
+`user`/`session` keys and assert on client-side validation messages that
+no longer exist client-side. Confirmed via a full-suite run after merging
+T1–T8: 42 tests failing across these 2 files, 0 failures anywhere else.
+**Do**: Rewrite the affected tests to mock `apiFetch`/the new
+`AuthContext` shape (matching the pattern already used in
+`AuthContext.test.jsx` from T6/T7) instead of seeding `localStorage`
+directly. Preserve every acceptance criterion the original tests encoded
+(shell layout ACs in `App.test.jsx`, profile/password ACs in
+`Settings.test.jsx`) — this is a test-harness update, not a coverage cut.
+Where a test asserted client-side validation that has legitimately moved
+server-side (e.g. "an invalid email is rejected" was a local check, is now
+a `400` from the API), update the test to assert the new behavior (mock
+the `400` response) rather than deleting the case.
+**Test**: the two files themselves, rewritten.
+**Gate**: `npm test -- --run` (full suite) — must return to 0 failures.
+**Depends on**: T7
 
 ---
 
@@ -233,6 +256,77 @@ token storage strategy, `apiClient.js`'s existence, that `store.js` no
 longer exists. This is a documentation correction, not a new spec.
 **Gate**: manual read-through
 **Depends on**: T15
+
+---
+
+## Phase 8 — Remediation: downstream test consumers (found post-T16)
+
+**Why this phase exists**: T9–T14 correctly scoped each service's own
+`__tests__` file, and T15's gate (`npm test -- --run && npm run build`)
+passed — but a full-suite run after merging batch 2 showed **15 additional
+test files, 331 tests** now failing. These files call service methods
+directly (e.g. `await teamService.getAll()` to seed fixture data) relying on
+the old mock's synchronous, test-isolated, in-memory store. Against the real
+`apiClient`, those calls now make live unmocked HTTP requests — some
+observed hitting the actually-running `coach-planner-api` and getting back
+a real `401`. This is a correctness and safety gap (non-deterministic tests,
+and tests silently depending on/mutating a real running service) that must
+close before the feature's gate is green. Not present in the original
+tasks.md because the original task list didn't audit downstream *consumers*
+of the services being rewritten — a Tasks-authoring gap, logged here rather
+than hidden.
+
+**Fix pattern for every task below**: replace the direct
+`await xService.method(...)` fixture-seeding calls with `vi.mock("../../services/xService")`
+(the file already imports these services — mock the module, then
+`xService.method.mockResolvedValue(...)`/`mockRejectedValue(...)` per test
+as needed) so the test controls the data deterministically and makes zero
+real network calls. Preserve every existing assertion and AC reference in
+each file — this is a test-harness update (how data gets in), not a
+coverage cut (what gets asserted). Where a test's existing fixture-seeding
+shape doesn't map cleanly to a mocked return value, prefer the smallest
+change that keeps the test's original intent legible.
+
+### T17 — Fix `Settings.test.jsx`'s remaining "Reset demo data" tests
+
+**Files**: `src/pages/__tests__/Settings.test.jsx`
+**Why separate from the pattern above**: these 10 failures are not a
+mocking gap — they test a UI control (Advanced tab → "Reset demo data")
+that T15 correctly and deliberately removed (see the comment left in
+`Settings.jsx`'s `AdvancedPanel`), since it only ever reset the
+now-deleted mock. Delete the tests for the removed control; if `TAB_IDS`/
+tab-switching behavior for the Advanced tab is still exercised by other
+passing tests in this file, no new test is needed — the Advanced tab
+still exists, just renders a placeholder.
+**Gate**: `npm test -- --run src/pages/__tests__/Settings.test.jsx`
+**Depends on**: T8a, T15
+
+### T18–T26 — Fix component tests (one task per file)
+
+**Files** (one task each, same fix pattern):
+T18 `GameCardsSection.test.jsx` · T19 `GameResultPopup.test.jsx` ·
+T20 `PlayerCard.test.jsx` · T21 `PlayerRatingHistory.test.jsx` ·
+T22 `ReferenceListsPopup.test.jsx` · T23 `SquadRanking.test.jsx` ·
+T24 `SquadRatingPopup.test.jsx` · T25 `TeamCard.test.jsx` ·
+T26 `TrainingDetailsPopup.test.jsx`, `TrainingSavePopup.test.jsx` (pair —
+same component family, small enough to do together)
+**Gate per task**: `npm test -- --run <file>`
+**Depends on**: T9–T14 (whichever services the file imports)
+
+### T27–T30 — Fix page tests (one task per file)
+
+T27 `Games.test.jsx` · T28 `Home.test.jsx` · T29 `Teams.test.jsx` ·
+T30 `Trainings.test.jsx`
+**Gate per task**: `npm test -- --run <file>`
+**Depends on**: T9–T14
+
+### T31 — Full-suite green + build
+
+**Files**: none (verification-only)
+**Do**: `npm test -- --run` must show 0 failed; `npm run build` must
+succeed; `npm run lint` must be clean.
+**Gate**: all three commands, zero non-zero exits.
+**Depends on**: T17–T30
 
 ---
 
