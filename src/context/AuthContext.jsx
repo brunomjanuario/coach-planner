@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContextInstance";
-import { apiFetch } from "../lib/apiClient";
-import { setTokens, clearTokens } from "../lib/tokenStore";
+import { apiFetch, silentRefresh } from "../lib/apiClient";
+import { setTokens, clearTokens, getRefreshToken, setAuthFailureHandler } from "../lib/tokenStore";
 import { AuthError, ConflictError, ValidationError } from "../lib/errors";
 
 // Real authentication against coach-planner-api: no plaintext credentials,
 // no localStorage-stored password. See docs/08-authentication.md.
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function messageFromError(e) {
   if (e instanceof ValidationError) {
@@ -21,7 +19,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(false);
+    setAuthFailureHandler(() => {
+      clearTokens();
+      setUser(null);
+    });
+
+    (async () => {
+      if (!getRefreshToken()) {
+        setLoading(false);
+        return;
+      }
+      try {
+        await silentRefresh();
+        const me = await apiFetch("/users/me");
+        setUser(me);
+      } catch {
+        clearTokens();
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const signIn = async (email, password) => {
@@ -68,33 +85,41 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const updateProfile = ({ name, email }) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return { success: false, message: "Name cannot be empty" };
+  const updateProfile = async ({ name, email }) => {
+    try {
+      const updated = await apiFetch("/users/me", { method: "PATCH", body: { name, email } });
+      setUser(updated);
+      return { success: true, message: "Profile updated" };
+    } catch (e) {
+      if (e instanceof ConflictError || e instanceof ValidationError) {
+        return { success: false, message: messageFromError(e) };
+      }
+      return { success: false, message: e.message };
     }
-    const trimmedEmail = email.trim();
-    if (!EMAIL_PATTERN.test(trimmedEmail)) {
-      return { success: false, message: "Enter a valid email address" };
-    }
-
-    setUser({ ...user, name: trimmedName, email: trimmedEmail });
-    return { success: true, message: "Profile updated" };
   };
 
-  const changePassword = ({ current, next, confirm }) => {
-    if (current !== user.password) {
-      return { success: false, message: "Current password is incorrect" };
-    }
-    if (!next) {
-      return { success: false, message: "New password cannot be empty" };
-    }
+  const changePassword = async ({ current, next, confirm }) => {
     if (next !== confirm) {
       return { success: false, message: "New passwords do not match" };
     }
-
-    setUser({ ...user, password: next });
-    return { success: true, message: "Password updated" };
+    try {
+      await apiFetch("/users/me/password", {
+        method: "PUT",
+        body: { currentPassword: current, newPassword: next },
+      });
+      // The API has already revoked every refresh token server-side.
+      clearTokens();
+      setUser(null);
+      return { success: true, message: "Password updated. Please sign in again." };
+    } catch (e) {
+      if (e instanceof ValidationError && !e.errors) {
+        return { success: false, message: "Current password is incorrect" };
+      }
+      if (e instanceof ValidationError) {
+        return { success: false, message: messageFromError(e) };
+      }
+      return { success: false, message: e.message };
+    }
   };
 
   return (

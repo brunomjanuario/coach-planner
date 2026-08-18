@@ -62,6 +62,16 @@ async function toTypedError(res) {
   return new ApiError(message, res.status);
 }
 
+/**
+ * Performs the refresh call directly, for AuthContext's boot-time silent
+ * refresh (F1 AC6) -- there is no access token yet at that point, so
+ * apiFetch's own 401-triggered refresh-and-retry never has a request to
+ * retry from.
+ */
+export async function silentRefresh() {
+  return doRefresh();
+}
+
 export async function apiFetch(path, { method = "GET", body, isRetry = false } = {}) {
   const accessToken = getAccessToken();
   let res;

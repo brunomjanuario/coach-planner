@@ -1,13 +1,14 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { AuthProvider } from "../AuthContext";
 import { useAuth } from "../useAuth";
-import { apiFetch } from "../../lib/apiClient";
-import { getAccessToken, getRefreshToken, clearTokens } from "../../lib/tokenStore";
+import { apiFetch, silentRefresh } from "../../lib/apiClient";
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "../../lib/tokenStore";
 import { ConflictError, ValidationError, AuthError } from "../../lib/errors";
 
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
 }));
 
 function renderAuth() {
@@ -16,6 +17,7 @@ function renderAuth() {
 
 beforeEach(() => {
   apiFetch.mockReset();
+  silentRefresh.mockReset();
   clearTokens();
 });
 
@@ -156,6 +158,154 @@ describe("signOut (F2 AC6)", () => {
       await result.current.signOut();
     });
 
+    expect(result.current.user).toBeNull();
+    expect(getAccessToken()).toBeNull();
+    expect(getRefreshToken()).toBeNull();
+  });
+});
+
+describe("boot-time silent refresh (F1 AC6, F2 AC7)", () => {
+  test("resolves loading:false with user:null and makes no API call when no refresh token exists (AC7)", async () => {
+    const { result } = renderAuth();
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.user).toBeNull();
+    expect(silentRefresh).not.toHaveBeenCalled();
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  test("refreshes then loads the profile when a refresh token exists, resolving loading:false with user set", async () => {
+    setTokens("stale-access", "refresh-boot");
+    silentRefresh.mockResolvedValueOnce("new-access");
+    apiFetch.mockResolvedValueOnce({ id: "u1", name: "Coach", email: "coach@club.pt" });
+
+    const { result } = renderAuth();
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(silentRefresh).toHaveBeenCalled();
+    expect(apiFetch).toHaveBeenCalledWith("/users/me");
+    expect(result.current.user).toEqual({ id: "u1", name: "Coach", email: "coach@club.pt" });
+  });
+
+  test("clears tokens and resolves signed-out (no hang) when the refresh token is invalid/expired", async () => {
+    setTokens("stale-access", "refresh-boot");
+    silentRefresh.mockRejectedValueOnce(new AuthError("Refresh failed"));
+
+    const { result } = renderAuth();
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.user).toBeNull();
+    expect(getAccessToken()).toBeNull();
+    expect(getRefreshToken()).toBeNull();
+  });
+});
+
+describe("updateProfile (F3 AC1-AC2)", () => {
+  test("PATCHes /users/me and updates user from the response on success (AC2)", async () => {
+    const { result } = renderAuth();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    apiFetch.mockResolvedValueOnce({ id: "u1", name: "New Name", email: "new@club.pt" });
+
+    let updateResult;
+    await act(async () => {
+      updateResult = await result.current.updateProfile({ name: "New Name", email: "new@club.pt" });
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith("/users/me", {
+      method: "PATCH",
+      body: { name: "New Name", email: "new@club.pt" },
+    });
+    expect(updateResult).toEqual({ success: true, message: "Profile updated" });
+    expect(result.current.user).toEqual({ id: "u1", name: "New Name", email: "new@club.pt" });
+  });
+
+  test("returns {success:false, message} on 409 without mutating user", async () => {
+    const { result } = renderAuth();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    apiFetch.mockRejectedValueOnce(new ConflictError("Email already registered."));
+
+    let updateResult;
+    await act(async () => {
+      updateResult = await result.current.updateProfile({ name: "Coach", email: "taken@club.pt" });
+    });
+
+    expect(updateResult).toEqual({ success: false, message: "Email already registered." });
+    expect(result.current.user).toBeNull();
+  });
+});
+
+describe("changePassword (F3 AC3-AC4)", () => {
+  test("rejects locally without calling the API when next !== confirm (AC3)", async () => {
+    const { result } = renderAuth();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let changeResult;
+    await act(async () => {
+      changeResult = await result.current.changePassword({
+        current: "old-pass",
+        next: "new-pass-1",
+        confirm: "new-pass-2",
+      });
+    });
+
+    expect(changeResult).toEqual({ success: false, message: "New passwords do not match" });
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  test("on 400 incorrect-password returns the fixed message without mutating user (AC4)", async () => {
+    const { result } = renderAuth();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    apiFetch.mockRejectedValueOnce(new ValidationError("Current password is incorrect."));
+
+    let changeResult;
+    await act(async () => {
+      changeResult = await result.current.changePassword({
+        current: "wrong",
+        next: "new-password-1",
+        confirm: "new-password-1",
+      });
+    });
+
+    expect(changeResult).toEqual({ success: false, message: "Current password is incorrect" });
+  });
+
+  test("on success PUTs /users/me/password, clears the local refresh token, and signs the user out (AC4)", async () => {
+    const { result } = renderAuth();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    apiFetch
+      .mockResolvedValueOnce({
+        accessToken: "access-5",
+        refreshToken: "refresh-5",
+        user: { id: "u1", name: "Coach", email: "coach@club.pt" },
+      })
+      .mockResolvedValueOnce(null); // /users/me/password success
+
+    await act(async () => {
+      await result.current.signIn("coach@club.pt", "hunter22");
+    });
+    expect(result.current.user).not.toBeNull();
+
+    let changeResult;
+    await act(async () => {
+      changeResult = await result.current.changePassword({
+        current: "hunter22",
+        next: "new-password-1",
+        confirm: "new-password-1",
+      });
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith("/users/me/password", {
+      method: "PUT",
+      body: { currentPassword: "hunter22", newPassword: "new-password-1" },
+    });
+    expect(changeResult.success).toBe(true);
     expect(result.current.user).toBeNull();
     expect(getAccessToken()).toBeNull();
     expect(getRefreshToken()).toBeNull();
