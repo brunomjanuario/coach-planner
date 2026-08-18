@@ -5,14 +5,25 @@
 (`cd ../coach-planner-api && docker compose up -d db && SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun`).
 
 ```
-Phase 0  Build context    T1        ← trivial, but blocks a correct build
-Phase 1  Image + serving  T2–T3     ← T3 needs T2's template to extend
-Phase 2  Wiring + gate    T4–T5
-Phase 3  Docs + memory    T6
+Phase 0  Build context    T1        ← trivial, but blocks a correct build   ✅ done
+Phase 1  Image + serving  T2–T3     ← T3 needs T2's template to extend      ✅ done
+Phase 2  Wiring + gate    T4–T5                                             ✅ done
+Phase 3  Docs + memory    T6                                                ✅ done
 ```
 
-6 tasks — fits a single batch, so this executes inline. No sub-agent
-delegation offer is warranted (the threshold is >~8 tasks).
+6 tasks — fits a single batch, executed inline. No sub-agent delegation
+offer was warranted (the threshold is >~8 tasks).
+
+**Status**: All 6 tasks committed to `main` (`d942823`…`32c94bf`). T3's
+execution corrected a design-doc assumption (nginx does not refuse to start
+on an unreachable upstream) — recorded in AD-024. Both compose wiring modes
+in T4 were verified against real running backends (host `bootRun` and the
+backend's own `--profile full` compose), not merely documented. T5's smoke
+script was itself proven capable of failing (deliberately broke the SPA
+fallback, confirmed the script caught it, reverted). Full Vitest suite
+unaffected throughout (1349/1349), and no file under `src/` or in
+`../coach-planner-api` was touched. Next: dispatch the fresh Verifier (see
+below) before considering this feature done.
 
 **Standing constraint for every task**: no file under `src/` may be
 modified. The same-origin proxy is chosen precisely so application code
