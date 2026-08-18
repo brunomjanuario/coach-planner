@@ -5,6 +5,21 @@ import { teamService } from "../../services/teamService";
 import { cardService } from "../../services/cardService";
 import { ratingService } from "../../services/ratingService";
 import { gameService } from "../../services/gameService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// apiFetch is the shared seam every service goes through; a stateful fake
+// keeps writes (add a card, save a rating) readable by later reads
+// (cardService.getByGame, ratingService.getByEvent) so these round-trip
+// assertions still discriminate a broken handler.
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+
+let fake;
+
+beforeEach(() => {
+  fake = createFakeApi();
+  apiFetch.mockImplementation(fake.apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
