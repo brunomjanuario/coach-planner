@@ -271,10 +271,18 @@ fired, not a frontend one).
 6. `update(trainingData)` → `PATCH /trainings/{id}`
 7. `delete(id)` → `DELETE /trainings/{id}` — no frontend-side
    `ratingService.removeByEvent` call; backend cascades
-8. Exercise sub-resource writes (add/edit/delete an exercise within a
-   training popup) SHALL use `POST`/`PATCH`/`DELETE
-   /trainings/{id}/exercises[/{exerciseId}]` instead of round-tripping the
-   whole training's `exercises` array through `update`
+8. **Amended (T18, accepted deviation)**: exercise writes (add/edit/delete
+   an exercise within a training popup) SHALL round-trip the training's
+   whole `exercises[]` array through `POST`/`PATCH /trainings[/{id}]`,
+   rather than granular `POST`/`PATCH`/`DELETE
+   /trainings/{id}/exercises[/{exerciseId}]` sub-resource calls as
+   originally specified. Reasoning: `PATCH /trainings/{id}` already
+   replaces the whole array in one call, so the round-trip the shipped
+   implementation uses is behaviorally identical to granular calls — same
+   persisted result, same user-visible behavior — with no duplicated logic
+   between two write paths. Going granular would mean rewriting the
+   exercise popup's editing model for no observable gain, so the deviation
+   is accepted rather than reworked.
 
 **Independent Test**: Create training with 2 exercises → reload → both
 exercises present with `diagram` intact → delete training → `GET /ratings`
@@ -303,9 +311,14 @@ so `Games.jsx` and its result popups keep working.
    `cardService.removeByGame`/`ratingService.removeByEvent` calls
 7. `recordResult(id, { us, them })` → `PUT /games/{id}/result`
 8. `clearResult(id)` → `DELETE /games/{id}/result`
-9. `standingsService.getAll()` for the "our team" row SHALL call `GET
-   /standings?teamId=` (server-computed points/goal difference) instead of
-   deriving it client-side; `standingsService`'s rival-row CRUD
+9. **Resolved by T17**: the full league table (our row + rivals,
+   server-computed points/goal difference, pre-sorted) SHALL come from
+   `GET /standings?teamId=` instead of being derived/sorted client-side.
+   Shipped as `standingsService.getTable(teamId)` — a new method, not an
+   overload of `getAll()` — because `getAll()` already had an established
+   meaning (rival rows only, `GET /standings/rivals`) that the rival-row
+   manager UI still depends on; introducing `getTable` avoided overloading
+   one method with two return shapes. `standingsService`'s rival-row CRUD
    (`create`/`update`/`delete`) maps to `/standings/rivals[/{id}]`
    unchanged in shape, and client-side validation of
    won+drawn+lost-sums-to-played SHALL be kept as an early, cheap reject

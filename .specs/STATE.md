@@ -164,6 +164,51 @@
 - **Date**: 2026-08-10
 - **Status**: active
 
+### AD-019
+
+- **Decision**: The access token lives only in memory (a module-level variable in `src/lib/apiClient.js`); the refresh token persists in `localStorage`. On app boot, a present refresh token triggers one `POST /auth/refresh` before `loading` resolves.
+- **Reason**: Bounds XSS exposure to the refresh token's window rather than the access token's, while still surviving a browser restart — a normal short-access/long-refresh token split.
+- **Trade-off**: The access token is lost on every reload, so every page load pays one refresh round-trip before the app is usable; a refresh failure (expired/revoked token, or the API unreachable) must resolve to signed-out rather than hang, which `AuthContext`'s boot effect already handles.
+- **Scope**: `39-backend-integration`, `src/lib/apiClient.js`, `src/lib/tokenStore.js`, `src/context/AuthContext.jsx`.
+- **Date**: 2026-08-18
+- **Status**: active
+
+### AD-020
+
+- **Decision**: `39-backend-integration` cut over auth and all 8 services (`teamService`, `trainingService`, `gameService`, `standingsService`, `cardService`, `ratingService`, `competitionService`, `opponentService`) to the real API in one feature, big-bang — no intermediate state where some pages hit the API and others hit `localStorage`.
+- **Reason**: A partial cutover would mean two data-access idioms live side by side for an unknown number of features, and every page would need to know which one it's on. The API's wire format was purpose-built to match the mock's existing shapes, so there was no incremental-migration cost being avoided by splitting the work.
+- **Trade-off**: One large-surface feature (8 services + auth) instead of several small ones — accepted per the user's own choice this round; the Tasks phase still kept one atomic commit per service so the diff stays reviewable commit-by-commit.
+- **Scope**: `39-backend-integration`, all of `src/services/*.js`, `src/context/AuthContext.jsx`.
+- **Date**: 2026-08-18
+- **Status**: active
+
+### AD-021
+
+- **Decision**: `src/services/store.js` and `src/model/mock.js` (the localStorage mock and its seed data) are deleted outright with the API cutover — no fallback, no feature flag, no dual-mode.
+- **Reason**: Matches AD-020's big-bang shape; keeping the mock alive behind a flag would mean testing and maintaining two data layers for a mock whose entire purpose (AD-002) was to be replaced by a real backend.
+- **Trade-off**: The app has no offline/demo mode after this point — every page requires `coach-planner-api` running locally to do anything. Accepted as this round's explicit scope (see spec.md's Out of Scope: "Offline/demo mode").
+- **Scope**: `39-backend-integration`, `src/services/store.js`, `src/model/mock.js`.
+- **Date**: 2026-08-18
+- **Status**: active
+
+### AD-022
+
+- **Decision**: The league table's "our row" is now server-computed. `standingsService.getTable(teamId)` calls `GET /standings?teamId=`, which returns the full table (our row + rivals, points/goal difference derived, pre-sorted) in one call; `Games.jsx` renders that response directly. `lib/standings.js` (`computeOurRow`/`toStandingsRow`/`sortStandings`) is deleted.
+- **Reason**: The frontend was duplicating the points/goal-difference/sort rule in two languages (its own `lib/standings.js` and the backend's tested `StandingsCalculator.kt`), where it could drift from the backend's own implementation — the same situation `05-training-number` already resolved the other way for `Training.number` (server value wins over client computation).
+- **Trade-off**: `Games.jsx` can no longer render a table without a selected team, since the endpoint requires `teamId` and 400s without it — already true before this decision (no "our row" without a team to anchor it on), so no new constraint in practice.
+- **Scope**: `39-backend-integration` (T17), `src/services/standingsService.js`, `src/pages/Games.jsx`.
+- **Date**: 2026-08-18
+- **Status**: active
+
+### AD-023
+
+- **Decision**: Exercise writes (add/edit/delete an exercise within a training popup) stay array-round-tripped through `POST`/`PATCH /trainings[/{id}]`, sending the whole `exercises[]` array, rather than moving to granular `POST`/`PATCH`/`DELETE /trainings/{id}/exercises[/{exerciseId}]` sub-resource calls.
+- **Reason**: `PATCH /trainings/{id}` already replaces the whole array in one transaction, so the round-trip is behaviorally identical to granular calls — same persisted result, same user-visible behavior, no duplicated logic between two write paths. Granular endpoints would require rewriting the exercise popup's editing model for no observable gain.
+- **Trade-off**: Every exercise edit sends the full array over the wire instead of just the changed exercise, and two concurrent editors of the same training's exercises could clobber each other's writes (last-write-wins, already the frontend's accepted concurrency model per spec.md's Decisions). Accepted as-is; `spec.md`'s F5 AC8 is amended to describe this rather than the originally-specified granular shape.
+- **Scope**: `39-backend-integration` (T18), `src/services/trainingService.js`, `.specs/features/39-backend-integration/spec.md` F5 AC8.
+- **Date**: 2026-08-18
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `28-training-exercise-details` — **done and verified (PASS, one flagged Minor gap closed immediately, no formal re-verify cycle needed).** Fifth round-three feature executed; the foundation `29-exercise-designer` builds on.

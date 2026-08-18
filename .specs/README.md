@@ -302,6 +302,38 @@ count (five features/PRs merged, `37`+`38` sharing one open PR).
 
 ---
 
+## Round five — in progress
+
+One feature, unlike every prior round: `39-backend-integration` swaps the
+`localStorage` mock (AD-002) for the real `coach-planner-api` sibling repo —
+a Kotlin/Spring Boot service over PostgreSQL that was purpose-built to match
+this app's existing wire shapes. Complex scope (new domain, cross-repo
+contract, auth/token lifecycle), so it got a full `design.md`, unlike any
+round-two/round-three feature.
+
+```
+39-backend-integration
+  Phase 0-1  foundation + auth        (blocks everything else)
+  Phase 2-6  the 8 services           (independent of each other once 0-1 land)
+  Phase 7    cleanup + docs
+  Phase 8    remediation — 15 downstream test files broke against the real
+             apiFetch seam and needed a shared stateful fake, not a
+             per-file stub (see tasks.md's "Revision note")
+```
+
+| # | Feature | Scope | Depends on |
+|---|---------|-------|------------|
+| 39 | [backend-integration](features/39-backend-integration/spec.md) | **Complex** | — |
+
+Two spec/implementation disagreements were found and resolved by explicit
+decision rather than silently papered over (Phase 8a, `T17`/`T18`): the
+league table now comes from the backend's own computed `GET
+/standings?teamId=` instead of a duplicated client-side calculation
+(AD-022), and exercise writes stay array-round-tripped through
+`PATCH /trainings/{id}` rather than moving to granular sub-resource
+endpoints (AD-023) — both recorded in `STATE.md` rather than left as
+undocumented drift.
+
 ## How to execute one
 
 Each `tasks.md` opens with the execution protocol. In short:
@@ -368,6 +400,23 @@ Round four added two, both `active` in `.specs/STATE.md`:
 - **AD-018** (`36`) — the auth mock separates the *stored account*
   from the *active session*. AD-011 stands on everything else: still plaintext,
   still consistent-not-secure, still replaced wholesale by a real backend.
+
+Round five added five, all `active` in `.specs/STATE.md`:
+
+- **AD-019** (`39`) — the access token lives only in memory; the refresh
+  token persists in `localStorage`. A boot-time silent refresh keeps a
+  reload from bouncing a valid session to `/signin`.
+- **AD-020** (`39`) — auth and all 8 services cut over to the real API in
+  one big-bang feature, no partial-migration state.
+- **AD-021** (`39`) — the `localStorage` mock (`store.js`, `model/mock.js`)
+  is deleted outright with the cutover, no fallback.
+- **AD-022** (`39`) — the league table's "our row" is server-computed
+  (`GET /standings?teamId=`) instead of duplicated client-side; `lib/
+  standings.js` is deleted.
+- **AD-023** (`39`) — exercise writes stay array-round-tripped through
+  `PATCH /trainings/{id}` rather than moving to granular sub-resource
+  endpoints; `spec.md`'s F5 AC8 was amended to match rather than left to
+  silently disagree with the shipped code.
 
 ## What is deliberately not here
 
