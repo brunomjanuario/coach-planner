@@ -13,10 +13,10 @@ Phase 4   Games & standings     T11–T12                               ✅ done
 Phase 5   Cards & ratings       T13                                   ✅ done
 Phase 6   Reference lists       T14                                   ✅ done
 Phase 7   Cleanup & docs        T15–T16                               ✅ done
-Phase 8a  Reconcile spec/code   T17–T18  ← source changes first
-Phase 8b  Test harness          T19      ← blocks all of 8c
-Phase 8c  Migrate consumers     T20–T26
-Phase 8d  Close out             T27
+Phase 8a  Reconcile spec/code   T17–T18  ← source changes first        ✅ done
+Phase 8b  Test harness          T19      ← blocks all of 8c            ✅ done
+Phase 8c  Migrate consumers     T20–T26                                ✅ done
+Phase 8d  Close out             T27                                    ✅ done
 ```
 
 Phases 2–6 are independent of each other once Phase 1 lands and can be
@@ -24,10 +24,20 @@ reordered or parallelized across workers. Phase 8's tasks are **not**
 independent: 8a changes source that 8c's tests assert against, and every
 8c task builds on 8b's shared fake — run them in order.
 
-**Status**: T1–T16 + T8a are committed and merged to `main` (through
-`20f076f`). Phase 8 was added after a full-suite run exposed 331 failing
-tests in 15 downstream files; its first version prescribed the wrong fix and
-was revised — see the revision note in Phase 8 before executing anything
+**Status**: All tasks (T1–T27) are committed and merged to `main` (through
+`09f82c2`). T27's full-suite check was run twice — once normally, once with
+`coach-planner-api` and its database fully stopped — both 71/71 files,
+1349/1349 tests passing, proving no test depends on a live backend. One
+manual fix landed on top of the T23–T26 batch: `TrainingSavePopup.test.jsx`
+had a `test.skip` (a localStorage-quota scenario made unreachable by the API
+cutover) that violated the execution contract's "never skip a test" rule;
+it was rewritten to inject the equivalent failure via
+`fakeApi.forceFailure` on the real `PATCH /trainings/{id}` call rather than
+left skipped. Next: the feature has never been validated — dispatch the
+Verifier (see below) before considering this feature done. Phase 8 was
+added after a full-suite run exposed 331 failing tests in 15 downstream
+files; its first version prescribed the wrong fix and was revised — see the
+revision note in Phase 8 before executing anything
 there.
 
 ### T8a — Fix pre-existing tests broken by the async, API-backed AuthContext
