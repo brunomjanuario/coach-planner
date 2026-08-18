@@ -5,8 +5,9 @@ Guidance for Claude Code when working in this repository.
 ## Project
 
 Coach Planner — a single-page React app for football (soccer) coaches to manage
-teams, players, trainings, games and a calendar. The app currently runs entirely
-in the browser against in-memory mock data; there is no backend.
+teams, players, trainings, games and a calendar. The app talks to a real
+backend, `coach-planner-api` (a sibling Kotlin/Spring Boot service over
+PostgreSQL, run separately — see its own repo), for all data and auth.
 
 Detailed documentation lives in [`docs/`](docs/README.md).
 
@@ -40,12 +41,15 @@ src/
   main.jsx              entry: BrowserRouter > AuthProvider > App
   App.jsx               routes + PrivateRoute guard
   index.css             Tailwind import + @theme tokens + global element styles
-  context/AuthContext   mock auth backed by localStorage
-  model/mock.js         seed data (teams, players, trainings, exercises)
-  services/             teamService, trainingService — the data access layer
+  lib/apiClient.js       shared fetch wrapper: bearer auth, refresh-and-retry,
+                         typed-error mapping (used by every service + AuthContext)
+  lib/tokenStore.js      in-memory access token + localStorage refresh token
+  context/AuthContext    real auth against coach-planner-api
+  services/              8 modules (team/training/game/standings/card/rating/
+                         competition/opponent), each a thin apiFetch wrapper
   pages/                one file per route
   components/           cards and modal popups
-  assets/images/        logos and placeholder avatar
+  assets/images/         logos and placeholder avatar
 ```
 
 ## Conventions
@@ -65,33 +69,44 @@ src/
 
 ## Data layer
 
-`services/teamService.js` and `services/trainingService.js` are the only modules
-that touch data. They are `async` so a real API can be dropped in later, but most
-methods currently mutate the arrays exported from `src/model/mock.js` in place.
-A few methods (`teamService.getById`, `trainingService.getById/update/delete`)
-still `fetch` a `/api/teams` endpoint that does not exist and will throw if
-called.
+`src/services/*.js` (8 modules: `teamService`, `trainingService`,
+`gameService`, `standingsService`, `cardService`, `ratingService`,
+`competitionService`, `opponentService`) are the only modules that touch
+data. Every method is a thin wrapper around `apiFetch` (`src/lib/
+apiClient.js`), which attaches the bearer token, retries once on an expired
+access token, and maps API errors to typed errors (`NotFoundError`,
+`ValidationError`, `ConflictError`, `AuthError`, `ApiError`, `NetworkError`
+— `src/lib/errors.js`). There is no local mock store; every read/write goes
+to the real `coach-planner-api` backend.
 
-Because mutations happen in place and are not reflected in React state, callers
-must re-read from the service (see `loadTeams()` in `pages/Teams.jsx`) for the UI
-to update.
+`trainingService`/`gameService` rehydrate `day`/`date` fields to `Date`
+instances on read (`src/lib/dates.js`) so callers keep using them like plain
+`Date` objects. Cascading deletes (e.g. deleting a team removes its
+players' cards/ratings) happen server-side via FK actions — no service
+calls another service's `removeBy*` helper.
+
+Because a mutation's response isn't reflected in React state automatically,
+callers must re-read from the service (see `loadTeams()` in
+`pages/Teams.jsx`) for the UI to update.
 
 ## Auth
 
-`context/AuthContext.jsx` is a mock. Credentials (`name`/`username`, `email`,
-`password`) are persisted to `localStorage` under the key `user`. `signIn`
-checks the submitted pair against that stored record, falling back to a demo
-password when none is set; the hard-coded `user@email.com` / `password` pair
-still works when no user has been stored. `signUp` now stores the password it
-is given instead of discarding it, so a signed-up user can sign back in.
-`updateProfile`/`changePassword` let a signed-in coach edit their own name,
-email and password from the Settings → Profile tab; `signOut` clears the
-session but deliberately leaves the stored credentials in `localStorage` so a
-later `signIn` still works. `PrivateRoute` in `App.jsx` redirects to `/signin`
-when there is no user.
+`context/AuthContext.jsx` performs real authentication against
+`coach-planner-api`: `signIn`/`signUp` `POST /auth/login`/`/auth/register`,
+`signOut` `POST`s `/auth/logout` (best-effort) then clears local tokens,
+and `updateProfile`/`changePassword` hit `PATCH /users/me` and
+`PUT /users/me/password`. The access token lives only in memory
+(`src/lib/tokenStore.js`); the refresh token persists in `localStorage`
+under `refreshToken`, and a boot-time silent refresh keeps a valid session
+alive across a page reload. A successful `changePassword` revokes the
+session server-side, so the frontend signs the coach out and requires a
+fresh sign-in — this is intentional, not a bug. `PrivateRoute` in `App.jsx`
+redirects to `/signin` when there is no user, and also fires globally
+whenever any API call's auth fails past its retry.
 
-Do not treat this as real authentication — there is no token, no server check
-and no password hashing. See `docs/08-authentication.md` for the full picture.
+There is no plaintext credential storage, no demo account, and no
+client-side password logic left. See `docs/08-authentication.md` for the
+full picture.
 
 ## Known rough edges
 

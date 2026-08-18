@@ -3,9 +3,10 @@
 Coach Planner is a single-page React application that helps football (soccer)
 coaches manage their teams, players and training sessions.
 
-> **Status:** early prototype. The app runs entirely in the browser against
-> in-memory mock data. There is no backend, no database and no real
-> authentication.
+> **Status:** talks to a real backend, `coach-planner-api` (a sibling
+> Kotlin/Spring Boot service over PostgreSQL), for every read/write and for
+> authentication. Run it locally alongside the frontend — see
+> [02 — Getting Started](02-getting-started.md).
 
 ## Contents
 
@@ -32,11 +33,11 @@ npm install
 npm run dev
 ```
 
-Then open the printed URL (Vite defaults to `http://localhost:5173`) and sign in
-with the demo account:
-
-- **Email:** `user@email.com`
-- **Password:** `password`
+This expects `coach-planner-api` running locally at
+`http://localhost:8080` (see `VITE_API_BASE_URL` in `.env.example`). Then
+open the printed URL (Vite defaults to `http://localhost:5173`) and register
+a real account — there is no seeded demo account any more, since accounts
+now live in the backend's own database, not a bundled mock.
 
 ## Tech stack at a glance
 

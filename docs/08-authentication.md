@@ -1,18 +1,33 @@
 # 08 — Authentication
 
-> **This is a mock.** There is no server, no token, no password hashing and no
-> real access control. It exists to shape the UI, not to secure anything. Do not
-> ship it as-is.
+Coach Planner talks to a real backend, `coach-planner-api` (a sibling
+Kotlin/Spring Boot service), for authentication. There is no plaintext
+password storage and no client-side credential checking — every credential
+comparison happens server-side.
 
 ## Pieces
 
 | File | Role |
 | --- | --- |
 | [`src/context/AuthContext.jsx`](../src/context/AuthContext.jsx) | Provider + `useAuth` hook; owns the session |
+| [`src/lib/apiClient.js`](../src/lib/apiClient.js) | `apiFetch`/`silentRefresh` — bearer auth, refresh-and-retry, typed errors |
+| [`src/lib/tokenStore.js`](../src/lib/tokenStore.js) | In-memory access token + `localStorage` refresh token |
 | [`src/App.jsx`](../src/App.jsx) | `PrivateRoute` guard |
 | [`src/pages/SignIn.jsx`](../src/pages/SignIn.jsx) | Sign-in form |
 | [`src/pages/SignUp.jsx`](../src/pages/SignUp.jsx) | Sign-up form |
+| [`src/pages/Settings.jsx`](../src/pages/Settings.jsx) | Profile tab: `updateProfile`/`changePassword` |
 | [`src/components/Sidebar.jsx`](../src/components/Sidebar.jsx) | Logout action |
+
+## Token storage
+
+- The **access token** lives only in a module-level variable inside
+  `tokenStore.js` — never written to `localStorage`, lost on reload.
+- The **refresh token** persists in `localStorage` under the key
+  `refreshToken`, so a session survives a browser restart.
+
+This bounds how long a token stolen via XSS stays useful to the refresh
+token's lifetime rather than the (shorter-lived, more powerful) access
+token's.
 
 ## `AuthContext`
 
@@ -20,114 +35,85 @@
 
 | Value | Type | Description |
 | --- | --- | --- |
-| `user` | `{ email, name?, username?, password? } \| null` | Current session, `null` when signed out. |
-| `loading` | `boolean` | `true` until the `localStorage` read completes on mount. |
-| `signIn` | `(email, password) => Result` | Checks the stored user, falling back to the demo pair. |
-| `signUp` | `(username, email, password) => Result` | Accepts any email except the demo one; now stores the password. |
-| `signOut` | `() => void` | Clears the active session (including the `localStorage` session flag — see below) but leaves the stored account credentials untouched. |
-| `updateProfile` | `({ name, email }) => Result` | Validates and persists a new name/email. |
-| `changePassword` | `({ current, next, confirm }) => Result` | Validates and persists a new password. |
+| `user` | `{ id, name, email } \| null` | The signed-in coach, from `GET /users/me`; `null` when signed out. |
+| `loading` | `boolean` | `true` until the boot-time silent refresh (below) resolves. |
+| `signIn` | `(email, password) => Promise<Result>` | `POST /auth/login`. |
+| `signUp` | `(name, email, password) => Promise<Result>` | `POST /auth/register`. |
+| `signOut` | `() => Promise<void>` | `POST /auth/logout` (best-effort), then clears local tokens. |
+| `updateProfile` | `({ name, email }) => Promise<Result>` | `PATCH /users/me`. |
+| `changePassword` | `({ current, next, confirm }) => Promise<Result>` | `PUT /users/me/password`. |
 
-`Result` is `{ success: true }` or `{ success: false, message: string }`. Both
-functions are **synchronous** despite representing network operations — call
-sites read `result.success` directly without `await`.
+`Result` is `{ success: true }` or `{ success: false, message: string }`.
+Every one of these functions is `async` — call sites must `await` them.
 
 Consume it with the hook:
 
 ```jsx
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 const { user, signIn, signOut, signUp, loading } = useAuth();
 ```
 
-## ⚠️ This is not authentication
+## Boot-time silent refresh
 
-Credentials — including the password — are stored as **plaintext** in
-`localStorage`, readable by any script on the origin. There is no server, no
-session token and no hashing. Feature `24-profile-settings` made the mock
-**consistent** (the password you set is the password that signs you in); it did
-not make it **secure**. Nothing here should be reused when a real backend
-arrives — the whole module gets replaced at that point.
+On mount, `AuthProvider`:
 
-## Credentials
+1. If no refresh token is in `localStorage`, resolves `loading: false` with
+   `user: null` immediately — no API call.
+2. Otherwise calls `silentRefresh()` (`POST /auth/refresh`) to obtain a fresh
+   access token, then `GET /users/me` to load the profile.
+3. If either call fails (expired/revoked refresh token, or the API is
+   unreachable), clears the local tokens and resolves signed-out rather than
+   hanging on `loading: true` forever.
 
-**Sign in** checks the submitted email/password against the stored `user`
-record in `localStorage`:
+This is what lets a page reload keep a valid session signed in, while an
+expired or absent refresh token correctly bounces to `/signin`.
 
-- Email comparison is case-insensitive and trimmed; password comparison is
-  neither.
-- If the stored record has no `password` field (a pre-`24` account, or one
-  created before ever changing it), the demo password (`password`) is accepted
-  for it.
-- If nothing is stored yet, the hard-coded demo pair still works:
+## Sign-in / sign-up
 
-  ```
-  email:    user@email.com
-  password: password
-  ```
+- **Sign in** (`POST /auth/login`): on `401`, returns the fixed message
+  `"Invalid email or password"` — the API guarantees this response is
+  identical for a wrong password and an unregistered email, and the
+  frontend does not add its own distinguishing logic.
+- **Sign up** (`POST /auth/register`): on `409` (email already registered)
+  or `400` (invalid email, blank name, short password), returns
+  `{ success: false, message }` built from the API's own response — no
+  hardcoded frontend copy for these cases.
+- Both successes store the returned `accessToken`/`refreshToken` via
+  `tokenStore` and set `user` from the response.
 
-Any other combination returns `{ success: false, message: "Invalid email or
-password" }` — sign-in never reveals which field was wrong.
+There is no `DEMO_EMAIL`/`DEMO_PASSWORD` special-casing anywhere in
+`AuthContext` — a demo-looking credential pair behaves exactly like any
+other account, because it *is* just another account once registered.
 
-**Sign up** rejects `user@email.com` with "Email already taken", an empty or
-whitespace-only username ("Username cannot be empty"), an email that fails
-the same pattern `updateProfile` checks ("Enter a valid email address"), and
-an empty password ("Password cannot be empty") — `36-auth-mock-hardening`
-brought `signUp` up to the same validation depth `updateProfile` already had.
-Valid input stores `{ username, email, password }` and immediately creates a
-session. The password is **not** discarded, so an account created via sign-up
-can be signed back in to after logout with the same credentials.
+## Editing the profile
 
-**Sign out** clears the in-memory `user` session and the active-session flag
-(see "Session persistence" below) but deliberately leaves the stored account
-record untouched, so `signIn` can still check a later attempt against it.
-Refreshing the page immediately after signing out no longer re-authenticates
-the coach — `36-auth-mock-hardening` (AD-018) separated "the account that
-exists" from "the session that's active" into two `localStorage` keys.
+`updateProfile({ name, email })` (`PATCH /users/me`) updates `user` from the
+response on success, or returns an error message on `400`/`409` without
+mutating `user`.
 
-**Editing the profile** (`updateProfile`, `changePassword`, both surfaced on
-the Settings → Profile tab) validates and persists changes to the same stored
-record: `updateProfile` rejects an invalid email or an empty name and writes
-nothing on failure; `changePassword` requires the current password and a
-matching confirmation, and a successful change keeps the coach signed in while
-requiring the new password on the next `signIn`. Resetting demo data
-(`services/store.js`'s `reset()`) only clears its own namespaced collections —
-it never touches the `user` key, so a coach's profile survives a reset.
+`changePassword({ current, next, confirm })`:
 
-## Session persistence
+- Rejects locally (no API call) when `next !== confirm`.
+- On `400 incorrect-password`, returns `"Current password is incorrect"`.
+- On success (`PUT /users/me/password`), the API has already revoked the
+  refresh token server-side, so the frontend clears its local tokens and
+  `user` too — **the coach is signed out** and must sign in again with the
+  new password. This is a deliberate security property (F3 AC4), not a bug:
+  it proves the old session is actually dead, not just locally forgotten.
 
-Two `localStorage` keys, deliberately separate (AD-018,
-`36-auth-mock-hardening`):
+There is no "reset demo data" feature — that only ever existed against the
+old localStorage mock's seed data, which no longer exists (see
+[10 — Known Issues](10-known-issues.md)).
 
-| Key | Holds | Written by | Cleared by |
-| --- | --- | --- | --- |
-| `user` | The account record (`{ email, name?, username?, password? }`) | `signUp`, `updateProfile`, `changePassword` | Never automatically — only `localStorage.removeItem("user")` by hand |
-| `session` | The literal string `"active"` when someone is currently signed in | `signIn`, `signUp` (every success path, including the hard-coded demo pair) | `signOut` |
+## Auth failure anywhere in the app
 
-```js
-localStorage.setItem("user", JSON.stringify(userObj));
-localStorage.setItem("session", "active");
-```
-
-On mount, `AuthProvider` reads `user` back — migrating a legacy `username`
-field to `name` if present — but only rehydrates `user` state when the
-`session` key also reads `"active"`; otherwise it stays `null` even though an
-account record exists. That is why a refresh keeps you signed in **while a
-session is active**, and why a refresh immediately after signing out no
-longer does. A corrupt (non-JSON) `user` value, or a `session` flag with no
-matching account record, are both treated as signed out rather than thrown or
-fabricating a user.
-
-Because the guard trusts whatever is in `localStorage`, writing both keys by
-hand grants access to every private route. That is expected for a mock and
-unacceptable for a real deployment.
-
-Clear the credentials entirely (not just the session) with:
-
-```js
-localStorage.removeItem("user")
-localStorage.removeItem("session")
-```
+`apiClient.js` calls a single injected callback (`tokenStore`'s
+`notifyAuthFailure`) whenever a request's refresh-and-retry is exhausted.
+`AuthContext` registers this once on mount to clear tokens and set
+`user: null`; `PrivateRoute` (`App.jsx`) already redirects to `/signin`
+whenever `user` is `null`. No individual page or popup needs its own
+`catch (AuthError)` branch.
 
 ## The route guard
 
@@ -139,57 +125,18 @@ function PrivateRoute({ children }) {
 }
 ```
 
-The `loading` check matters: without it, the first render (before
-`localStorage` is read) would see `user === null` and bounce a signed-in user to
-`/signin`. Returning `null` renders nothing for that one frame — a spinner would
-be a natural improvement, and the source carries a `// or a loading spinner`
-note to that effect.
-
 `replace` is used so the redirect does not add a history entry.
 
-## Flows
+## Ownership and 404s
 
-**Sign in**
+The API returns `404`, not `403`, when a resource exists but isn't owned by
+the caller. The frontend does not special-case this — a 404 on an
+owned-resource endpoint renders the same "not found" UI as a genuinely
+missing id.
 
-```
-/signin → submit → signIn(email, password)
-  success (stored user exists)  → setUser + session flag → navigate("/")
-  success (no user stored yet)  → setUser + localStorage.setItem + session flag → navigate("/")
-  failure → render result.message in red under the form
-```
+## What's still rough
 
-`SignIn` also runs a `useEffect` that redirects to `/` whenever `user` becomes
-truthy, so an already-signed-in visitor never sees the form.
-
-**Sign up**
-
-```
-/signup → submit → signUp(username, email, password)
-  success → setUser + localStorage.setItem + session flag → setSuccess(true) → navigate("/")
-  failure → render the validation message (duplicate email, empty username,
-            invalid email, or empty password)
-```
-
-The success banner is rendered in the JSX but never visible in practice, because
-`navigate("/")` fires in the same handler.
-
-**Sign out**
-
-```
-sidebar logout icon → preventDefault → signOut() → navigate("/signin")
-```
-
-## Making it real
-
-The seams are already in the right places — `AuthContext` is the only module
-that knows how a session is established.
-
-1. Make `signIn` / `signUp` `async` and have them `POST` to a real endpoint.
-   Update `SignIn.jsx` and `SignUp.jsx` to `await` the result.
-2. Store a short-lived token rather than the raw user object; keep the refresh
-   token out of `localStorage` (prefer an httpOnly cookie).
-3. Verify the session server-side on load instead of trusting `localStorage`.
-4. Add a loading indicator in `PrivateRoute` and pending states on the forms.
-5. Attach the token to service requests once `src/services/*` talk to an API.
-6. Scope the data: today every session sees the same global `teams` and
-   `trainings` arrays.
+- `PrivateRoute` renders nothing (not a spinner) during `loading` — a real
+  loading indicator would be a natural improvement.
+- No cross-tab session sync: if one tab signs out, another tab's *next* API
+  call fails with `401` and triggers sign-out then, not immediately.
