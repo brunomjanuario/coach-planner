@@ -5,6 +5,45 @@ import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
 import { trainingService } from "../../services/trainingService";
 import { ratingService } from "../../services/ratingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch is
+// replaced with the shared stateful fake so create/setRating/getByPlayer
+// round trips stay deterministic with zero network calls. Several tests
+// below need a team with 3+ players, so the fake is seeded with one rather
+// than using the (2-player) default seed.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+const RANKING_TEAM = {
+  id: "ranking-team",
+  name: "Sub-13",
+  club: "Amadora",
+  season: "23/24",
+  players: [
+    { id: "rp-1", teamId: "ranking-team", name: "Ana Silva", shirtNumber: 7 },
+    { id: "rp-2", teamId: "ranking-team", name: "Beatriz Costa", shirtNumber: 10 },
+    { id: "rp-3", teamId: "ranking-team", name: "Carla Nunes", shirtNumber: 4 },
+  ],
+};
+
+beforeEach(() => {
+  apiFetch.mockImplementation(
+    createFakeApi({
+      teams: [RANKING_TEAM],
+      trainings: [],
+      games: [],
+      cards: [],
+      ratings: [],
+      rivalRows: [],
+      competitions: [],
+      opponents: [],
+    }).apiFetch
+  );
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

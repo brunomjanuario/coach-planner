@@ -5,6 +5,22 @@ import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
 import { ratingService } from "../../services/ratingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch (the one
+// seam every service imports) is replaced with the shared stateful fake so
+// create/setRating/getByEvent/getByPlayer round trips stay deterministic
+// with zero network calls — see tasks.md Phase 8's "Revision note" for why
+// stubbing individual service methods with canned values is the wrong fix.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
