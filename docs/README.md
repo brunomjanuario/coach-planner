@@ -13,7 +13,7 @@ coaches manage their teams, players and training sessions.
 | Document | What it covers |
 | --- | --- |
 | [01 — Overview](01-overview.md) | What the product does, current feature status |
-| [02 — Getting Started](02-getting-started.md) | Install, run, build, lint |
+| [02 — Getting Started](02-getting-started.md) | Install, run, build, lint, Docker |
 | [03 — Architecture](03-architecture.md) | Folder layout, render tree, data flow |
 | [04 — Data Model](04-data-model.md) | Team, Player, Training, Exercise, Event |
 | [05 — Services](05-services.md) | `teamService` / `trainingService` API reference |

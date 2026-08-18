@@ -209,6 +209,24 @@
 - **Date**: 2026-08-18
 - **Status**: active
 
+### AD-024
+
+- **Decision**: The frontend's Docker image is built with a relative `VITE_API_BASE_URL=/api/v1`, never an absolute URL, and an nginx `location /api/` inside the same container reverse-proxies to the backend (address set at container run time via `API_UPSTREAM`, not baked at build time).
+- **Reason**: Two independent constraints, both verified in source rather than assumed: Vite inlines `VITE_API_BASE_URL` at build time (`src/lib/apiClient.js:22`), so an absolute URL would pin one image to one environment; and `coach-planner-api`'s CORS allowlist is hardcoded to `http://localhost:5173` (`SecurityConfig.kt:23`), so a container on any other origin would be blocked by the browser. A same-origin proxy dissolves both at once — the browser only ever talks to one origin, so no preflight is issued and the backend's allowlist is never consulted.
+- **Trade-off**: `proxy_pass` uses a literal `http://${API_UPSTREAM}` rather than an nginx-variable form — a literal target is resolved once at startup via libc/`/etc/hosts` (where Docker Desktop injects `host.docker.internal`), while the variable form would route through nginx's own DNS-only `resolver`, which does not read `/etc/hosts` and would break that default wiring. **Verified during T3, correcting the design doc's original assumption**: nginx does NOT refuse to start when the upstream is unreachable — `host.docker.internal` always resolves to the host gateway IP regardless of whether anything listens on the target port, so a dead backend only ever surfaces as a per-request `502`, never a boot failure.
+- **Scope**: `40-frontend-docker`, `Dockerfile`, `docker/nginx.conf.template`, `docker-compose.yml`.
+- **Date**: 2026-08-18
+- **Status**: active
+
+### AD-025
+
+- **Decision**: This round ships a frontend-only container (`Dockerfile` + a single-service `docker-compose.yml` in this repo). No full-stack compose (db + api + web in one `up`) was built.
+- **Reason**: User decision. The backend repo already has its own `docker-compose.yml` (db, plus an `api` service behind a `--profile full` flag); duplicating that orchestration here would create two sources of truth for how the backend runs. Both backend-wiring modes (host-run `bootRun`, and the backend's own `--profile full` compose network) are documented and were verified end to end during T4, not just described.
+- **Trade-off**: Running the full stack is two commands in two repos, not one. Accepted — the value of containerizing the frontend was proving the production build/serve path works, not one-command full-stack orchestration.
+- **Scope**: `40-frontend-docker`, `docker-compose.yml`.
+- **Date**: 2026-08-18
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `28-training-exercise-details` — **done and verified (PASS, one flagged Minor gap closed immediately, no formal re-verify cycle needed).** Fifth round-three feature executed; the foundation `29-exercise-designer` builds on.

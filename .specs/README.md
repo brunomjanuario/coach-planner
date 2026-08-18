@@ -334,6 +334,36 @@ league table now comes from the backend's own computed `GET
 endpoints (AD-023) — both recorded in `STATE.md` rather than left as
 undocumented drift.
 
+## Round six — in progress
+
+One feature: `40-frontend-docker` packages the SPA into a container. The
+load-bearing decision is the same-origin nginx proxy (AD-024) — Vite inlines
+`VITE_API_BASE_URL` at build time and the backend's CORS allowlist is
+hardcoded to `localhost:5173`, so a relative API URL proxied through nginx
+avoids both a rebuild-per-environment image and any change to the sibling
+`coach-planner-api` repo. No file under `src/` or in that sibling repo
+changes — the diff is entirely `Dockerfile`, `docker/`, `docker-compose.yml`
+and `scripts/`.
+
+```
+40-frontend-docker
+  Phase 0  build context     T1        blocks a correct build
+  Phase 1  image + serving   T2-T3     T3 needs T2's template to extend
+  Phase 2  wiring + gate     T4-T5
+  Phase 3  docs + memory     T6
+```
+
+| # | Feature | Scope | Depends on |
+|---|---------|-------|------------|
+| 40 | [frontend-docker](features/40-frontend-docker/spec.md) | **Large** | — |
+
+Every empirical claim in `design.md` was re-verified during execution, not
+trusted as written — most notably T3's finding that nginx does **not**
+refuse to start when its upstream is unreachable (`host.docker.internal`
+always resolves to the host gateway regardless of whether anything is
+listening on the port), which corrected the design doc's original working
+assumption.
+
 ## How to execute one
 
 Each `tasks.md` opens with the execution protocol. In short:

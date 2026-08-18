@@ -19,11 +19,15 @@ npm run dev      # Vite dev server (http://localhost:5173)
 npm run build    # production build into dist/
 npm run preview  # serve the production build
 npm run lint     # ESLint over the repo
+npm test -- --run # Vitest, once
+
+docker compose up -d --build   # production image on http://localhost:5174, proxying /api/ to the backend
+./scripts/smoke-docker.sh      # build + run + assert the image serves and proxies correctly, then clean up
 ```
 
-There is no test runner configured. The root `README.md` is stale — it describes
-a Create React App setup (`npm start`, `npm test`, `build/`) that does not match
-this project.
+The root `README.md` is stale — it describes a Create React App setup
+(`npm start`, `build/`) that does not match this project. Vitest is the real
+test runner; `npm test -- --run` runs once instead of watching.
 
 ## Stack
 
@@ -108,16 +112,22 @@ There is no plaintext credential storage, no demo account, and no
 client-side password logic left. See `docs/08-authentication.md` for the
 full picture.
 
+## Docker
+
+`Dockerfile` + `docker-compose.yml` package the production build behind
+nginx, which also reverse-proxies `/api/` to the backend so the container
+needs no CORS change and the image bakes in no environment-specific URL —
+see `docs/02-getting-started.md`'s Docker section and AD-024/AD-025 in
+`.specs/STATE.md` for the reasoning. `docker/nginx.conf.template` and
+`scripts/smoke-docker.sh` are the other Docker-specific files; nothing
+under `src/` is touched by any of this.
+
 ## Known rough edges
 
 Don't be surprised by these; fix them only when the task calls for it.
 
-- `index.html` links `/src/styles.css`, which does not exist (`main.jsx` imports
-  `src/index.css` instead).
 - List items rendered with `.map()` are missing React `key` props in
   `pages/Teams.jsx` and `pages/Trainings.jsx`.
-- `TeamCard` and `PlayerCard` reference images as `src/assets/images/*.png`,
-  a path that only resolves in dev, not in the production build.
 - New ids are generated with `Math.floor(Math.random() * 100)` and can collide.
 - `pages/Games.jsx` and `pages/Settings.jsx` are placeholders.
 - `pages/Calendar.jsx` renders its own hard-coded `mockEvents`, unconnected to
