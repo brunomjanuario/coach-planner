@@ -1,0 +1,33 @@
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Exercise diagrams are JSON in the request body; nginx's 1MB default
+    # is close enough to matter.
+    client_max_body_size 10m;
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    # Content-hashed filenames: safe to cache forever. Must 404 rather than
+    # fall through to index.html - an HTML body served as a missing .js
+    # masks a broken build.
+    location /assets/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    }
+
+    # The shell itself is never cached, so a redeployed container is picked
+    # up instead of served stale.
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+    }
+
+    # SPA fallback: any non-asset path renders the app, so BrowserRouter
+    # deep links (e.g. /teams) survive direct navigation and hard refresh.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
