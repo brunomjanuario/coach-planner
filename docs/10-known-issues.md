@@ -135,9 +135,6 @@ those only surface as runtime console warnings.
 
 ## Cleanup
 
-- **Stale root `README.md`** — describes a Create React App project
-  (`npm start`, `npm test`, `build/`). This project is Vite. Replace it, or point
-  it at `docs/`.
 - **Empty `src/App.css`** — still imported by `App.jsx` and `pages/Calendar.jsx`.
 - **`react-router-dom` is in `devDependencies`** — it is a runtime dependency.
 - **`postcss` / `autoprefixer` are unused** — leftovers from Tailwind 3; there is

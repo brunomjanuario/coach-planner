@@ -25,9 +25,8 @@ docker compose up -d --build   # production image on http://localhost:5174, prox
 ./scripts/smoke-docker.sh      # build + run + assert the image serves and proxies correctly, then clean up
 ```
 
-The root `README.md` is stale — it describes a Create React App setup
-(`npm start`, `build/`) that does not match this project. Vitest is the real
-test runner; `npm test -- --run` runs once instead of watching.
+Vitest is the real test runner; `npm test -- --run` runs once instead of
+watching.
 
 ## Stack
 
