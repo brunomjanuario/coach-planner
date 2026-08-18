@@ -20,10 +20,10 @@ function ProfileForm() {
     setEmail(user.email);
   }, [user.name, user.username, user.email]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccess("");
-    const result = updateProfile({ name, email });
+    const result = await updateProfile({ name, email });
     if (result.success) {
       setError("");
       setSuccess(result.message);
@@ -86,10 +86,10 @@ function PasswordForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccess("");
-    const result = changePassword({ current, next, confirm });
+    const result = await changePassword({ current, next, confirm });
     if (result.success) {
       setError("");
       setSuccess(result.message);

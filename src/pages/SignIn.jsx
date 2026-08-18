@@ -18,9 +18,9 @@ export default function SignIn() {
     setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = signIn(form.email, form.password);
+    const result = await signIn(form.email, form.password);
     if (result.success) {
       setError("");
       navigate("/");

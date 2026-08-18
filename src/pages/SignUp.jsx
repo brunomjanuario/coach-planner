@@ -20,9 +20,9 @@ export default function SignUp() {
     setSuccess(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = signUp(form.username, form.email, form.password);
+    const result = await signUp(form.username, form.email, form.password);
     if (result.success) {
       setError("");
       setSuccess(true);
