@@ -32,13 +32,14 @@ function validate(rowData) {
 }
 
 // Rival standings rows against the real API (F6 AC9). getAll maps to
-// GET /standings/rivals, matching the backend's own routing table and the
-// existing caller (Games.jsx), which computes the "our team" row itself
-// from gameService.getAll(teamId) via lib/standings.js's computeOurRow —
-// getAll here stays rival-rows-only, unchanged in shape, so that caller
-// needs no rewrite.
+// GET /standings/rivals, matching the backend's own routing table — used
+// by the rival-row manager UI, which still needs raw rows. getTable is the
+// full, server-computed table (our row + rivals, already sorted) that
+// Games.jsx renders directly (T17).
 export const standingsService = {
   getAll: () => apiFetch("/standings/rivals"),
+
+  getTable: (teamId) => apiFetch(`/standings?teamId=${teamId}`),
 
   create: async (rowData) => {
     validate(rowData);

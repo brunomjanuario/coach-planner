@@ -34,6 +34,41 @@ describe("standingsService", () => {
     expect(rows).toEqual([{ id: "r1", ...validRow() }]);
   });
 
+  it("getTable(teamId) calls GET /standings?teamId= and returns the server's rows unmodified (T17)", async () => {
+    const serverRows = [
+      {
+        name: "U19",
+        played: 4,
+        won: 3,
+        drawn: 1,
+        lost: 0,
+        goalsFor: 10,
+        goalsAgainst: 2,
+        goalDifference: 8,
+        points: 10,
+        isOurs: true,
+      },
+      {
+        name: "Benfica B",
+        played: 4,
+        won: 2,
+        drawn: 0,
+        lost: 2,
+        goalsFor: 6,
+        goalsAgainst: 6,
+        goalDifference: 0,
+        points: 6,
+        isOurs: false,
+      },
+    ];
+    apiFetch.mockResolvedValueOnce(serverRows);
+
+    const rows = await standingsService.getTable("team-1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/standings?teamId=team-1");
+    expect(rows).toBe(serverRows);
+  });
+
   it("create(rowData) calls POST /standings/rivals with the row as the body (AC GAME-09.1)", async () => {
     apiFetch.mockResolvedValueOnce({ id: "r1", ...validRow() });
 

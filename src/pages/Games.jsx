@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { teamService } from "../services/teamService";
 import { gameService } from "../services/gameService";
 import { standingsService } from "../services/standingsService";
-import { computeOurRow, toStandingsRow, sortStandings } from "../lib/standings";
 import { useDeepLinkPopup } from "../lib/useDeepLinkPopup";
 import { IconPlus } from "@tabler/icons-react";
 import GameSavePopup from "../components/GameSavePopup";
@@ -65,11 +64,12 @@ export default function Games() {
   };
 
   /**
-   * Recomputes the league table for `teamId`: our row is always derived
-   * from that team's games (AC GAME-07.5), rival rows come from
-   * standingsService, both normalized and sorted together (design.md).
-   * With no team selected there is no "our row" to anchor the table on, so
-   * it renders nothing (the page shows an instruction instead).
+   * Recomputes the league table for `teamId`: the server computes and sorts
+   * the full table (our row + rivals) in one call (T17,
+   * standingsService.getTable). With no team selected there is no "our
+   * row" to anchor the table on, so it renders nothing (the page shows an
+   * instruction instead) and the endpoint isn't called (it 400s without a
+   * teamId).
    */
   const recomputeStandings = async (teamId) => {
     if (teamId == null) {
@@ -77,14 +77,7 @@ export default function Games() {
       return;
     }
 
-    const [teamGames, rivalRows] = await Promise.all([
-      gameService.getAll(teamId),
-      standingsService.getAll(),
-    ]);
-    const ourRow = computeOurRow(teamGames, teamLabel(teamId));
-    setStandingsRows(
-      sortStandings([ourRow, ...rivalRows.map(toStandingsRow)])
-    );
+    setStandingsRows(await standingsService.getTable(teamId));
   };
 
   function selectGame(game) {
