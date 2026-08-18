@@ -5,18 +5,30 @@ Preconditions before T1: `coach-planner-api` running locally
 the real API, not just mocked `fetch`.
 
 ```
-Phase 0  Foundation           T1–T5   ← blocks everything
-Phase 1  Auth                 T6–T8a  ← blocks every other page
-Phase 2  Teams & players      T9
-Phase 3  Trainings            T10
-Phase 4  Games & standings    T11–T12
-Phase 5  Cards & ratings      T13
-Phase 6  Reference lists      T14
-Phase 7  Cleanup & docs       T15–T16
+Phase 0   Foundation            T1–T5    ← blocks everything          ✅ done
+Phase 1   Auth                  T6–T8a   ← blocks every other page    ✅ done
+Phase 2   Teams & players       T9                                    ✅ done
+Phase 3   Trainings             T10                                   ✅ done
+Phase 4   Games & standings     T11–T12                               ✅ done
+Phase 5   Cards & ratings       T13                                   ✅ done
+Phase 6   Reference lists       T14                                   ✅ done
+Phase 7   Cleanup & docs        T15–T16                               ✅ done
+Phase 8a  Reconcile spec/code   T17–T18  ← source changes first
+Phase 8b  Test harness          T19      ← blocks all of 8c
+Phase 8c  Migrate consumers     T20–T26
+Phase 8d  Close out             T27
 ```
 
 Phases 2–6 are independent of each other once Phase 1 lands and can be
-reordered or parallelized across workers.
+reordered or parallelized across workers. Phase 8's tasks are **not**
+independent: 8a changes source that 8c's tests assert against, and every
+8c task builds on 8b's shared fake — run them in order.
+
+**Status**: T1–T16 + T8a are committed and merged to `main` (through
+`20f076f`). Phase 8 was added after a full-suite run exposed 331 failing
+tests in 15 downstream files; its first version prescribed the wrong fix and
+was revised — see the revision note in Phase 8 before executing anything
+there.
 
 ### T8a — Fix pre-existing tests broken by the async, API-backed AuthContext
 
@@ -259,84 +271,243 @@ longer exists. This is a documentation correction, not a new spec.
 
 ---
 
-## Phase 8 — Remediation: downstream test consumers (found post-T16)
+## Phase 8 — Remediation (found post-T16, plan revised after a first failed attempt)
 
-**Why this phase exists**: T9–T14 correctly scoped each service's own
-`__tests__` file, and T15's gate (`npm test -- --run && npm run build`)
-passed — but a full-suite run after merging batch 2 showed **15 additional
-test files, 331 tests** now failing. These files call service methods
-directly (e.g. `await teamService.getAll()` to seed fixture data) relying on
-the old mock's synchronous, test-isolated, in-memory store. Against the real
-`apiClient`, those calls now make live unmocked HTTP requests — some
-observed hitting the actually-running `coach-planner-api` and getting back
-a real `401`. This is a correctness and safety gap (non-deterministic tests,
-and tests silently depending on/mutating a real running service) that must
-close before the feature's gate is green. Not present in the original
-tasks.md because the original task list didn't audit downstream *consumers*
-of the services being rewritten — a Tasks-authoring gap, logged here rather
-than hidden.
+**Why this phase exists**: T9–T14 each correctly scoped their own service +
+`__tests__` file, and T15's gate passed — but a full-suite run after merging
+batch 2 showed **15 further test files, 331 tests** failing. Those files call
+service methods directly to seed fixtures (`await teamService.getAll()`),
+which the old mock served from a synchronous, test-isolated in-memory store.
+Against the real `apiClient` those are live HTTP calls — several were
+observed hitting the actually-running `coach-planner-api` and getting real
+`401`s. Non-deterministic tests that silently depend on (and can mutate) a
+real service. A Tasks-authoring gap: the original list never audited
+downstream *consumers* of the services being rewritten.
 
-**Fix pattern for every task below**: replace the direct
-`await xService.method(...)` fixture-seeding calls with `vi.mock("../../services/xService")`
-(the file already imports these services — mock the module, then
-`xService.method.mockResolvedValue(...)`/`mockRejectedValue(...)` per test
-as needed) so the test controls the data deterministically and makes zero
-real network calls. Preserve every existing assertion and AC reference in
-each file — this is a test-harness update (how data gets in), not a
-coverage cut (what gets asserted). Where a test's existing fixture-seeding
-shape doesn't map cleanly to a mocked return value, prefer the smallest
-change that keeps the test's original intent legible.
+### Revision note — the first remediation plan was wrong, and why
 
-### T17 — Fix `Settings.test.jsx`'s remaining "Reset demo data" tests
+The first version of this phase told workers to `vi.mock` each service and
+stub methods with `mockResolvedValue`. **That fix is incorrect** and must not
+be used. These are round-trip tests. For example
+`GameCardsSection.test.jsx`:
 
-**Files**: `src/pages/__tests__/Settings.test.jsx`
-**Why separate from the pattern above**: these 10 failures are not a
-mocking gap — they test a UI control (Advanced tab → "Reset demo data")
-that T15 correctly and deliberately removed (see the comment left in
-`Settings.jsx`'s `AdvancedPanel`), since it only ever reset the
-now-deleted mock. Delete the tests for the removed control; if `TAB_IDS`/
-tab-switching behavior for the Advanced tab is still exercised by other
-passing tests in this file, no new test is needed — the Advanced tab
-still exists, just renders a placeholder.
-**Gate**: `npm test -- --run src/pages/__tests__/Settings.test.jsx`
-**Depends on**: T8a, T15
+```js
+await user.click(screen.getByRole("button", { name: `Add yellow card to ${label(player)}` }));
+await waitFor(async () => {
+  const cards = await cardService.getByGame(game.id);   // reads back
+  expect(cards).toHaveLength(1);
+});
+expect(cards[0]).toMatchObject({ playerId: player.id, gameId: game.id, type: "yellow" });
+```
 
-### T18–T26 — Fix component tests (one task per file)
+With `cardService.getByGame` stubbed to a fixed value, that assertion passes
+**even if the component's click handler is deleted** — it asserts the stub,
+not the behavior. Applying that pattern across 15 files would convert ~331
+meaningful assertions into tautologies and report green. That is the
+"would still pass under a plausible wrong implementation" failure the
+execution contract forbids, and a discrimination sensor would surface every
+one of them as a surviving mutant. A red suite is more honest.
 
-**Files** (one task each, same fix pattern):
-T18 `GameCardsSection.test.jsx` · T19 `GameResultPopup.test.jsx` ·
-T20 `PlayerCard.test.jsx` · T21 `PlayerRatingHistory.test.jsx` ·
-T22 `ReferenceListsPopup.test.jsx` · T23 `SquadRanking.test.jsx` ·
-T24 `SquadRatingPopup.test.jsx` · T25 `TeamCard.test.jsx` ·
-T26 `TrainingDetailsPopup.test.jsx`, `TrainingSavePopup.test.jsx` (pair —
-same component family, small enough to do together)
-**Gate per task**: `npm test -- --run <file>`
-**Depends on**: T9–T14 (whichever services the file imports)
+### The correct seam: one shared stateful fake at `apiFetch`
 
-### T27–T30 — Fix page tests (one task per file)
+All 8 services import exactly one function — `apiFetch` from
+`src/lib/apiClient.js`. Mocking *there* rather than at the service boundary:
 
-T27 `Games.test.jsx` · T28 `Home.test.jsx` · T29 `Teams.test.jsx` ·
-T30 `Trainings.test.jsx`
-**Gate per task**: `npm test -- --run <file>`
-**Depends on**: T9–T14
+- **preserves round trips** — a stateful fake keeps writes readable, so the
+  assertions above still discriminate a broken handler
+- **keeps the real service code in the test path** — URL building, query
+  strings, `Date` rehydration and typed-error mapping are all new code from
+  this feature with no component-level coverage otherwise
+- **is written once, not 15 times** — the per-file hand-rolled fakes the old
+  plan implied would have diverged immediately
+- **matches the pattern already in the repo** — `AuthContext.test.jsx` and
+  the T8a rewrite of `Settings.test.jsx` already do
+  `vi.mock("../../lib/apiClient")`
 
-### T31 — Full-suite green + build
-
-**Files**: none (verification-only)
-**Do**: `npm test -- --run` must show 0 failed; `npm run build` must
-succeed; `npm run lint` must be clean.
-**Gate**: all three commands, zero non-zero exits.
-**Depends on**: T17–T30
+Salvage from the two terminated workers is kept as patches in the session
+scratchpad (`salvage-A-settings-test.patch`, `salvage-B-squadratingpopup.patch`)
+— A's Settings work already uses this seam and is directly reusable; B's
+SquadRatingPopup fake is at the service seam and should be re-pointed at
+`fakeApi` for uniformity, but its fixture data is reusable.
 
 ---
 
+### Phase 8a — Reconcile spec vs. code (source changes first)
+
+Two ACs disagree with what shipped. Both were flagged by the batch-2 worker
+rather than hidden; both are resolved here by explicit decision, so the spec
+stops lying either way. Source changes land before the test migration so
+each test file is rewritten once, against final behavior.
+
+#### T17 — Use the server-computed standings table (F6 AC9)
+
+**Decision**: follow the spec. The backend exposes
+`GET /api/v1/standings?teamId=` returning a fully computed, sorted
+`List<StandingsRowDto>` (verified in `StandingsController.kt:30`), and the
+frontend ignores it — `Games.jsx` fetches rival rows, computes "our row" via
+`lib/standings.js`'s `computeOurRow`, and sorts client-side. That duplicates
+the points / goal-difference / sort rule in two languages, where it can
+drift from the backend's own tested implementation. It is also the exact
+situation T10 already resolved the other way for `Training.number` (deleted
+`lib/trainingNumber.js`, took the server's value) — the inconsistency is the
+strongest argument for fixing it here.
+
+**Files**: `src/services/standingsService.js`, `src/pages/Games.jsx`,
+delete `src/lib/standings.js` + `src/lib/__tests__/standings.test.js`
+**Do**: Add `standingsService.getTable(teamId)` → `GET /standings?teamId=`.
+Rewire `Games.jsx` to render that response directly through `LeagueTable`
+instead of `computeOurRow`/`toStandingsRow`/`sortStandings`. Keep
+`getAll`/`create`/`update`/`delete` on `/standings/rivals` unchanged — the
+rival-row *manager UI* still needs raw rows; only the *table* comes from the
+server now. Note the endpoint requires `teamId` (returns `400
+missing-parameter` without it) — `Games.jsx` must not call it with no team
+selected.
+**Test**: `standingsService.test.js` gains a case asserting `getTable`
+issues `GET /standings?teamId=<id>` and returns rows unmodified (no
+client-side re-sort). `Games.test.jsx`'s table assertions move to T24's
+migration — do not rewrite that file here beyond keeping it compiling.
+**Gate**: `npm test -- --run standingsService` + `npm run build`
+**Depends on**: T12
+
+#### T18 — Amend the spec for the accepted exercise deviation (F5 AC8) + record decisions
+
+**Decision**: accept the deviation. `PATCH /trainings/{id}` replaces the
+`exercises[]` array wholesale, so the round-trip the implementation uses is
+behaviorally identical to granular sub-resource calls; there is no
+duplicated logic and no user-visible difference. Going granular means
+rewriting the exercise popup's editing model for no gain.
+
+**Files**: `.specs/features/39-backend-integration/spec.md`,
+`.specs/STATE.md`, `.specs/README.md`
+**Do**:
+1. Amend **F5 AC8** to state that exercise writes round-trip the whole
+   `exercises[]` array through `POST`/`PATCH /trainings`, with the reasoning
+   above recorded inline — do not silently delete the AC.
+2. Mark **F6 AC9** as resolved-by-T17 (server table adopted).
+3. Record this feature's locked decisions in `.specs/STATE.md`'s
+   **Decisions** section, continuing the existing numbering from AD-018 —
+   these were agreed at planning time but never written down: access token
+   in memory + refresh token in `localStorage`; big-bang cutover of auth +
+   all 8 services; mock store deleted outright with no fallback; standings
+   table server-computed (T17); exercise writes array-round-tripped (this
+   task). **Section-scoped write** — replace only within `## Decisions`,
+   never overwrite the file (the Handoff section below it must survive).
+4. Add feature `39-backend-integration` to `.specs/README.md`'s roadmap,
+   matching how rounds one–four are presented.
+**Gate**: manual read-through; `git diff` shows the Handoff section of
+`STATE.md` untouched
+**Depends on**: T17
+
+---
+
+### Phase 8b — Test harness foundation
+
+#### T19 — Build the shared fake API
+
+**Files**: `src/test/fakeApi.js` (new), `src/test/__tests__/fakeApi.test.js` (new)
+**Do**: A stateful in-memory fake that stands in for `apiFetch(path, {method, body})`.
+It routes on method + path and keeps collections in a plain object, so a
+`POST /cards` is readable by a later `GET /cards?gameId=`.
+
+Requirements:
+- `createFakeApi(seed?)` returns `{ apiFetch, state, reset() }`; tests do
+  `vi.mock("../../lib/apiClient", ...)` wiring `apiFetch` to the fake.
+- Routes needed by the 14 consumer files: `/teams`(+`/players`),
+  `/trainings`, `/games`(+`/result`), `/cards`, `/ratings`,
+  `/standings`(+`/rivals`), `/competitions`, `/opponents`. Support the query
+  params the services actually send (`?teamId=`, `?status=`, `?assigned=false`,
+  `?gameId=`, `?playerId=`, `?eventType=&eventId=`).
+- Returns **API-shaped** payloads, not frontend-shaped: ISO instant strings
+  for `day`/`date` (so the services' own `parseApiDate` runs), `number` as a
+  server-supplied field on trainings, `usScore`/`themScore` explicitly
+  `null` when unplayed. Cross-check `design.md`'s "Wire format" section.
+- Server-side cascades modeled: deleting a team removes its players' cards
+  and ratings; deleting a game removes its cards and ratings; deleting a
+  training removes its ratings. Several existing tests assert exactly this,
+  and the backend now does it via FK actions.
+- Able to force failures — a way to make a given route reject with a typed
+  error, since some tests assert error handling (e.g. "logs an error and
+  still renders when `teamService.getAll` rejects").
+- A default seed roughly equivalent to the deleted `src/model/seed.js`
+  (teams with players, some trainings/games), since most consumer tests
+  previously relied on seeded data existing. Recover the shape from git
+  history: `git show 32050f9^:src/model/seed.js`.
+**Test**: `fakeApi.test.js` — the fake itself needs coverage, or every file
+built on it inherits its bugs silently. Assert: a POST is readable by a
+subsequent GET; query filtering works per route; date fields come back as
+ISO strings; each cascade removes exactly the dependent records and nothing
+else; forced failures reject with the right error type.
+**Gate**: `npm test -- --run fakeApi`
+**Depends on**: T17 (so `/standings` routing matches final behavior)
+
+---
+
+### Phase 8c — Migrate the 15 consumer files onto `fakeApi`
+
+Same recipe for each task: replace direct-service fixture seeding with the
+shared fake, keep **every existing assertion and AC comment**. This is a
+harness change (how data gets in), never a coverage cut. If a test cannot
+pass because the behavior it covers no longer exists, STOP and flag it —
+do not delete it. The one known exception is T20's deliberate removal,
+described there.
+
+Each task's gate is `npm test -- --run <its files>`, and each must make
+**zero real network calls** — verify by confirming the file passes with the
+local API stopped, or that `fetch` is never reached.
+
+| Task | Files |
+| --- | --- |
+| **T20** | `src/pages/__tests__/Settings.test.jsx` — start from `salvage-A-settings-test.patch`, which already deletes the dead "Reset demo data" tests. That control was deliberately removed in T15 (it only ever reset the deleted localStorage mock; see the comment in `Settings.jsx`'s `AdvancedPanel`), so deleting its tests is correct here — the one sanctioned deletion in this phase. |
+| **T21** | `GameCardsSection.test.jsx`, `GameResultPopup.test.jsx` |
+| **T22** | `PlayerCard.test.jsx`, `PlayerRatingHistory.test.jsx` |
+| **T23** | `SquadRanking.test.jsx`, `SquadRatingPopup.test.jsx` — reuse fixture data from `salvage-B-squadratingpopup.patch`, but point it at `fakeApi` rather than its own service-seam fake |
+| **T24** | `src/pages/__tests__/Games.test.jsx`, `src/pages/__tests__/Home.test.jsx` — Games' league-table assertions must move to the server-computed shape from T17 |
+| **T25** | `src/pages/__tests__/Teams.test.jsx`, `src/pages/__tests__/Trainings.test.jsx` |
+| **T26** | `TeamCard.test.jsx`, `ReferenceListsPopup.test.jsx`, `TrainingDetailsPopup.test.jsx`, `TrainingSavePopup.test.jsx` |
+
+**Depends on**: T19 (all of them)
+
+---
+
+### Phase 8d — Close out
+
+#### T27 — Full-suite green
+
+**Files**: none (verification only)
+**Do**: `npm test -- --run` → 0 failed. `npm run build` → succeeds.
+`npm run lint` → clean. Additionally confirm the suite passes with the local
+`coach-planner-api` **stopped** — that is the real proof no test depends on
+a live backend, and it is the regression this whole phase exists to fix.
+**Gate**: all three commands zero-exit, twice (API up, API down)
+**Depends on**: T20–T26
+
+---
 ## Verifier
 
-After T16, dispatch the standard fresh-eyes Verifier (or run `validate.md`
-standalone if not using sub-agents): spec-anchored check against every AC
-above, discrimination sensor on the typed-error mapping and the
-cascade-removal ACs (F4.4/F4.7, F5 delete, F6.6, F7.4/F7.8) since those are
-the easiest to silently regress (an accidentally-kept cascade call would
-still "work" — it'd just be redundant with the backend's FK cascade, and no
-test currently proves its *absence* unless T9/T10/T11/T13's tests assert
-call counts, not just outcomes).
+After **T27** (not T16 — Phase 8 moved the finish line), dispatch the
+standard fresh-eyes Verifier, or run `validate.md` standalone if not using
+sub-agents. Spec-anchored check against every AC, plus a discrimination
+sensor weighted toward the four things this feature can most easily get
+wrong while still looking green:
+
+1. **The `fakeApi` tautology risk (highest priority).** Phase 8's whole
+   premise is that a badly-mocked test passes under a broken
+   implementation. Mutate component handlers — delete the `cardService.record`
+   call behind "add yellow card", drop the `setRating` call behind a rating
+   click — and confirm the migrated tests in T20–T26 actually go red. Any
+   surviving mutant means the migration recreated the exact defect the
+   first plan would have introduced wholesale.
+2. **Cascade-removal ACs** (F4.4/F4.7, F5 delete, F6.6, F7.4/F7.8). An
+   accidentally-retained frontend cascade still "works" — it is merely
+   redundant with the backend's FK action — so nothing fails unless a test
+   proves its *absence*. Check these assert call counts/absence, not just
+   end state.
+3. **Typed-error mapping** (F1 AC4/AC5) and the one-in-flight-refresh
+   dedupe (F1 AC2) — concurrent-401 handling is easy to regress into N
+   refresh calls, which would trip the backend's rotation-reuse detection.
+4. **The two reconciled deviations** — confirm F5 AC8 now matches the
+   array-round-trip implementation and F6 AC9 matches T17's server-computed
+   table, so the spec no longer disagrees with the code in either place.
+
+Note for the Verifier: `.specs/features/39-backend-integration/validation.md`
+does not exist yet — this feature has never been validated. Write it.
