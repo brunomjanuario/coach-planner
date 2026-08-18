@@ -3,7 +3,6 @@ import { render as rtlRender, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import Settings from "../Settings";
-import { teamService } from "../../services/teamService";
 import { AuthProvider } from "../../context/AuthContext";
 import { useAuth } from "../../context/useAuth";
 import Tabs from "../../components/Tabs";
@@ -29,9 +28,6 @@ vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
   silentRefresh: vi.fn(),
 }));
-
-const CONFIRM_MESSAGE =
-  "Reset all data to the demo seed? This cannot be undone.";
 
 const DEFAULT_ACCOUNT = {
   id: "u1",
@@ -181,7 +177,7 @@ test("switching to Advanced shows its panel and hides Profile's", async () => {
   await goToAdvanced(user);
 
   expect(
-    screen.getByRole("button", { name: "Reset demo data" })
+    screen.getByText("No advanced settings are available yet.")
   ).toBeInTheDocument();
   expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
 });
@@ -215,116 +211,6 @@ test("selecting a tab marks only that tab selected", async () => {
   );
 });
 
-test("the Advanced panel explains what reset does before it is clicked", async () => {
-  const user = userEvent.setup();
-  await render(<Settings />);
-
-  await goToAdvanced(user);
-
-  expect(
-    screen.getByText(/resetting clears all your teams, players, trainings/i)
-  ).toBeInTheDocument();
-});
-
-test("clicking reset on Advanced opens a confirmation popup without resetting anything yet", async () => {
-  const user = userEvent.setup();
-  await teamService.create({
-    name: "Extra",
-    club: "Extra",
-    season: "24/25",
-    players: [],
-  });
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-
-  expect(screen.getByText(CONFIRM_MESSAGE)).toBeInTheDocument();
-  const teams = await teamService.getAll();
-  expect(teams).toHaveLength(3);
-});
-
-test("confirming the popup clears stored data and re-seeds", async () => {
-  const user = userEvent.setup();
-  await teamService.create({
-    name: "Extra",
-    club: "Extra",
-    season: "24/25",
-    players: [],
-  });
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Submit" }));
-
-  const teams = await teamService.getAll();
-  expect(teams.map((t) => t.name)).toEqual(["Sub-11", "Sub-19"]);
-});
-
-test("confirming the popup leaves the auth session untouched", async () => {
-  const user = userEvent.setup();
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Submit" }));
-
-  expect(getRefreshToken()).toBe("refresh-token");
-  await user.click(screen.getByRole("tab", { name: "Profile" }));
-  expect(screen.getByLabelText("Name")).toBeInTheDocument();
-});
-
-test("canceling the popup changes nothing", async () => {
-  const user = userEvent.setup();
-  await teamService.create({
-    name: "Extra",
-    club: "Extra",
-    season: "24/25",
-    players: [],
-  });
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-  expect(screen.queryByText(CONFIRM_MESSAGE)).not.toBeInTheDocument();
-  const teams = await teamService.getAll();
-  expect(teams.map((t) => t.name)).toEqual(["Sub-11", "Sub-19", "Extra"]);
-});
-
-test("after a reset the page stays on the Advanced tab", async () => {
-  const user = userEvent.setup();
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Submit" }));
-
-  expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
-    "aria-selected",
-    "true"
-  );
-  expect(
-    screen.getByRole("button", { name: "Reset demo data" })
-  ).toBeInTheDocument();
-});
-
-test("declining to reset leaves the tab on Advanced and nothing changed", async () => {
-  const user = userEvent.setup();
-
-  await render(<Settings />);
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-  expect(screen.getByRole("tab", { name: "Advanced" })).toHaveAttribute(
-    "aria-selected",
-    "true"
-  );
-});
-
 test("?tab=advanced in the URL opens the Advanced panel", async () => {
   await render(<Settings />, { initialEntries: ["/settings?tab=advanced"] });
 
@@ -333,7 +219,7 @@ test("?tab=advanced in the URL opens the Advanced panel", async () => {
     "true"
   );
   expect(
-    screen.getByRole("button", { name: "Reset demo data" })
+    screen.getByText("No advanced settings are available yet.")
   ).toBeInTheDocument();
 });
 
@@ -696,22 +582,6 @@ test("change the email and password, then the old pair is rejected and the new p
   // sign-in form (and its result text) is gone — Settings reappearing is
   // itself the proof the new pair worked.
   expect(screen.getByLabelText("Name")).toBeInTheDocument();
-});
-
-test("editing the profile and then resetting demo data leaves the profile unchanged and the user still signed in", async () => {
-  const user = userEvent.setup();
-  await render(<Settings />);
-
-  await user.clear(screen.getByLabelText("Name"));
-  await user.type(screen.getByLabelText("Name"), "New Name");
-  await user.click(screen.getByRole("button", { name: "Save" }));
-
-  await goToAdvanced(user);
-  await user.click(screen.getByRole("button", { name: "Reset demo data" }));
-  await user.click(screen.getByRole("button", { name: "Submit" }));
-
-  await user.click(screen.getByRole("tab", { name: "Profile" }));
-  expect(screen.getByLabelText("Name")).toHaveValue("New Name");
 });
 
 test("does not declare its own h-screen or min-h-screen — the app shell owns that (AC SHELL-03.1)", async () => {
