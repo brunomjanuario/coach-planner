@@ -6,6 +6,22 @@ import { cardService } from "../../services/cardService";
 import { gameService } from "../../services/gameService";
 import { ratingService } from "../../services/ratingService";
 import { SUSPENSION_THRESHOLD } from "../../lib/playerCards";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// apiFetch is the shared seam every service goes through; a stateful fake
+// keeps writes (record a card, set a rating, delete a player) readable by
+// later reads so these round-trip assertions still discriminate a broken
+// handler, and so the fake's modeled cascade (deleting a player removes its
+// cards/ratings) is exercised for real instead of asserted via a mock.
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+
+let fake;
+
+beforeEach(() => {
+  fake = createFakeApi();
+  apiFetch.mockImplementation(fake.apiFetch);
+});
 
 function deferred() {
   let resolve;
@@ -394,11 +410,22 @@ test("a rejected delete keeps the player and renders an inline error without clo
   expect(screen.getByText(`${player.shirtNumber} ${player.name}`)).toBeInTheDocument();
 });
 
+// cardService.removeByPlayer/ratingService.removeByPlayer no longer exist
+// (F7 AC4/AC8) — deleting a player's cards/ratings is now a server-side FK
+// cascade, modeled by fakeApi's handlePlayers DELETE. This asserts the
+// cascade's actual effect (the records are gone) instead of a call that no
+// longer happens, so the AC stays covered through the new seam.
 test("deleting a player still cascades card and rating removal (regression guard on 08/09)", async () => {
   const teams = await teamService.getAll();
   const player = teams[0].players[1];
-  const cardSpy = vi.spyOn(cardService, "removeByPlayer");
-  const ratingSpy = vi.spyOn(ratingService, "removeByPlayer");
+  const game = await seedGameForTeam(player.teamId);
+  await cardService.record({ playerId: player.id, gameId: game.id, type: "yellow" });
+  await ratingService.setRating({
+    playerId: player.id,
+    eventType: "game",
+    eventId: game.id,
+    value: 7,
+  });
   const user = userEvent.setup();
   const { container } = render(
     <PlayerCard player={player} onClose={() => {}} onUpdated={() => {}} onDeleted={() => {}} />
@@ -407,8 +434,10 @@ test("deleting a player still cascades card and rating removal (regression guard
   await user.click(container.querySelector(".tabler-icon-trash"));
   await user.click(await screen.findByRole("button", { name: "Submit" }));
 
-  await waitFor(() => expect(cardSpy).toHaveBeenCalledWith(player.id));
-  expect(ratingSpy).toHaveBeenCalledWith(player.id);
+  await waitFor(async () => {
+    expect(await cardService.getByPlayer(player.id)).toHaveLength(0);
+  });
+  expect(await ratingService.getByPlayer(player.id)).toHaveLength(0);
 });
 
 test("cancelling the delete confirmation leaves the player unchanged", async () => {

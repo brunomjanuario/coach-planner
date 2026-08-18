@@ -5,6 +5,22 @@ import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
 import { ratingService } from "../../services/ratingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// apiFetch is the shared seam every service goes through; a stateful fake
+// keeps writes (set a rating, delete a game) readable by later reads
+// (ratingService.getByPlayer) so these round-trip assertions still
+// discriminate a broken handler, and the fake's modeled cascade (deleting a
+// game removes its ratings) backs the "orphaned rating" edge case for real.
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+
+let fake;
+
+beforeEach(() => {
+  fake = createFakeApi();
+  apiFetch.mockImplementation(fake.apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
