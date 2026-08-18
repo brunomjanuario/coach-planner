@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 20,
+  "next_id": 22,
   "lessons": [
     {
       "id": "L-001",
@@ -346,6 +346,42 @@
       ],
       "created": "2026-08-10T20:43:48Z",
       "last_seen": "2026-08-10T20:43:48Z"
+    },
+    {
+      "id": "L-020",
+      "key": "spec_precision_gap::for an infrastructure feature whose spec names a full browser click through as an ac treat curl api level proof as necessary but not sufficient schedule an actual browser session against the built artifact before marking the ac verified",
+      "text": "For an infrastructure feature whose spec names a full browser click-through as an AC, treat curl/API-level proof as necessary but not sufficient — schedule an actual browser session against the built artifact before marking the AC verified.",
+      "signal": "spec_precision_gap",
+      "scope": "docker,verification",
+      "status": "candidate",
+      "features": [
+        "40-frontend-docker"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PROXY-06 (spec.md F3 AC6) (docker,verification)"
+      ],
+      "created": "2026-08-18T21:29:42Z",
+      "last_seen": "2026-08-18T21:29:42Z"
+    },
+    {
+      "id": "L-021",
+      "key": "spec_precision_gap::when an ac requires an alternate wiring config mode be verified to work not merely documented and re running it end to end would conflict with resources already in use for other checks verify the wiring s static correctness e g the resolved config network name explicitly and flag the unexecuted end to end path as a remaining gap rather than counting it fully verified",
+      "text": "When an AC requires an alternate wiring/config mode be 'verified to work, not merely documented' and re-running it end-to-end would conflict with resources already in use for other checks, verify the wiring's static correctness (e.g. the resolved config/network name) explicitly and flag the unexecuted end-to-end path as a remaining gap rather than counting it fully verified.",
+      "signal": "spec_precision_gap",
+      "scope": "docker,verification",
+      "status": "candidate",
+      "features": [
+        "40-frontend-docker"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "COMPOSE-03 (spec.md F4 AC3) (docker,verification)"
+      ],
+      "created": "2026-08-18T21:29:47Z",
+      "last_seen": "2026-08-18T21:29:47Z"
     }
   ]
 }

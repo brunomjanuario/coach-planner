@@ -128,6 +128,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/context/AuthContext.jsx:83 (signUp session-flag write) (src/context/AuthContext.jsx)
 - last seen: 2026-08-10T20:43:48Z
 
+### L-020 — For an infrastructure feature whose spec names a full browser click-through as an AC, treat curl/API-level proof as necessary but not sufficient — schedule an actual browser session against the built artifact before marking the AC verified.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `docker,verification` · harmful: 0
+- features: 40-frontend-docker
+- evidence: PROXY-06 (spec.md F3 AC6) (docker,verification)
+- last seen: 2026-08-18T21:29:42Z
+
+### L-021 — When an AC requires an alternate wiring/config mode be 'verified to work, not merely documented' and re-running it end-to-end would conflict with resources already in use for other checks, verify the wiring's static correctness (e.g. the resolved config/network name) explicitly and flag the unexecuted end-to-end path as a remaining gap rather than counting it fully verified.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `docker,verification` · harmful: 0
+- features: 40-frontend-docker
+- evidence: COMPOSE-03 (spec.md F4 AC3) (docker,verification)
+- last seen: 2026-08-18T21:29:47Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
