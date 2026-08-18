@@ -3,6 +3,23 @@ import userEvent from "@testing-library/user-event";
 import TrainingSavePopup from "../TrainingSavePopup";
 import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F5). apiFetch is replaced with
+// the shared stateful fake so the handful of tests that exercise the real
+// trainingService (rather than a mocked onSubmit) round-trip
+// deterministically with zero real network calls. teamService.getAll is
+// always spied separately in every test (with the local `sampleTeams`
+// fixture), so fakeApi's own team seed is never read here.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -872,7 +889,19 @@ test("saving an edit whose training was deleted in the meantime fails without co
   expect(all.find((t) => t.id === survivor.id)).toBeDefined();
 });
 
-test("a localStorage quota rejection while saving a diagram-carrying exercise surfaces the error and keeps the editor open (edge case)", async () => {
+// SKIPPED (Phase 8 migration, T26) — not deleted, not weakened; flagged in
+// the batch report per tasks.md's "STOP and flag" exception. This test's
+// premise no longer holds: it mocks `Storage.prototype.setItem` to throw
+// QuotaExceededError, expecting the save path to surface it as
+// StorageQuotaError. That was true against the old localStorage-backed
+// mock (`lib/storage.js`), but `trainingService.update` now goes through
+// `apiFetch`/the real backend (F5) and never touches `localStorage` at
+// all — mocking `setItem` has no effect on the save path anymore, so this
+// scenario is unreachable under the current architecture. Whether/how a
+// comparable "write rejected mid-save" case should be modeled against the
+// real API (e.g. a 507/413 response) is a product decision outside this
+// harness-migration task's scope.
+test.skip("a localStorage quota rejection while saving a diagram-carrying exercise surfaces the error and keeps the editor open (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   const diagram = {

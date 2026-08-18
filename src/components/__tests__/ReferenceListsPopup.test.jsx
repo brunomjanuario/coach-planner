@@ -5,6 +5,25 @@ import { opponentService } from "../../services/opponentService";
 import { competitionService } from "../../services/competitionService";
 import { gameService } from "../../services/gameService";
 import { StorageQuotaError } from "../../lib/storage";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F8). Every test here fully
+// overrides opponentService/competitionService/gameService's getAll (and
+// often create/delete) with vi.spyOn, EXCEPT the empty-name-validation
+// test below, which deliberately calls the real (fake-backed)
+// opponentService.create("") to prove the rejection is the service's own
+// round trip, not client-side validation — so apiFetch is still replaced
+// with the shared stateful fake to keep that one call from reaching a real
+// network.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

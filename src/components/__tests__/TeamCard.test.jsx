@@ -5,6 +5,23 @@ import { teamService } from "../../services/teamService";
 import { cardService } from "../../services/cardService";
 import { ratingService } from "../../services/ratingService";
 import { gameService } from "../../services/gameService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F6/F7). apiFetch is
+// replaced with the shared stateful fake so the "delete cascade" tests'
+// create -> delete -> read-back round trips stay deterministic with zero
+// real network calls. None of these tests depend on fakeApi's specific
+// seed contents (they create their own fixtures), so the default seed is
+// used as-is.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

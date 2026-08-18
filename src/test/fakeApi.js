@@ -552,11 +552,19 @@ export function createFakeApi(seed) {
 
   // --- competitions / opponents ------------------------------------------
 
+/** "opponent" -> "Opponent", for the empty-name ValidationError message below. */
+  function capitalize(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+
   /** Shared shape for the two managed reference lists (AD-010): a flat named collection, plus a rename cascade onto every game's matching string field. */
   function handleReferenceList(collectionKey, gameField, method, id, body) {
     const collection = state[collectionKey];
     if (method === "GET") return clone(collection);
     if (method === "POST") {
+      if (!body.name || body.name.trim() === "") {
+        throw new ValidationError(`${capitalize(gameField)} name cannot be empty.`);
+      }
       const dup = collection.some((x) => x.name.toLowerCase() === body.name.toLowerCase());
       if (dup) throw new ConflictError(`"${body.name}" already exists.`);
       const item = { id: nextId(collectionKey), name: body.name };
@@ -565,6 +573,9 @@ export function createFakeApi(seed) {
     }
     if (method === "PATCH") {
       const item = findOrThrow(collection, id, "Reference list item");
+      if (!body.name || body.name.trim() === "") {
+        throw new ValidationError(`${capitalize(gameField)} name cannot be empty.`);
+      }
       const dup = collection.some(
         (x) => x !== item && x.name.toLowerCase() === body.name.toLowerCase()
       );

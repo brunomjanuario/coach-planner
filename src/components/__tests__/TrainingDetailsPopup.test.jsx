@@ -3,10 +3,35 @@ import userEvent from "@testing-library/user-event";
 import TrainingDetailsPopup from "../TrainingDetailsPopup";
 import { teamService } from "../../services/teamService";
 import { ratingService } from "../../services/ratingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
 
+// The real services now hit a live backend (F4/F7). apiFetch is replaced
+// with the shared stateful fake so the "Rate squad" tests' setRating/
+// getByEvent round trips stay deterministic with zero real network calls.
+// None of these tests depend on fakeApi's specific seed contents, so the
+// default seed is used as-is.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+// A string id, not a number: `ratingService.setRating` interpolates
+// `training.id` into the fake's `/ratings/{type}/{id}/players/{id}` URL,
+// which always round-trips ids as strings (a real API would too) — a
+// numeric literal here would make `toMatchObject({ eventId: training.id })`
+// compare a number against the string the fake actually stored.
 const baseTraining = {
-  id: 1,
-  teamId: 1,
+  id: "1",
+  teamId: "1",
   day: new Date("2027-01-01T10:00:00Z"),
   duration: 90,
 };
