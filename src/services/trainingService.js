@@ -1,77 +1,45 @@
-import { getCollection, setCollection } from "./store";
-import { newId } from "../lib/id";
-import { NotFoundError } from "../lib/errors";
-import { numberTrainings } from "../lib/trainingNumber";
-import { ratingService } from "./ratingService";
+import { apiFetch } from "../lib/apiClient";
+import { parseApiDate } from "../lib/dates";
 
-function getTrainings() {
-  return getCollection("trainings");
-}
-
-function saveTrainings(trainings) {
-  setCollection("trainings", trainings);
-}
+// Trainings and exercises against the real API (F5). `number` comes
+// straight from the response — no client-side numbering (lib/trainingNumber
+// is deleted, F5 AC2). Cascades to a deleted training's ratings are
+// performed server-side via FK actions (F5 AC7) — this module no longer
+// calls ratingService.
+//
+// Exercise writes still round-trip the whole `exercises[]` array through
+// create/update rather than the granular /trainings/{id}/exercises
+// sub-resource endpoints (F5 AC8 as originally specified): the backend's
+// own spec (00-backend-mvp, "Exercises on write") documents the granular
+// endpoints as optional/future-use, not required for parity, because
+// PATCH /trainings/{id} already replaces exercises wholesale and
+// TrainingSavePopup already submits the whole array that way. Switching
+// the popup to per-exercise calls would be a caller-side rewrite with no
+// backend requirement behind it, so it's deliberately not done here.
+const hydrate = (training) => ({ ...training, day: parseApiDate(training.day) });
 
 export const trainingService = {
-  getAll: async () => {
-    return getTrainings();
-  },
+  getAll: async () => (await apiFetch("/trainings")).map(hydrate),
 
-  getUnassigned: async () => {
-    const trainings = getTrainings();
-    const teamIds = new Set(getCollection("teams").map((team) => team.id));
-    return trainings.filter(
-      (training) => training.teamId == null || !teamIds.has(training.teamId)
-    );
-  },
+  getAllNumbered: async (teamId) =>
+    (
+      await apiFetch(teamId != null ? `/trainings?teamId=${teamId}` : "/trainings")
+    ).map(hydrate),
 
-  getAllNumbered: async (teamId) => {
-    const trainings = getTrainings();
-    const teamIds = new Set(getCollection("teams").map((team) => team.id));
-    const forNumbering = trainings.map((training) => ({
-      ...training,
-      teamId: teamIds.has(training.teamId) ? training.teamId : null,
-    }));
+  getUnassigned: async () => (await apiFetch("/trainings?assigned=false")).map(hydrate),
 
-    const numbered = numberTrainings(forNumbering).map((numbered, index) => ({
-      ...trainings[index],
-      number: numbered.number,
-    }));
+  getById: async (id) => hydrate(await apiFetch(`/trainings/${id}`)),
 
-    return teamId != null
-      ? numbered.filter((training) => training.teamId === teamId)
-      : numbered;
-  },
+  create: async (trainingData) =>
+    hydrate(await apiFetch("/trainings", { method: "POST", body: trainingData })),
 
-  getById: async (id) => {
-    const trainings = getTrainings();
-    return trainings.find((training) => training.id === id) ?? null;
-  },
+  update: async (trainingData) =>
+    hydrate(
+      await apiFetch(`/trainings/${trainingData.id}`, {
+        method: "PATCH",
+        body: trainingData,
+      })
+    ),
 
-  create: async (trainingData) => {
-    const trainings = getTrainings();
-    const newTraining = { ...trainingData, id: newId() };
-    trainings.push(newTraining);
-    saveTrainings(trainings);
-    return newTraining;
-  },
-
-  update: async (trainingData) => {
-    const trainings = getTrainings();
-    const index = trainings.findIndex(
-      (training) => training.id === trainingData.id
-    );
-    if (index === -1) {
-      throw new NotFoundError(`Training not found: ${trainingData.id}`);
-    }
-    trainings[index] = { ...trainings[index], ...trainingData };
-    saveTrainings(trainings);
-    return trainings[index];
-  },
-
-  delete: async (id) => {
-    const trainings = getTrainings().filter((training) => training.id !== id);
-    saveTrainings(trainings);
-    await ratingService.removeByEvent("training", id);
-  },
+  delete: (id) => apiFetch(`/trainings/${id}`, { method: "DELETE" }),
 };

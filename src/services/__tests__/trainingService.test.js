@@ -1,308 +1,149 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { trainingService } from "../trainingService";
-import { teamService } from "../teamService";
+import { apiFetch } from "../../lib/apiClient";
+import { ratingService } from "../ratingService";
 import { NotFoundError } from "../../lib/errors";
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+}));
+
+vi.mock("../ratingService", () => ({
+  ratingService: { removeByEvent: vi.fn(), removeByPlayer: vi.fn() },
+}));
+
+const RAW_TRAINING = {
+  id: "tr1",
+  teamId: "team-1",
+  day: "2030-01-01T10:00:00.000Z",
+  duration: 60,
+  number: 1,
+  exercises: [],
+};
 
 describe("trainingService", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("getAll returns the persisted list of trainings", async () => {
+  it("getAll() calls GET /trainings and hydrates day into a Date", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_TRAINING]);
+
     const trainings = await trainingService.getAll();
-    expect(Array.isArray(trainings)).toBe(true);
-    expect(trainings.length).toBeGreaterThan(0);
+
+    expect(apiFetch).toHaveBeenCalledWith("/trainings");
+    expect(trainings[0].day).toBeInstanceOf(Date);
+    expect(trainings[0].day.toISOString()).toBe("2030-01-01T10:00:00.000Z");
   });
 
-  it("getAll returns non-reference-identical arrays across two calls", async () => {
-    const first = await trainingService.getAll();
-    const second = await trainingService.getAll();
-    expect(first).not.toBe(second);
-    expect(first).toEqual(second);
+  it("getById(id) calls GET /trainings/{id} and hydrates day", async () => {
+    apiFetch.mockResolvedValueOnce(RAW_TRAINING);
+
+    const training = await trainingService.getById("tr1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/trainings/tr1");
+    expect(training.day).toBeInstanceOf(Date);
   });
 
-  it("getById returns the matching training for a known id", async () => {
-    const [seedTraining] = await trainingService.getAll();
-    const found = await trainingService.getById(seedTraining.id);
-    expect(found).toEqual(seedTraining);
+  it("getById propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Training not found"));
+
+    await expect(trainingService.getById("no-such-training")).rejects.toBeInstanceOf(
+      NotFoundError
+    );
   });
 
-  it("getById returns null (not a throw) for an unknown id", async () => {
-    const result = await trainingService.getById("no-such-training");
-    expect(result).toBeNull();
-  });
-
-  it("getById does not call the global fetch", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
-    });
-
-    await trainingService.getById("any-id");
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("create assigns an id via newId() and persists", async () => {
-    const created = await trainingService.create({
+  it("create(trainingData) calls POST /trainings with the training data as the body", async () => {
+    const trainingData = {
       teamId: "team-1",
       day: new Date("2030-01-01T10:00:00Z"),
       duration: 60,
       exercises: [],
+    };
+    apiFetch.mockResolvedValueOnce({ ...RAW_TRAINING, ...trainingData, day: RAW_TRAINING.day });
+
+    const created = await trainingService.create(trainingData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/trainings", {
+      method: "POST",
+      body: trainingData,
     });
-
-    expect(typeof created.id).toBe("string");
-    expect(created.id.length).toBeGreaterThan(0);
-
-    const all = await trainingService.getAll();
-    expect(all.find((t) => t.id === created.id)).toEqual(created);
+    expect(created.day).toBeInstanceOf(Date);
   });
 
-  it("a saved training's day is a Date instance after being re-read (AC PERSIST-05.1)", async () => {
-    const created = await trainingService.create({
-      teamId: "team-1",
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
+  it("update(trainingData) calls PATCH /trainings/{id} with the training data as the body", async () => {
+    const trainingData = { id: "tr1", duration: 120 };
+    apiFetch.mockResolvedValueOnce({ ...RAW_TRAINING, duration: 120 });
+
+    const updated = await trainingService.update(trainingData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/trainings/tr1", {
+      method: "PATCH",
+      body: trainingData,
     });
-
-    const reread = await trainingService.getById(created.id);
-    expect(reread.day).toBeInstanceOf(Date);
-    expect(reread.day.toISOString()).toBe("2030-01-01T10:00:00.000Z");
-  });
-
-  it("a future training still sorts into the future bucket after reload (AC PERSIST-05.2)", async () => {
-    const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const created = await trainingService.create({
-      teamId: "team-1",
-      day: future,
-      duration: 60,
-      exercises: [],
-    });
-
-    const reread = await trainingService.getById(created.id);
-    expect(reread.day >= new Date()).toBe(true);
-  });
-
-  it("update takes a whole training object, persists and returns it", async () => {
-    const [seedTraining] = await trainingService.getAll();
-
-    const updated = await trainingService.update({
-      ...seedTraining,
-      duration: 120,
-    });
-
     expect(updated.duration).toBe(120);
-    const reread = await trainingService.getById(seedTraining.id);
-    expect(reread.duration).toBe(120);
   });
 
-  it("update does not call the global fetch", async () => {
-    const [seedTraining] = await trainingService.getAll();
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
-    });
+  it("update propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Training not found"));
 
-    await trainingService.update({ ...seedTraining, duration: 45 });
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("update throws a typed NotFoundError for an unknown id", async () => {
     await expect(
       trainingService.update({ id: "no-such-training", duration: 45 })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("delete persists the removal — a subsequent getAll no longer includes the training", async () => {
-    const [seedTraining] = await trainingService.getAll();
+  it("delete(id) calls DELETE /trainings/{id}", async () => {
+    apiFetch.mockResolvedValueOnce(null);
 
-    await trainingService.delete(seedTraining.id);
+    await trainingService.delete("tr1");
 
-    const all = await trainingService.getAll();
-    expect(all.find((t) => t.id === seedTraining.id)).toBeUndefined();
+    expect(apiFetch).toHaveBeenCalledWith("/trainings/tr1", { method: "DELETE" });
   });
 
-  it("getUnassigned returns trainings with a null teamId (AC TTA-05.1)", async () => {
-    const created = await trainingService.create({
-      teamId: null,
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
-    });
+  it("delete does not call ratingService.removeByEvent — the backend cascades (F5 AC7)", async () => {
+    apiFetch.mockResolvedValueOnce(null);
+
+    await trainingService.delete("tr1");
+
+    expect(ratingService.removeByEvent).not.toHaveBeenCalled();
+  });
+
+  it("getUnassigned() calls GET /trainings?assigned=false", async () => {
+    apiFetch.mockResolvedValueOnce([{ ...RAW_TRAINING, teamId: null }]);
 
     const unassigned = await trainingService.getUnassigned();
 
-    expect(unassigned.find((t) => t.id === created.id)).toBeTruthy();
+    expect(apiFetch).toHaveBeenCalledWith("/trainings?assigned=false");
+    expect(unassigned).toHaveLength(1);
   });
 
-  it("getUnassigned returns trainings whose teamId matches no existing team (dangling-reference edge case)", async () => {
-    const created = await trainingService.create({
-      teamId: "no-such-team",
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
-    });
-
-    const unassigned = await trainingService.getUnassigned();
-
-    expect(unassigned.find((t) => t.id === created.id)).toBeTruthy();
-  });
-
-  it("getUnassigned does not return a training whose teamId matches an existing team", async () => {
-    const [existingTeam] = await teamService.getAll();
-    const created = await trainingService.create({
-      teamId: existingTeam.id,
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
-    });
-
-    const unassigned = await trainingService.getUnassigned();
-
-    expect(unassigned.find((t) => t.id === created.id)).toBeUndefined();
-  });
-
-  it("getUnassigned returns an empty array when every training has a valid teamId (AC TTA-05.2)", async () => {
-    const trainings = await trainingService.getAll();
-    const [existingTeam] = await teamService.getAll();
-    for (const training of trainings) {
-      await trainingService.update({ ...training, teamId: existingTeam.id });
-    }
-
-    const unassigned = await trainingService.getUnassigned();
-
-    expect(unassigned).toEqual([]);
-  });
-
-  it("getUnassigned does not call the global fetch", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
-    });
-
-    await trainingService.getUnassigned();
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("delete does not call the global fetch", async () => {
-    const [seedTraining] = await trainingService.getAll();
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
-    });
-
-    await trainingService.delete(seedTraining.id);
-
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("getAllNumbered returns every training with its number populated (AC TNUM-01.1)", async () => {
-    const numbered = await trainingService.getAllNumbered();
-
-    expect(numbered.length).toBeGreaterThan(0);
-    for (const training of numbered) {
-      expect(typeof training.number === "number" || training.number === null).toBe(
-        true
-      );
-    }
-    const [seedTeam] = await teamService.getAll();
-    const teamTrainings = numbered
-      .filter((t) => t.teamId === seedTeam.id)
-      .sort((a, b) => a.day - b.day);
-    expect(teamTrainings.map((t) => t.number)).toEqual([1, 2]);
-  });
-
-  it("assigns number: null to a training whose teamId matches no existing team (dangling-reference edge case, AC TNUM-01.5)", async () => {
-    const created = await trainingService.create({
-      teamId: "no-such-team",
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
-    });
-
-    const numbered = await trainingService.getAllNumbered();
-
-    expect(numbered.find((t) => t.id === created.id).number).toBeNull();
-  });
-
-  it("keeps team-wide numbers when filtered to a single team's future-only view (edge case, the main trap)", async () => {
-    const [seedTeam] = await teamService.getAll();
-    const future = await trainingService.create({
-      teamId: seedTeam.id,
-      day: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      duration: 60,
-      exercises: [],
-    });
-
-    const numbered = await trainingService.getAllNumbered(seedTeam.id);
-    const created = numbered.find((t) => t.id === future.id);
-
-    expect(created.number).toBe(3);
-  });
-
-  it("getAllNumbered(teamId) filters to one team while preserving that team's numbering", async () => {
-    const [teamA, teamB] = await teamService.getAll();
-
-    const numbered = await trainingService.getAllNumbered(teamB.id);
-
-    expect(numbered.every((t) => t.teamId === teamB.id)).toBe(true);
-    expect(numbered).toEqual([]);
-
-    const created = await trainingService.create({
-      teamId: teamB.id,
-      day: new Date("2030-01-01T10:00:00Z"),
-      duration: 60,
-      exercises: [],
-    });
-    const numberedAfter = await trainingService.getAllNumbered(teamB.id);
-    expect(numberedAfter.find((t) => t.id === created.id).number).toBe(1);
-    expect(teamA.id).not.toBe(teamB.id);
-  });
-
-  it("numbers 100+ trainings correctly in a single call", async () => {
-    const [seedTeam] = await teamService.getAll();
-    for (let i = 0; i < 100; i++) {
-      await trainingService.create({
-        teamId: seedTeam.id,
-        day: new Date(2030, 0, i + 1),
-        duration: 30,
-        exercises: [],
-      });
-    }
-
-    const numbered = await trainingService.getAllNumbered(seedTeam.id);
-    const numbers = numbered.map((t) => t.number).sort((a, b) => a - b);
-
-    expect(numbers).toEqual(Array.from({ length: 102 }, (_, i) => i + 1));
-  });
-
-  it("a training reassigned from team A to team B takes a number from B's sequence (edge case)", async () => {
-    const [teamA, teamB] = await teamService.getAll();
-    const [seedTraining] = (await trainingService.getAll()).filter(
-      (t) => t.teamId === teamA.id
-    );
-
-    await trainingService.update({ ...seedTraining, teamId: teamB.id });
-
-    const numbered = await trainingService.getAllNumbered(teamB.id);
-    expect(numbered.find((t) => t.id === seedTraining.id).number).toBe(1);
-  });
-
-  it("getAllNumbered returns copies, not references into the store (AD-004)", async () => {
-    const first = await trainingService.getAllNumbered();
-    const second = await trainingService.getAllNumbered();
-
-    expect(first).not.toBe(second);
-    expect(first[0]).not.toBe(second[0]);
-    expect(first).toEqual(second);
-  });
-
-  it("getAllNumbered does not call the global fetch", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
-    });
+  it("getAllNumbered() with no teamId calls GET /trainings", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_TRAINING]);
 
     await trainingService.getAllNumbered();
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(apiFetch).toHaveBeenCalledWith("/trainings");
+  });
+
+  it("getAllNumbered(teamId) calls GET /trainings?teamId=", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_TRAINING]);
+
+    await trainingService.getAllNumbered("team-1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/trainings?teamId=team-1");
+  });
+
+  it("getAllNumbered reads `number` straight from the response — no client-side recomputation", async () => {
+    // A response deliberately out of the order a client-side numbering pass
+    // would produce (e.g. sorted by day) — if the service recomputed
+    // numbers itself, this order/values would be overwritten.
+    apiFetch.mockResolvedValueOnce([
+      { ...RAW_TRAINING, id: "tr1", number: 7 },
+      { ...RAW_TRAINING, id: "tr2", number: 2 },
+    ]);
+
+    const numbered = await trainingService.getAllNumbered();
+
+    expect(numbered.map((t) => t.number)).toEqual([7, 2]);
   });
 });
