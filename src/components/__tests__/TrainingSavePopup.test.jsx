@@ -5,6 +5,7 @@ import { teamService } from "../../services/teamService";
 import { trainingService } from "../../services/trainingService";
 import { apiFetch } from "../../lib/apiClient";
 import { createFakeApi } from "../../test/fakeApi";
+import { ApiError } from "../../lib/errors";
 
 // The real services now hit a live backend (F5). apiFetch is replaced with
 // the shared stateful fake so the handful of tests that exercise the real
@@ -17,8 +18,11 @@ vi.mock("../../lib/apiClient", () => ({
   silentRefresh: vi.fn(),
 }));
 
+let fake;
+
 beforeEach(() => {
-  apiFetch.mockImplementation(createFakeApi().apiFetch);
+  fake = createFakeApi();
+  apiFetch.mockImplementation(fake.apiFetch);
 });
 
 afterEach(() => {
@@ -889,19 +893,17 @@ test("saving an edit whose training was deleted in the meantime fails without co
   expect(all.find((t) => t.id === survivor.id)).toBeDefined();
 });
 
-// SKIPPED (Phase 8 migration, T26) — not deleted, not weakened; flagged in
-// the batch report per tasks.md's "STOP and flag" exception. This test's
-// premise no longer holds: it mocks `Storage.prototype.setItem` to throw
-// QuotaExceededError, expecting the save path to surface it as
-// StorageQuotaError. That was true against the old localStorage-backed
-// mock (`lib/storage.js`), but `trainingService.update` now goes through
-// `apiFetch`/the real backend (F5) and never touches `localStorage` at
-// all — mocking `setItem` has no effect on the save path anymore, so this
-// scenario is unreachable under the current architecture. Whether/how a
-// comparable "write rejected mid-save" case should be modeled against the
-// real API (e.g. a 507/413 response) is a product decision outside this
-// harness-migration task's scope.
-test.skip("a localStorage quota rejection while saving a diagram-carrying exercise surfaces the error and keeps the editor open (edge case)", async () => {
+// Re-targeted during Phase 8 migration (T26 follow-up): the original test
+// mocked `Storage.prototype.setItem` to throw a quota error, since saving
+// used to write straight to localStorage. `trainingService.update` now goes
+// through `apiFetch`/the real backend (F5) and never touches `localStorage`
+// — that failure mode is architecturally unreachable now. The equivalent
+// real-API failure is the PATCH /trainings/{id} call itself rejecting (e.g.
+// a 5xx/network failure surfaced as an ApiError), which is exactly what
+// fakeApi.forceFailure models. The AC this test protects — a rejected save
+// surfaces an error, keeps the editor open with work intact, and never lets
+// the write land — is unchanged; only the injection point moves.
+test("an API failure while saving a diagram-carrying exercise surfaces the error and keeps the editor open (edge case)", async () => {
   vi.spyOn(teamService, "getAll").mockResolvedValue(sampleTeams);
   const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   const diagram = {
@@ -925,11 +927,11 @@ test.skip("a localStorage quota rejection while saving a diagram-carrying exerci
   await screen.findByRole("option", { name: "Amadora Sub-11" });
   expect(screen.getByText(/SSG/)).toBeInTheDocument();
 
-  const setItemSpy = vi
-    .spyOn(Storage.prototype, "setItem")
-    .mockImplementation(() => {
-      throw new DOMException("Quota exceeded", "QuotaExceededError");
-    });
+  fake.forceFailure(
+    "PATCH",
+    `/trainings/${created.id}`,
+    new ApiError("Internal server error", 500)
+  );
 
   await user.click(screen.getByRole("button", { name: "Save" }));
 
@@ -938,14 +940,13 @@ test.skip("a localStorage quota rejection while saving a diagram-carrying exerci
   ).toBeInTheDocument();
   expect(errorSpy).toHaveBeenCalledWith(
     "Failed to save training:",
-    expect.objectContaining({ name: "StorageQuotaError" })
+    expect.objectContaining({ name: "ApiError", status: 500 })
   );
   // The editor/form stays mounted with the work intact, not discarded.
   expect(
     screen.getByRole("heading", { name: "Edit Training" })
   ).toBeInTheDocument();
   expect(screen.getByText(/SSG/)).toBeInTheDocument();
-  setItemSpy.mockRestore();
 
   // The rejected write never landed: the diagram-carrying exercise is
   // exactly what it was before the failed save.
