@@ -1,199 +1,174 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { teamService } from "../teamService";
+import { apiFetch } from "../../lib/apiClient";
+import { cardService } from "../cardService";
+import { ratingService } from "../ratingService";
 import { NotFoundError } from "../../lib/errors";
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+}));
+
+vi.mock("../cardService", () => ({
+  cardService: { removeByPlayer: vi.fn(), removeByGame: vi.fn() },
+}));
+
+vi.mock("../ratingService", () => ({
+  ratingService: { removeByPlayer: vi.fn(), removeByEvent: vi.fn() },
+}));
 
 describe("teamService — team methods", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("getAll returns the persisted list of teams", async () => {
+  it("getAll() calls GET /teams", async () => {
+    apiFetch.mockResolvedValueOnce([{ id: "t1" }]);
+
     const teams = await teamService.getAll();
-    expect(Array.isArray(teams)).toBe(true);
-    expect(teams.length).toBeGreaterThan(0);
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams");
+    expect(teams).toEqual([{ id: "t1" }]);
   });
 
-  it("getAll returns non-reference-identical arrays across two calls", async () => {
-    const first = await teamService.getAll();
-    const second = await teamService.getAll();
-    expect(first).not.toBe(second);
-    expect(first).toEqual(second);
+  it("getById(id) calls GET /teams/{id}", async () => {
+    apiFetch.mockResolvedValueOnce({ id: "t1", name: "Sub-11" });
+
+    const team = await teamService.getById("t1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1");
+    expect(team).toEqual({ id: "t1", name: "Sub-11" });
   });
 
-  it("getById returns the matching team for a known id", async () => {
-    const [seedTeam] = await teamService.getAll();
-    const found = await teamService.getById(seedTeam.id);
-    expect(found).toEqual(seedTeam);
+  it("getById propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Team not found: no-such-team"));
+
+    await expect(teamService.getById("no-such-team")).rejects.toBeInstanceOf(
+      NotFoundError
+    );
   });
 
-  it("getById returns null (not a throw) for an unknown id", async () => {
-    const result = await teamService.getById("no-such-team");
-    expect(result).toBeNull();
-  });
+  it("create(teamData) calls POST /teams with the team data as the body", async () => {
+    const teamData = { name: "New FC", club: "Club X", season: "24/25", players: [] };
+    apiFetch.mockResolvedValueOnce({ id: "t2", ...teamData });
 
-  it("getById does not call the global fetch", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(() => {
-      throw new Error("fetch should not be called");
+    const created = await teamService.create(teamData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams", {
+      method: "POST",
+      body: teamData,
     });
-
-    await teamService.getById("any-id");
-
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(created).toEqual({ id: "t2", ...teamData });
   });
 
-  it("create assigns an id via newId(), overriding any id supplied by the caller", async () => {
-    const created = await teamService.create({
-      id: "caller-supplied-id",
-      name: "New FC",
-      club: "Club X",
-      season: "24/25",
-      players: [],
+  it("update(teamData) calls PATCH /teams/{id} with the team data as the body", async () => {
+    const teamData = { id: "t1", name: "Renamed FC" };
+    apiFetch.mockResolvedValueOnce(teamData);
+
+    const updated = await teamService.update(teamData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1", {
+      method: "PATCH",
+      body: teamData,
     });
-
-    expect(created.id).not.toBe("caller-supplied-id");
-    expect(typeof created.id).toBe("string");
-    expect(created.id.length).toBeGreaterThan(0);
+    expect(updated).toEqual(teamData);
   });
 
-  it("create persists the new team so a subsequent getAll includes it", async () => {
-    const created = await teamService.create({
-      name: "Persisted FC",
-      club: "Club Y",
-      season: "24/25",
-      players: [],
-    });
+  it("update propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Team not found: no-such-team"));
 
-    const all = await teamService.getAll();
-    expect(all.find((t) => t.id === created.id)).toEqual(created);
-  });
-
-  it("update persists and returns the updated team", async () => {
-    const [seedTeam] = await teamService.getAll();
-
-    const updated = await teamService.update({
-      ...seedTeam,
-      name: "Renamed FC",
-    });
-
-    expect(updated.name).toBe("Renamed FC");
-    const reread = await teamService.getById(seedTeam.id);
-    expect(reread.name).toBe("Renamed FC");
-  });
-
-  it("update throws a typed NotFoundError (not a bare TypeError) for an unknown id", async () => {
     await expect(
       teamService.update({ id: "no-such-team", name: "X" })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("update preserves the players field instead of dropping it", async () => {
-    const [seedTeam] = await teamService.getAll();
-    expect(seedTeam.players.length).toBeGreaterThan(0);
+  it("delete(id) calls DELETE /teams/{id}", async () => {
+    apiFetch.mockResolvedValueOnce(null);
 
-    const updated = await teamService.update({
-      ...seedTeam,
-      name: "Renamed Again FC",
-    });
+    await teamService.delete("t1");
 
-    expect(updated.players).toEqual(seedTeam.players);
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1", { method: "DELETE" });
   });
 
-  it("delete persists the removal — a subsequent getAll no longer includes the team", async () => {
-    const [seedTeam] = await teamService.getAll();
+  it("delete does not call cardService.removeByPlayer or ratingService.removeByPlayer — the backend cascades (F4 AC4)", async () => {
+    apiFetch.mockResolvedValueOnce(null);
 
-    await teamService.delete(seedTeam.id);
+    await teamService.delete("t1");
 
-    const all = await teamService.getAll();
-    expect(all.find((t) => t.id === seedTeam.id)).toBeUndefined();
+    expect(cardService.removeByPlayer).not.toHaveBeenCalled();
+    expect(ratingService.removeByPlayer).not.toHaveBeenCalled();
   });
 });
 
 describe("teamService — player methods", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("addPlayer assigns an id via newId()", async () => {
-    const [team] = await teamService.getAll();
+  it("addPlayer(teamId, playerData) calls POST /teams/{teamId}/players", async () => {
+    const playerData = { name: "New Player", age: 16, shirtNumber: 99, position: "GK" };
+    apiFetch.mockResolvedValueOnce({ id: "p1", teamId: "t1", ...playerData });
 
-    const added = await teamService.addPlayer(team.id, {
-      name: "New Player",
-      age: 16,
-      shirtNumber: 99,
-      position: "GK",
+    const added = await teamService.addPlayer("t1", playerData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1/players", {
+      method: "POST",
+      body: playerData,
     });
-
-    expect(typeof added.id).toBe("string");
-    expect(added.id.length).toBeGreaterThan(0);
+    expect(added).toEqual({ id: "p1", teamId: "t1", ...playerData });
   });
 
-  it("addPlayer persists the new player on the team", async () => {
-    const [team] = await teamService.getAll();
+  it("addPlayer propagates a typed NotFoundError for an unknown teamId", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Team not found: no-such-team"));
 
-    const added = await teamService.addPlayer(team.id, {
-      name: "New Player",
-      age: 16,
-      shirtNumber: 99,
-      position: "GK",
-    });
-
-    const reread = await teamService.getById(team.id);
-    expect(reread.players.find((p) => p.id === added.id)).toEqual(added);
-  });
-
-  it("addPlayer with an unknown teamId throws NotFoundError instead of a TypeError", async () => {
     await expect(
       teamService.addPlayer("no-such-team", { name: "X" })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("updatePlayer persists changes and preserves goals, assists and concededGoals", async () => {
-    const [team] = await teamService.getAll();
-    const [player] = team.players;
-    expect(player.goals).toBeGreaterThan(0);
+  it("updatePlayer(playerData) calls PATCH /teams/{teamId}/players/{id}", async () => {
+    const playerData = { id: "p1", teamId: "t1", name: "Renamed Player" };
+    apiFetch.mockResolvedValueOnce(playerData);
 
-    const updated = await teamService.updatePlayer({
-      id: player.id,
-      teamId: team.id,
-      name: "Renamed Player",
-      age: player.age,
-      shirtNumber: player.shirtNumber,
-      position: player.position,
+    const updated = await teamService.updatePlayer(playerData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1/players/p1", {
+      method: "PATCH",
+      body: playerData,
     });
-
-    expect(updated.name).toBe("Renamed Player");
-    expect(updated.goals).toBe(player.goals);
-    expect(updated.assists).toBe(player.assists);
-    expect(updated.concededGoals).toBe(player.concededGoals);
+    expect(updated).toEqual(playerData);
   });
 
-  it("deletePlayer persists the removal — it survives a subsequent read", async () => {
-    const [team] = await teamService.getAll();
-    const [player] = team.players;
+  it("updatePlayer propagates a typed NotFoundError for an unknown teamId", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Team not found: no-such-team"));
 
-    await teamService.deletePlayer({ id: player.id, teamId: team.id });
-
-    const reread = await teamService.getById(team.id);
-    expect(reread.players.find((p) => p.id === player.id)).toBeUndefined();
-  });
-
-  it("player ids stay unique across all teams", async () => {
-    const teams = await teamService.getAll();
-    const [teamA, teamB] = teams;
-
-    const playerA = await teamService.addPlayer(teamA.id, { name: "A" });
-    const playerB = await teamService.addPlayer(teamB.id, { name: "B" });
-
-    expect(playerA.id).not.toBe(playerB.id);
-  });
-
-  it("updatePlayer with an unknown teamId throws NotFoundError", async () => {
     await expect(
       teamService.updatePlayer({ id: "p1", teamId: "no-such-team", name: "X" })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("deletePlayer with an unknown teamId throws NotFoundError", async () => {
+  it("deletePlayer(playerData) calls DELETE /teams/{teamId}/players/{id}", async () => {
+    apiFetch.mockResolvedValueOnce(null);
+
+    await teamService.deletePlayer({ id: "p1", teamId: "t1" });
+
+    expect(apiFetch).toHaveBeenCalledWith("/teams/t1/players/p1", {
+      method: "DELETE",
+    });
+  });
+
+  it("deletePlayer does not call cardService.removeByPlayer or ratingService.removeByPlayer — the backend cascades (F4 AC7)", async () => {
+    apiFetch.mockResolvedValueOnce(null);
+
+    await teamService.deletePlayer({ id: "p1", teamId: "t1" });
+
+    expect(cardService.removeByPlayer).not.toHaveBeenCalled();
+    expect(ratingService.removeByPlayer).not.toHaveBeenCalled();
+  });
+
+  it("deletePlayer propagates a typed NotFoundError for an unknown teamId", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Team not found: no-such-team"));
+
     await expect(
       teamService.deletePlayer({ id: "p1", teamId: "no-such-team" })
     ).rejects.toBeInstanceOf(NotFoundError);
