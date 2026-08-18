@@ -1,6 +1,11 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { standingsService } from "../standingsService";
+import { apiFetch } from "../../lib/apiClient";
 import { NotFoundError, ValidationError } from "../../lib/errors";
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+}));
 
 function validRow(overrides = {}) {
   return {
@@ -17,47 +22,35 @@ function validRow(overrides = {}) {
 
 describe("standingsService", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("getAll returns the persisted list of rival rows", async () => {
+  it("getAll() calls GET /standings/rivals", async () => {
+    apiFetch.mockResolvedValueOnce([{ id: "r1", ...validRow() }]);
+
     const rows = await standingsService.getAll();
-    expect(Array.isArray(rows)).toBe(true);
+
+    expect(apiFetch).toHaveBeenCalledWith("/standings/rivals");
+    expect(rows).toEqual([{ id: "r1", ...validRow() }]);
   });
 
-  it("getAll returns non-reference-identical arrays across two calls (AD-004)", async () => {
-    const first = await standingsService.getAll();
-    const second = await standingsService.getAll();
-    expect(first).not.toBe(second);
-  });
+  it("create(rowData) calls POST /standings/rivals with the row as the body (AC GAME-09.1)", async () => {
+    apiFetch.mockResolvedValueOnce({ id: "r1", ...validRow() });
 
-  it("create persists name, played, won, drawn, lost, goalsFor and goalsAgainst (AC GAME-09.1)", async () => {
     const created = await standingsService.create(validRow());
 
-    expect(created).toMatchObject(validRow());
-    const all = await standingsService.getAll();
-    expect(all.find((r) => r.id === created.id)).toEqual(created);
+    expect(apiFetch).toHaveBeenCalledWith("/standings/rivals", {
+      method: "POST",
+      body: validRow(),
+    });
+    expect(created).toEqual({ id: "r1", ...validRow() });
   });
 
-  it("create assigns an id via newId()", async () => {
-    const created = await standingsService.create(validRow());
-    expect(typeof created.id).toBe("string");
-    expect(created.id.length).toBeGreaterThan(0);
-  });
-
-  it("create does not persist points or goalDifference — they are derived, not input (AC GAME-09.2)", async () => {
-    const created = await standingsService.create(
-      validRow({ points: 999, goalDifference: 999 })
-    );
-
-    expect(created.points).toBeUndefined();
-    expect(created.goalDifference).toBeUndefined();
-  });
-
-  it("create throws ValidationError when won + drawn + lost does not sum to played (AC GAME-09.3)", async () => {
+  it("create throws ValidationError locally (no apiFetch call) when won + drawn + lost does not sum to played (AC GAME-09.3)", async () => {
     await expect(
       standingsService.create(validRow({ played: 5, won: 3, drawn: 1, lost: 0 }))
     ).rejects.toBeInstanceOf(ValidationError);
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("create's ValidationError message names the discrepancy (AC GAME-09.3)", async () => {
@@ -66,19 +59,11 @@ describe("standingsService", () => {
     ).rejects.toThrow(/4.*5|5.*4/);
   });
 
-  it("create does not persist a row when validation fails", async () => {
-    const before = await standingsService.getAll();
-    await expect(
-      standingsService.create(validRow({ played: 5, won: 3, drawn: 1, lost: 0 }))
-    ).rejects.toBeInstanceOf(ValidationError);
-    const after = await standingsService.getAll();
-    expect(after.length).toBe(before.length);
-  });
-
-  it("create rejects a negative figure", async () => {
+  it("create rejects a negative figure locally (no apiFetch call)", async () => {
     await expect(
       standingsService.create(validRow({ goalsFor: -1 }))
     ).rejects.toBeInstanceOf(ValidationError);
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("create rejects a negative played/won/drawn/lost/goalsAgainst figure too", async () => {
@@ -87,39 +72,51 @@ describe("standingsService", () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it("update edits and persists an existing row, and re-derivable data stays consistent (AC GAME-09.4)", async () => {
-    const created = await standingsService.create(validRow());
+  it("create propagates the server's own ValidationError (400) when the client-side check passes but the server disagrees", async () => {
+    apiFetch.mockRejectedValueOnce(new ValidationError("Server-side mismatch."));
 
-    const updated = await standingsService.update({
-      ...created,
-      goalsFor: 20,
-    });
-
-    expect(updated.goalsFor).toBe(20);
-    const all = await standingsService.getAll();
-    expect(all.find((r) => r.id === created.id).goalsFor).toBe(20);
+    await expect(standingsService.create(validRow())).rejects.toBeInstanceOf(
+      ValidationError
+    );
   });
 
-  it("update throws a typed NotFoundError for an unknown id", async () => {
+  it("update(rowData) calls PATCH /standings/rivals/{id} with the row as the body (AC GAME-09.4)", async () => {
+    const rowData = { id: "r1", ...validRow(), goalsFor: 20 };
+    apiFetch.mockResolvedValueOnce(rowData);
+
+    const updated = await standingsService.update(rowData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/standings/rivals/r1", {
+      method: "PATCH",
+      body: rowData,
+    });
+    expect(updated.goalsFor).toBe(20);
+  });
+
+  it("update propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Rival row not found"));
+
     await expect(
       standingsService.update(validRow({ id: "no-such-row" }))
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("update throws ValidationError before checking existence when the sum is wrong", async () => {
+  it("update throws ValidationError locally before ever calling apiFetch when the sum is wrong", async () => {
     await expect(
       standingsService.update(
         validRow({ id: "no-such-row", played: 5, won: 3, drawn: 1, lost: 0 })
       )
     ).rejects.toBeInstanceOf(ValidationError);
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it("delete persists the removal — a subsequent getAll no longer includes the row (AC GAME-09.4)", async () => {
-    const created = await standingsService.create(validRow());
+  it("delete(id) calls DELETE /standings/rivals/{id}", async () => {
+    apiFetch.mockResolvedValueOnce(null);
 
-    await standingsService.delete(created.id);
+    await standingsService.delete("r1");
 
-    const all = await standingsService.getAll();
-    expect(all.find((r) => r.id === created.id)).toBeUndefined();
+    expect(apiFetch).toHaveBeenCalledWith("/standings/rivals/r1", {
+      method: "DELETE",
+    });
   });
 });

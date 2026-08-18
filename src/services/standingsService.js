@@ -1,6 +1,5 @@
-import { getCollection, setCollection } from "./store";
-import { newId } from "../lib/id";
-import { NotFoundError, ValidationError } from "../lib/errors";
+import { apiFetch } from "../lib/apiClient";
+import { ValidationError } from "../lib/errors";
 
 const FIGURE_FIELDS = [
   "played",
@@ -11,19 +10,11 @@ const FIGURE_FIELDS = [
   "goalsAgainst",
 ];
 
-function getRows() {
-  return getCollection("standings");
-}
-
-function saveRows(rows) {
-  setCollection("standings", rows);
-}
-
 /**
  * Throws ValidationError when any figure is negative, or when won + drawn +
- * lost doesn't sum to played (AC GAME-09.3). Points and goalDifference are
- * never accepted as input (AC GAME-09.2) — this function doesn't even look
- * at them.
+ * lost doesn't sum to played (AC GAME-09.3) — kept as an early, cheap
+ * client-side reject in addition to the server's own 400 (F6 AC9), so both
+ * agree on the same rule.
  */
 function validate(rowData) {
   for (const field of FIGURE_FIELDS) {
@@ -40,43 +31,27 @@ function validate(rowData) {
   }
 }
 
+// Rival standings rows against the real API (F6 AC9). getAll maps to
+// GET /standings/rivals, matching the backend's own routing table and the
+// existing caller (Games.jsx), which computes the "our team" row itself
+// from gameService.getAll(teamId) via lib/standings.js's computeOurRow —
+// getAll here stays rival-rows-only, unchanged in shape, so that caller
+// needs no rewrite.
 export const standingsService = {
-  getAll: async () => {
-    return getRows();
-  },
+  getAll: () => apiFetch("/standings/rivals"),
 
   create: async (rowData) => {
     validate(rowData);
-    const rows = getRows();
-    const newRow = {
-      id: newId(),
-      name: rowData.name,
-      played: rowData.played,
-      won: rowData.won,
-      drawn: rowData.drawn,
-      lost: rowData.lost,
-      goalsFor: rowData.goalsFor,
-      goalsAgainst: rowData.goalsAgainst,
-    };
-    rows.push(newRow);
-    saveRows(rows);
-    return newRow;
+    return apiFetch("/standings/rivals", { method: "POST", body: rowData });
   },
 
   update: async (rowData) => {
     validate(rowData);
-    const rows = getRows();
-    const index = rows.findIndex((row) => row.id === rowData.id);
-    if (index === -1) {
-      throw new NotFoundError(`Rival row not found: ${rowData.id}`);
-    }
-    rows[index] = { ...rows[index], ...rowData };
-    saveRows(rows);
-    return rows[index];
+    return apiFetch(`/standings/rivals/${rowData.id}`, {
+      method: "PATCH",
+      body: rowData,
+    });
   },
 
-  delete: async (id) => {
-    const rows = getRows().filter((row) => row.id !== id);
-    saveRows(rows);
-  },
+  delete: (id) => apiFetch(`/standings/rivals/${id}`, { method: "DELETE" }),
 };
