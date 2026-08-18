@@ -10,6 +10,127 @@ import { trainingService } from "../../services/trainingService";
 import { gameService } from "../../services/gameService";
 import { cardService } from "../../services/cardService";
 import { ratingService } from "../../services/ratingService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch is
+// replaced with the shared stateful fake so every unmocked test below
+// round-trips deterministically with zero real network calls. Most tests
+// here fully override each service with vi.spyOn(...).mockResolvedValueOnce
+// and never touch the fake at all — those are unaffected either way. The
+// handful that render against real fixture data (no spies) need "2 past ·
+// 0 upcoming" trainings and "1 played · 1 upcoming" games (AC DASH-04.2/
+// DASH-04.3, DTILE-02), so this seed keeps fakeApi's default teams/games
+// (which already give 1 played + 1 upcoming) but adds a second past
+// training alongside the default seed's one.
+const HOME_SEED = {
+  teams: [
+    {
+      id: "team-1",
+      name: "Sub-11",
+      club: "Amadora",
+      season: "23/24",
+      players: [
+        {
+          id: "player-1",
+          teamId: "team-1",
+          name: "João Silva",
+          age: 15,
+          shirtNumber: 1,
+          position: "CAM",
+          goals: 3,
+          assists: 1,
+          concededGoals: 0,
+        },
+        {
+          id: "player-2",
+          teamId: "team-1",
+          name: "Pedro Santos",
+          age: 14,
+          shirtNumber: 2,
+          position: "CB",
+          goals: 0,
+          assists: 0,
+          concededGoals: 0,
+        },
+      ],
+    },
+    {
+      id: "team-2",
+      name: "Sub-19",
+      club: "Areias",
+      season: "23/24",
+      players: [
+        {
+          id: "player-3",
+          teamId: "team-2",
+          name: "Rui Costa",
+          age: 18,
+          shirtNumber: 9,
+          position: "ST",
+          goals: 5,
+          assists: 2,
+          concededGoals: 0,
+        },
+      ],
+    },
+  ],
+  trainings: [
+    {
+      id: "training-1",
+      teamId: "team-1",
+      day: "2024-10-24T15:00:00.000Z",
+      duration: 90,
+      exercises: [],
+    },
+    {
+      id: "training-2",
+      teamId: "team-1",
+      day: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      duration: 60,
+      exercises: [],
+    },
+  ],
+  games: [
+    {
+      id: "game-1",
+      teamId: "team-1",
+      opponent: "Benfica",
+      competition: "District League",
+      date: "2030-01-01T15:00:00.000Z",
+      isHome: true,
+      usScore: null,
+      themScore: null,
+    },
+    {
+      id: "game-2",
+      teamId: "team-1",
+      opponent: "Sporting",
+      competition: "District League",
+      date: "2023-05-01T15:00:00.000Z",
+      isHome: false,
+      usScore: 2,
+      themScore: 1,
+    },
+  ],
+  cards: [{ id: "card-1", playerId: "player-1", gameId: "game-2", type: "yellow" }],
+  ratings: [],
+  rivalRows: [],
+  competitions: [{ id: "competition-1", name: "District League" }],
+  opponents: [
+    { id: "opponent-1", name: "Benfica" },
+    { id: "opponent-2", name: "Sporting" },
+  ],
+};
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi(HOME_SEED).apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -830,7 +951,10 @@ test("clicking a team row navigates to /teams?team=<id> with that team selected 
   await user.click(link);
 
   expect(await screen.findByRole("heading", { name: "Teams" })).toBeInTheDocument();
-  expect(await screen.findByText("1 João")).toBeInTheDocument();
+  // fakeApi's default seed names Amadora Sub-11's #1 shirt "João Silva"
+  // (not the bare "João" the deleted mock seed used) — Teams.jsx renders
+  // "{shirtNumber} {name}" verbatim, so the full name is asserted here.
+  expect(await screen.findByText("1 João Silva")).toBeInTheDocument();
 });
 
 test("with a team filter active the Teams tile lists only that team, matching its count of 1 (AC DTILE-01.6)", async () => {

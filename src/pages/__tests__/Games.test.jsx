@@ -6,6 +6,26 @@ import { teamService } from "../../services/teamService";
 import { gameService } from "../../services/gameService";
 import { competitionService } from "../../services/competitionService";
 import { opponentService } from "../../services/opponentService";
+import { apiFetch } from "../../lib/apiClient";
+import { createFakeApi } from "../../test/fakeApi";
+
+// The real services now hit a live backend (F4/F5/F6/F7). apiFetch (the one
+// seam every service imports) is replaced with the shared stateful fake so
+// fixture reads/writes round-trip deterministically with zero real network
+// calls. fakeApi's default seed already mirrors the deleted model/seed.js
+// shape this suite was written against — two teams ("Amadora Sub-11" with
+// 2 players, "Areias Sub-19" with 1), one upcoming game (Benfica) and one
+// played game (Sporting, 2-1 win), one competition ("District League") used
+// by both games, and two opponents (Benfica, Sporting) — so no custom seed
+// is needed here.
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+  silentRefresh: vi.fn(),
+}));
+
+beforeEach(() => {
+  apiFetch.mockImplementation(createFakeApi().apiFetch);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -435,14 +455,17 @@ test("renders the league table scoped to the selected team (AC GAME-07.1, GAME-1
   );
 
   const row = await within(getLeagueTableSection()).findByText(
-    "Amadora Sub-11"
+    "Sub-11"
   );
   const cells = within(row.closest("tr")).getAllByRole("cell");
   // #, Team, P, W, D, L, GF, GA, GD, Pts — from the seed's single played
-  // game (2-1 win over Sporting).
+  // game (2-1 win over Sporting). The table now comes fully computed from
+  // the server (standingsService.getTable, T17), which names our row after
+  // the team's own `name` only (no club prefix) — see fakeApi's
+  // handleStandingsTable / StandingsController's row shape.
   expect(cells.map((c) => c.textContent)).toEqual([
     "1",
-    "Amadora Sub-11",
+    "Sub-11",
     "1",
     "1",
     "0",
@@ -461,7 +484,7 @@ test("recording a result recomputes our row with no page reload (AC GAME-07.5)",
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
-  await within(getLeagueTableSection()).findByText("Amadora Sub-11");
+  await within(getLeagueTableSection()).findByText("Sub-11");
 
   await user.click(within(getUpcomingList()).getByText(/Benfica/));
   await screen.findByRole("heading", { name: "Record Result" });
@@ -470,7 +493,7 @@ test("recording a result recomputes our row with no page reload (AC GAME-07.5)",
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   await waitFor(() => {
-    const row = within(getLeagueTableSection()).getByText("Amadora Sub-11");
+    const row = within(getLeagueTableSection()).getByText("Sub-11");
     const cells = within(row.closest("tr")).getAllByRole("cell");
     expect(cells[2]).toHaveTextContent("2"); // played
     expect(cells[9]).toHaveTextContent("6"); // points: two wins
@@ -484,14 +507,14 @@ test("clearing a result recomputes our row with no page reload (AC GAME-07.5)", 
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
-  await within(getLeagueTableSection()).findByText("Amadora Sub-11");
+  await within(getLeagueTableSection()).findByText("Sub-11");
 
   await user.click(within(getPlayedList()).getByText(/Sporting/));
   await screen.findByRole("button", { name: "Clear Result" });
   await user.click(screen.getByRole("button", { name: "Clear Result" }));
 
   await waitFor(() => {
-    const row = within(getLeagueTableSection()).getByText("Amadora Sub-11");
+    const row = within(getLeagueTableSection()).getByText("Sub-11");
     const cells = within(row.closest("tr")).getAllByRole("cell");
     expect(cells[2]).toHaveTextContent("0"); // played
     expect(cells[9]).toHaveTextContent("0"); // points
@@ -505,7 +528,7 @@ test("deleting a played game removes its contribution from the standings (edge c
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
-  await within(getLeagueTableSection()).findByText("Amadora Sub-11");
+  await within(getLeagueTableSection()).findByText("Sub-11");
 
   await user.click(within(getPlayedList()).getByText(/Sporting/));
   await screen.findByRole("button", { name: "Delete Game" });
@@ -513,7 +536,7 @@ test("deleting a played game removes its contribution from the standings (edge c
   await user.click(screen.getByRole("button", { name: "Submit" }));
 
   await waitFor(() => {
-    const row = within(getLeagueTableSection()).getByText("Amadora Sub-11");
+    const row = within(getLeagueTableSection()).getByText("Sub-11");
     const cells = within(row.closest("tr")).getAllByRole("cell");
     expect(cells[2]).toHaveTextContent("0"); // played
     expect(cells[9]).toHaveTextContent("0"); // points
@@ -528,7 +551,7 @@ test("adding a rival row re-sorts the table immediately", async () => {
   await user.click(
     within(getTeamsColumn(container)).getByText("Amadora Sub-11")
   );
-  await within(getLeagueTableSection()).findByText("Amadora Sub-11");
+  await within(getLeagueTableSection()).findByText("Sub-11");
 
   await user.click(screen.getByRole("button", { name: "Add Rival Row" }));
   const form = getFormFor("Add Rival Row");
@@ -546,13 +569,13 @@ test("adding a rival row re-sorts the table immediately", async () => {
       .getAllByRole("row")
       .slice(1);
     expect(within(dataRows[0]).getByText("Benfica B")).toBeInTheDocument();
-    expect(within(dataRows[1]).getByText("Amadora Sub-11")).toBeInTheDocument();
+    expect(within(dataRows[1]).getByText("Sub-11")).toBeInTheDocument();
   });
 });
 
 test("opens the matching game from a ?game=<id> deep link (AC CAL-04.2)", async () => {
   const created = await gameService.create({
-    teamId: 1,
+    teamId: "team-1",
     opponent: "Benfica",
     date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
     isHome: true,
@@ -569,7 +592,7 @@ test("opens the matching game from a ?game=<id> deep link (AC CAL-04.2)", async 
 
 test("removes the game param from the URL once opened, so a refresh does not reopen it (AC CAL-04.4)", async () => {
   const created = await gameService.create({
-    teamId: 1,
+    teamId: "team-1",
     opponent: "Benfica",
     date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
     isHome: true,
@@ -598,7 +621,7 @@ test("shows a not-found message when the deep-linked id matches no game (AC CAL-
 test("clears the team filter when it would hide the deep-linked game (edge case)", async () => {
   const user = userEvent.setup();
   const created = await gameService.create({
-    teamId: 2,
+    teamId: "team-2",
     opponent: "Sporting",
     date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
     isHome: true,

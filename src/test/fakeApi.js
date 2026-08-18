@@ -284,6 +284,18 @@ export function createFakeApi(seed) {
     return item;
   }
 
+  /**
+   * "Unassigned" (`?assigned=false`) matches a null `teamId` *or* one that
+   * no longer references any team in `state.teams` — mirroring the
+   * pre-rewrite mock's `getUnassigned` (`teamId == null || !teamIds.has(...)`),
+   * which several consumer tests (Games.test.jsx, Trainings.test.jsx)
+   * deliberately exercise as a "dangling teamId" edge case.
+   */
+  function isUnassigned(item) {
+    if (item.teamId == null) return true;
+    return !state.teams.some((t) => String(t.id) === String(item.teamId));
+  }
+
   // --- teams -----------------------------------------------------------
 
   function handleTeams(method, id, params, body) {
@@ -339,7 +351,7 @@ export function createFakeApi(seed) {
       const teamId = params.get("teamId");
       const assigned = params.get("assigned");
       if (teamId != null) trainings = trainings.filter((t) => String(t.teamId) === teamId);
-      if (assigned === "false") trainings = trainings.filter((t) => t.teamId == null);
+      if (assigned === "false") trainings = trainings.filter(isUnassigned);
       return clone(trainings);
     }
     if (method === "GET") {
@@ -404,7 +416,7 @@ export function createFakeApi(seed) {
       if (status === "scheduled") games = games.filter((g) => g.usScore == null);
       if (status === "played") games = games.filter((g) => g.usScore != null);
       if (teamId != null) games = games.filter((g) => String(g.teamId) === teamId);
-      if (assigned === "false") games = games.filter((g) => g.teamId == null);
+      if (assigned === "false") games = games.filter(isUnassigned);
       return clone(games);
     }
     if (method === "POST") {
