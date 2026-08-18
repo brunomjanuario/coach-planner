@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { reset } from "../services/store";
-import ConfirmationPopup from "../components/ConfirmationPopup";
 import Tabs from "../components/Tabs";
 import { useAuth } from "../context/useAuth";
 
@@ -168,34 +166,17 @@ function ProfilePanel() {
   );
 }
 
+// "Reset demo data" existed only to reset the old localStorage mock
+// (src/services/store.js) back to its seed data. Now that the app talks to
+// a real backend with no seed/demo concept, that action has no equivalent
+// and was removed along with the mock — this panel is a placeholder until a
+// real advanced setting exists.
 function AdvancedPanel() {
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const handleReset = () => {
-    reset();
-    setShowResetConfirm(false);
-  };
-
   return (
     <div className="p-4">
-      <p className="text-sm text-gray-400 mb-3">
-        Resetting clears all your teams, players, trainings and games, and
-        restores the original demo data. This cannot be undone.
+      <p className="text-sm text-gray-400">
+        No advanced settings are available yet.
       </p>
-      <button
-        type="button"
-        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
-        onClick={() => setShowResetConfirm(true)}
-      >
-        Reset demo data
-      </button>
-      {showResetConfirm && (
-        <ConfirmationPopup
-          message="Reset all data to the demo seed? This cannot be undone."
-          onSubmit={handleReset}
-          onClose={() => setShowResetConfirm(false)}
-        />
-      )}
     </div>
   );
 }

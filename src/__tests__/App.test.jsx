@@ -20,13 +20,24 @@ beforeEach(() => {
   clearTokens();
 });
 
+const STUB_TEAM = { id: "t1", club: "Amadora", name: "Sub-11", players: [] };
+
 function signIn() {
   setTokens("access-token", "refresh-token");
   silentRefresh.mockResolvedValue("access-token");
-  apiFetch.mockResolvedValue({
-    id: "u1",
-    name: "Coach Bruno",
-    email: "user@email.com",
+  // Path-aware stub: AuthContext's boot flow needs /users/me, and any page
+  // reachable from these tests (Trainings, Teams, ...) fetches its own data
+  // through teamService/trainingService/gameService — all of which now call
+  // apiFetch too. Everything not explicitly a user or a team resolves to an
+  // empty list so pages render without crashing.
+  apiFetch.mockImplementation((path) => {
+    if (path === "/users/me") {
+      return Promise.resolve({ id: "u1", name: "Coach Bruno", email: "user@email.com" });
+    }
+    if (path === "/teams") {
+      return Promise.resolve([STUB_TEAM]);
+    }
+    return Promise.resolve([]);
   });
 }
 
