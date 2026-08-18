@@ -1,92 +1,48 @@
-import { getCollection, setCollection } from "./store";
-import { newId } from "../lib/id";
-import { NotFoundError } from "../lib/errors";
-import { hasResult } from "../lib/gameResult";
-import { cardService } from "./cardService";
-import { ratingService } from "./ratingService";
+import { apiFetch } from "../lib/apiClient";
+import { parseApiDate } from "../lib/dates";
 
-function getGames() {
-  return getCollection("games");
-}
+// Games against the real API (F6). getScheduled/getPlayed become
+// ?status= querystring calls instead of fetch-all-then-filter with
+// hasResult() (F6 AC2). Cascades to a deleted game's cards/ratings are
+// performed server-side via FK actions (F6 AC6) — this module no longer
+// calls cardService/ratingService.
+const hydrate = (game) => ({ ...game, date: parseApiDate(game.date) });
 
-function saveGames(games) {
-  setCollection("games", games);
+function gamesQuery({ status, teamId } = {}) {
+  const params = new URLSearchParams();
+  if (status != null) params.set("status", status);
+  if (teamId != null) params.set("teamId", teamId);
+  const qs = params.toString();
+  return qs ? `/games?${qs}` : "/games";
 }
 
 export const gameService = {
-  getAll: async (teamId) => {
-    const games = getGames();
-    return teamId != null ? games.filter((game) => game.teamId === teamId) : games;
-  },
+  getAll: async (teamId) => (await apiFetch(gamesQuery({ teamId }))).map(hydrate),
 
-  getScheduled: async (teamId) => {
-    const games = await gameService.getAll(teamId);
-    return games.filter((game) => !hasResult(game));
-  },
+  getScheduled: async (teamId) =>
+    (await apiFetch(gamesQuery({ status: "scheduled", teamId }))).map(hydrate),
 
-  getPlayed: async (teamId) => {
-    const games = await gameService.getAll(teamId);
-    return games.filter((game) => hasResult(game));
-  },
+  getPlayed: async (teamId) =>
+    (await apiFetch(gamesQuery({ status: "played", teamId }))).map(hydrate),
 
-  getUnassigned: async () => {
-    const games = getGames();
-    const teamIds = new Set(getCollection("teams").map((team) => team.id));
-    return games.filter(
-      (game) => game.teamId == null || !teamIds.has(game.teamId)
-    );
-  },
+  getUnassigned: async () => (await apiFetch("/games?assigned=false")).map(hydrate),
 
-  create: async (gameData) => {
-    const games = getGames();
-    const newGame = {
-      ...gameData,
-      id: newId(),
-      usScore: null,
-      themScore: null,
-    };
-    games.push(newGame);
-    saveGames(games);
-    return newGame;
-  },
+  create: async (gameData) =>
+    hydrate(await apiFetch("/games", { method: "POST", body: gameData })),
 
-  update: async (gameData) => {
-    const games = getGames();
-    const index = games.findIndex((game) => game.id === gameData.id);
-    if (index === -1) {
-      throw new NotFoundError(`Game not found: ${gameData.id}`);
-    }
-    games[index] = { ...games[index], ...gameData };
-    saveGames(games);
-    return games[index];
-  },
+  update: async (gameData) =>
+    hydrate(await apiFetch(`/games/${gameData.id}`, { method: "PATCH", body: gameData })),
 
-  delete: async (id) => {
-    const games = getGames().filter((game) => game.id !== id);
-    saveGames(games);
-    await cardService.removeByGame(id);
-    await ratingService.removeByEvent("game", id);
-  },
+  delete: (id) => apiFetch(`/games/${id}`, { method: "DELETE" }),
 
-  recordResult: async (id, { us, them }) => {
-    const games = getGames();
-    const index = games.findIndex((game) => game.id === id);
-    if (index === -1) {
-      throw new NotFoundError(`Game not found: ${id}`);
-    }
-    games[index] = { ...games[index], usScore: us, themScore: them };
-    saveGames(games);
-    return games[index];
-  },
+  recordResult: async (id, { us, them }) =>
+    hydrate(
+      await apiFetch(`/games/${id}/result`, {
+        method: "PUT",
+        body: { us, them },
+      })
+    ),
 
-  clearResult: async (id) => {
-    const games = getGames();
-    const index = games.findIndex((game) => game.id === id);
-    if (index === -1) {
-      throw new NotFoundError(`Game not found: ${id}`);
-    }
-    games[index] = { ...games[index], usScore: null, themScore: null };
-    saveGames(games);
-    return games[index];
-  },
+  clearResult: async (id) =>
+    hydrate(await apiFetch(`/games/${id}/result`, { method: "DELETE" })),
 };

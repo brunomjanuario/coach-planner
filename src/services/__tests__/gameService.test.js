@@ -1,277 +1,191 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { gameService } from "../gameService";
-import { teamService } from "../teamService";
+import { apiFetch } from "../../lib/apiClient";
+import { cardService } from "../cardService";
+import { ratingService } from "../ratingService";
 import { NotFoundError } from "../../lib/errors";
+
+vi.mock("../../lib/apiClient", () => ({
+  apiFetch: vi.fn(),
+}));
+
+vi.mock("../cardService", () => ({
+  cardService: { removeByGame: vi.fn(), removeByPlayer: vi.fn() },
+}));
+
+vi.mock("../ratingService", () => ({
+  ratingService: { removeByEvent: vi.fn(), removeByPlayer: vi.fn() },
+}));
+
+const RAW_GAME = {
+  id: "g1",
+  teamId: "team-1",
+  opponent: "Benfica",
+  date: "2030-01-01T10:00:00.000Z",
+  isHome: true,
+  competition: "League",
+  usScore: null,
+  themScore: null,
+};
 
 describe("gameService", () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
-  it("getAll returns the persisted list of games", async () => {
+  it("getAll() with no teamId calls GET /games and hydrates date", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_GAME]);
+
     const games = await gameService.getAll();
-    expect(Array.isArray(games)).toBe(true);
-    expect(games.length).toBeGreaterThan(0);
+
+    expect(apiFetch).toHaveBeenCalledWith("/games");
+    expect(games[0].date).toBeInstanceOf(Date);
   });
 
-  it("getAll returns non-reference-identical arrays across two calls (AD-004)", async () => {
-    const first = await gameService.getAll();
-    const second = await gameService.getAll();
-    expect(first).not.toBe(second);
-    expect(first).toEqual(second);
+  it("getAll(teamId) calls GET /games?teamId=", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_GAME]);
+
+    await gameService.getAll("team-1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/games?teamId=team-1");
   });
 
-  it("getAll(teamId) filters to only that team's games", async () => {
-    const [seedTeam] = await teamService.getAll();
-    const created = await gameService.create({
-      teamId: "some-other-team",
-      opponent: "Rivals FC",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "Cup",
-    });
+  it("getScheduled() calls GET /games?status=scheduled", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_GAME]);
 
-    const filtered = await gameService.getAll(seedTeam.id);
+    await gameService.getScheduled();
 
-    expect(filtered.every((game) => game.teamId === seedTeam.id)).toBe(true);
-    expect(filtered.find((game) => game.id === created.id)).toBeUndefined();
+    expect(apiFetch).toHaveBeenCalledWith("/games?status=scheduled");
   });
 
-  it("create assigns an id via newId() and persists (AC GAME-01.4)", async () => {
-    const created = await gameService.create({
+  it("getScheduled(teamId) calls GET /games?status=scheduled&teamId=", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_GAME]);
+
+    await gameService.getScheduled("team-1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/games?status=scheduled&teamId=team-1");
+  });
+
+  it("getPlayed() calls GET /games?status=played", async () => {
+    apiFetch.mockResolvedValueOnce([{ ...RAW_GAME, usScore: 2, themScore: 1 }]);
+
+    await gameService.getPlayed();
+
+    expect(apiFetch).toHaveBeenCalledWith("/games?status=played");
+  });
+
+  it("getPlayed(teamId) calls GET /games?status=played&teamId=", async () => {
+    apiFetch.mockResolvedValueOnce([RAW_GAME]);
+
+    await gameService.getPlayed("team-1");
+
+    expect(apiFetch).toHaveBeenCalledWith("/games?status=played&teamId=team-1");
+  });
+
+  it("getUnassigned() calls GET /games?assigned=false", async () => {
+    apiFetch.mockResolvedValueOnce([{ ...RAW_GAME, teamId: null }]);
+
+    await gameService.getUnassigned();
+
+    expect(apiFetch).toHaveBeenCalledWith("/games?assigned=false");
+  });
+
+  it("create(gameData) calls POST /games with the game data as the body", async () => {
+    const gameData = {
       teamId: "team-1",
       opponent: "Benfica",
       date: new Date("2030-01-01T10:00:00Z"),
       isHome: true,
       competition: "League",
-    });
+    };
+    apiFetch.mockResolvedValueOnce({ ...RAW_GAME, ...gameData, date: RAW_GAME.date });
 
-    expect(typeof created.id).toBe("string");
-    expect(created.id.length).toBeGreaterThan(0);
-    const all = await gameService.getAll();
-    expect(all.find((g) => g.id === created.id)).toEqual(created);
+    const created = await gameService.create(gameData);
+
+    expect(apiFetch).toHaveBeenCalledWith("/games", { method: "POST", body: gameData });
+    expect(created.date).toBeInstanceOf(Date);
   });
 
-  it("create forces usScore and themScore to null even if provided (AC GAME-01.5)", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-      usScore: 5,
-      themScore: 3,
-    });
+  it("update(gameData) calls PATCH /games/{id} with the game data as the body", async () => {
+    const gameData = { id: "g1", opponent: "Porto" };
+    apiFetch.mockResolvedValueOnce({ ...RAW_GAME, opponent: "Porto" });
 
-    expect(created.usScore).toBeNull();
-    expect(created.themScore).toBeNull();
-  });
+    const updated = await gameService.update(gameData);
 
-  it("update takes a whole game object, persists and returns it", async () => {
-    const [seedGame] = await gameService.getAll();
-
-    const updated = await gameService.update({
-      ...seedGame,
-      opponent: "Porto",
-    });
-
+    expect(apiFetch).toHaveBeenCalledWith("/games/g1", { method: "PATCH", body: gameData });
     expect(updated.opponent).toBe("Porto");
-    const all = await gameService.getAll();
-    expect(all.find((g) => g.id === seedGame.id).opponent).toBe("Porto");
   });
 
-  it("update throws a typed NotFoundError for an unknown id", async () => {
+  it("update propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Game not found"));
+
     await expect(
       gameService.update({ id: "no-such-game", opponent: "X" })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("delete persists the removal — a subsequent getAll no longer includes the game", async () => {
-    const [seedGame] = await gameService.getAll();
+  it("delete(id) calls DELETE /games/{id}", async () => {
+    apiFetch.mockResolvedValueOnce(null);
 
-    await gameService.delete(seedGame.id);
+    await gameService.delete("g1");
 
-    const all = await gameService.getAll();
-    expect(all.find((g) => g.id === seedGame.id)).toBeUndefined();
+    expect(apiFetch).toHaveBeenCalledWith("/games/g1", { method: "DELETE" });
   });
 
-  it("recordResult persists both scores", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
+  it("delete does not call cardService.removeByGame or ratingService.removeByEvent — the backend cascades (F6 AC6)", async () => {
+    apiFetch.mockResolvedValueOnce(null);
+
+    await gameService.delete("g1");
+
+    expect(cardService.removeByGame).not.toHaveBeenCalled();
+    expect(ratingService.removeByEvent).not.toHaveBeenCalled();
+  });
+
+  it("recordResult(id, {us, them}) calls PUT /games/{id}/result with {us, them} as the body", async () => {
+    apiFetch.mockResolvedValueOnce({ ...RAW_GAME, usScore: 3, themScore: 1 });
+
+    const recorded = await gameService.recordResult("g1", { us: 3, them: 1 });
+
+    expect(apiFetch).toHaveBeenCalledWith("/games/g1/result", {
+      method: "PUT",
+      body: { us: 3, them: 1 },
     });
-
-    const recorded = await gameService.recordResult(created.id, { us: 3, them: 1 });
-
     expect(recorded.usScore).toBe(3);
     expect(recorded.themScore).toBe(1);
-    const all = await gameService.getAll();
-    const persisted = all.find((g) => g.id === created.id);
-    expect(persisted.usScore).toBe(3);
-    expect(persisted.themScore).toBe(1);
   });
 
   it("recordResult can persist a 0-0 scoreline (null-vs-zero trap)", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
+    apiFetch.mockResolvedValueOnce({ ...RAW_GAME, usScore: 0, themScore: 0 });
 
-    const recorded = await gameService.recordResult(created.id, { us: 0, them: 0 });
+    const recorded = await gameService.recordResult("g1", { us: 0, them: 0 });
 
     expect(recorded.usScore).toBe(0);
     expect(recorded.themScore).toBe(0);
   });
 
-  it("recordResult throws NotFoundError for an unknown id", async () => {
+  it("recordResult propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Game not found"));
+
     await expect(
       gameService.recordResult("no-such-game", { us: 1, them: 0 })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("clearResult sets usScore and themScore back to null (AC GAME-06.5)", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-    await gameService.recordResult(created.id, { us: 2, them: 2 });
+  it("clearResult(id) calls DELETE /games/{id}/result", async () => {
+    apiFetch.mockResolvedValueOnce({ ...RAW_GAME, usScore: null, themScore: null });
 
-    const cleared = await gameService.clearResult(created.id);
+    const cleared = await gameService.clearResult("g1");
 
+    expect(apiFetch).toHaveBeenCalledWith("/games/g1/result", { method: "DELETE" });
     expect(cleared.usScore).toBeNull();
     expect(cleared.themScore).toBeNull();
   });
 
-  it("clearResult throws NotFoundError for an unknown id", async () => {
+  it("clearResult propagates a typed NotFoundError for an unknown id", async () => {
+    apiFetch.mockRejectedValueOnce(new NotFoundError("Game not found"));
+
     await expect(gameService.clearResult("no-such-game")).rejects.toBeInstanceOf(
       NotFoundError
     );
-  });
-
-  it("getScheduled returns only games with no result (AC GAME-04.1)", async () => {
-    const scheduled = await gameService.getScheduled();
-    const all = await gameService.getAll();
-    const expectedIds = all
-      .filter((g) => g.usScore == null || g.themScore == null)
-      .map((g) => g.id);
-
-    expect(scheduled.map((g) => g.id).sort()).toEqual(expectedIds.sort());
-  });
-
-  it("getPlayed returns only games with both scores recorded (AC GAME-04.1)", async () => {
-    const played = await gameService.getPlayed();
-
-    expect(played.every((g) => g.usScore != null && g.themScore != null)).toBe(
-      true
-    );
-    expect(played.length).toBeGreaterThan(0);
-  });
-
-  it("getPlayed treats a 0-0 game as played, not scheduled (null-vs-zero trap)", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-    await gameService.recordResult(created.id, { us: 0, them: 0 });
-
-    const played = await gameService.getPlayed();
-    const scheduled = await gameService.getScheduled();
-
-    expect(played.find((g) => g.id === created.id)).toBeTruthy();
-    expect(scheduled.find((g) => g.id === created.id)).toBeUndefined();
-  });
-
-  it("a postponed fixture (past date, no result) still counts as scheduled, not played (AC: played vs scheduled derived from result, not date)", async () => {
-    const created = await gameService.create({
-      teamId: "team-1",
-      opponent: "Benfica",
-      date: new Date("2020-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-
-    const scheduled = await gameService.getScheduled();
-    const played = await gameService.getPlayed();
-
-    expect(scheduled.find((g) => g.id === created.id)).toBeTruthy();
-    expect(played.find((g) => g.id === created.id)).toBeUndefined();
-  });
-
-  it("getUnassigned returns games with a null teamId", async () => {
-    const created = await gameService.create({
-      teamId: null,
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-
-    const unassigned = await gameService.getUnassigned();
-
-    expect(unassigned.find((g) => g.id === created.id)).toBeTruthy();
-  });
-
-  it("getUnassigned returns games whose teamId matches no existing team (dangling-reference edge case)", async () => {
-    const created = await gameService.create({
-      teamId: "no-such-team",
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-
-    const unassigned = await gameService.getUnassigned();
-
-    expect(unassigned.find((g) => g.id === created.id)).toBeTruthy();
-  });
-
-  it("getUnassigned does not return a game whose teamId matches an existing team", async () => {
-    const [existingTeam] = await teamService.getAll();
-    const created = await gameService.create({
-      teamId: existingTeam.id,
-      opponent: "Benfica",
-      date: new Date("2030-01-01T10:00:00Z"),
-      isHome: true,
-      competition: "League",
-    });
-
-    const unassigned = await gameService.getUnassigned();
-
-    expect(unassigned.find((g) => g.id === created.id)).toBeUndefined();
-  });
-
-  it("orders games with the same date deterministically across repeated calls (edge case)", async () => {
-    const sameDate = new Date("2030-06-01T10:00:00Z");
-    await gameService.create({
-      teamId: "team-1",
-      opponent: "Team A",
-      date: sameDate,
-      isHome: true,
-      competition: "League",
-    });
-    await gameService.create({
-      teamId: "team-1",
-      opponent: "Team B",
-      date: sameDate,
-      isHome: true,
-      competition: "League",
-    });
-
-    const first = await gameService.getAll();
-    const second = await gameService.getAll();
-
-    expect(first.map((g) => g.id)).toEqual(second.map((g) => g.id));
   });
 });
