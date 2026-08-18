@@ -1,33 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContextInstance";
+import { apiFetch } from "../lib/apiClient";
+import { setTokens, clearTokens } from "../lib/tokenStore";
+import { AuthError, ConflictError, ValidationError } from "../lib/errors";
 
-// This is a mock, not authentication: credentials are stored as plaintext in
-// localStorage, readable by any script on the origin, with no server, no
-// session token and no hashing. See docs/08-authentication.md.
+// Real authentication against coach-planner-api: no plaintext credentials,
+// no localStorage-stored password. See docs/08-authentication.md.
 
-const STORAGE_KEY = "user";
-const SESSION_KEY = "session";
-const DEMO_EMAIL = "user@email.com";
-const DEMO_PASSWORD = "password";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function normalizeStoredUser(raw) {
-  if (!raw || typeof raw !== "object") return raw;
-  return raw.name ? raw : { ...raw, name: raw.username };
-}
-
-function readStoredUser() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    return normalizeStoredUser(JSON.parse(raw));
-  } catch {
-    return null;
+function messageFromError(e) {
+  if (e instanceof ValidationError) {
+    return e.errors ? Object.values(e.errors).join(" ") : e.message;
   }
-}
-
-function emailsMatch(a, b) {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
+  return e.message;
 }
 
 export function AuthProvider({ children }) {
@@ -35,58 +21,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = readStoredUser();
-    const hasActiveSession = localStorage.getItem(SESSION_KEY) === "active";
-    setUser(hasActiveSession ? stored : null);
     setLoading(false);
   }, []);
 
-  const signIn = (email, password) => {
-    const stored = readStoredUser();
-
-    if (stored) {
-      const storedPassword = stored.password ?? DEMO_PASSWORD;
-      if (emailsMatch(stored.email, email) && password === storedPassword) {
-        setUser(stored);
-        localStorage.setItem(SESSION_KEY, "active");
-        return { success: true };
-      }
-      return { success: false, message: "Invalid email or password" };
-    }
-
-    if (emailsMatch(DEMO_EMAIL, email) && password === DEMO_PASSWORD) {
-      const userObj = { email: DEMO_EMAIL };
-      setUser(userObj);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
-      localStorage.setItem(SESSION_KEY, "active");
+  const signIn = async (email, password) => {
+    try {
+      const { accessToken, refreshToken, user: u } = await apiFetch("/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
+      setTokens(accessToken, refreshToken);
+      setUser(u);
       return { success: true };
+    } catch (e) {
+      return {
+        success: false,
+        message: e instanceof AuthError ? "Invalid email or password" : e.message,
+      };
     }
-    return { success: false, message: "Invalid email or password" };
   };
 
-  const signUp = (username, email, password) => {
-    if (email === DEMO_EMAIL) {
-      return { success: false, message: "Email already taken" };
+  const signUp = async (username, email, password) => {
+    try {
+      const { accessToken, refreshToken, user: u } = await apiFetch("/auth/register", {
+        method: "POST",
+        body: { name: username, email, password },
+      });
+      setTokens(accessToken, refreshToken);
+      setUser(u);
+      return { success: true };
+    } catch (e) {
+      if (e instanceof ConflictError || e instanceof ValidationError) {
+        return { success: false, message: messageFromError(e) };
+      }
+      return { success: false, message: e.message };
     }
-    if (!username || !username.trim()) {
-      return { success: false, message: "Username cannot be empty" };
-    }
-    if (!EMAIL_PATTERN.test(email)) {
-      return { success: false, message: "Enter a valid email address" };
-    }
-    if (!password) {
-      return { success: false, message: "Password cannot be empty" };
-    }
-    const userObj = { username, email, password };
-    setUser(userObj);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
-    localStorage.setItem(SESSION_KEY, "active");
-    return { success: true };
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } catch {
+      // best-effort — a network failure here still clears local state
+    }
+    clearTokens();
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
   };
 
   const updateProfile = ({ name, email }) => {
@@ -99,22 +78,12 @@ export function AuthProvider({ children }) {
       return { success: false, message: "Enter a valid email address" };
     }
 
-    const updated = { ...user, name: trimmedName, email: trimmedEmail };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      return {
-        success: false,
-        message: "Could not save your profile. Try again.",
-      };
-    }
-    setUser(updated);
+    setUser({ ...user, name: trimmedName, email: trimmedEmail });
     return { success: true, message: "Profile updated" };
   };
 
   const changePassword = ({ current, next, confirm }) => {
-    const storedPassword = user.password ?? DEMO_PASSWORD;
-    if (current !== storedPassword) {
+    if (current !== user.password) {
       return { success: false, message: "Current password is incorrect" };
     }
     if (!next) {
@@ -124,16 +93,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: "New passwords do not match" };
     }
 
-    const updated = { ...user, password: next };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      return {
-        success: false,
-        message: "Could not save your password. Try again.",
-      };
-    }
-    setUser(updated);
+    setUser({ ...user, password: next });
     return { success: true, message: "Password updated" };
   };
 
