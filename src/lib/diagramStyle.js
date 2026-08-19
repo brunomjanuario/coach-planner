@@ -37,8 +37,8 @@ export const DIAGRAM_SIZES = Object.freeze({
   coneHalf: 1.5,
   ballRadius: 1,
   ballStrokeWidth: 0.2,
-  goalWidth: 6,
-  goalHeight: 1.5,
+  goalLength: 6,
+  goalDepth: 1.5,
   goalStrokeWidth: 0.3,
   pathWidth: 0.5,
   arrowHead: 2,
@@ -46,3 +46,17 @@ export const DIAGRAM_SIZES = Object.freeze({
   selectionRadius: 3.6,
   selectionWidth: 0.4,
 });
+
+/**
+ * A goal's box for a given orientation — a bar `goalLength` across and
+ * `goalDepth` deep, turned a quarter turn when vertical. Both renderers
+ * call this so a rotated goal is the same goal in the editor and in the
+ * saved diagram.
+ */
+export function goalSize(orientation) {
+  const vertical = orientation === "vertical";
+  return {
+    width: vertical ? DIAGRAM_SIZES.goalDepth : DIAGRAM_SIZES.goalLength,
+    height: vertical ? DIAGRAM_SIZES.goalLength : DIAGRAM_SIZES.goalDepth,
+  };
+}

@@ -8,12 +8,21 @@ import {
   addShape,
   moveShape,
   removeShape,
+  rotateShape,
   clearShapes,
   normalise,
   validate,
+  isRotatable,
+  orientationOf,
   SHAPE_KINDS,
+  DEFAULT_ORIENTATION,
 } from "../lib/exerciseDiagram";
-import { PITCH_UNITS, DIAGRAM_COLORS, DIAGRAM_SIZES } from "../lib/diagramStyle";
+import {
+  PITCH_UNITS,
+  DIAGRAM_COLORS,
+  DIAGRAM_SIZES,
+  goalSize,
+} from "../lib/diagramStyle";
 
 // The tools that place a single-point marker on a stage click.
 const MARKER_KINDS = ["player-a", "player-b", "cone", "ball", "goal"];
@@ -145,17 +154,19 @@ function ShapeBody({ konva, shape, size, scale }) {
         />
       );
 
-    case "goal":
+    case "goal": {
+      const { width, height } = goalSize(orientationOf(shape));
       return (
         <Rect
-          x={(-DIAGRAM_SIZES.goalWidth / 2) * s}
-          y={(-DIAGRAM_SIZES.goalHeight / 2) * s}
-          width={DIAGRAM_SIZES.goalWidth * s}
-          height={DIAGRAM_SIZES.goalHeight * s}
+          x={(-width / 2) * s}
+          y={(-height / 2) * s}
+          width={width * s}
+          height={height * s}
           stroke={DIAGRAM_COLORS.goal}
           strokeWidth={DIAGRAM_SIZES.goalStrokeWidth * s}
         />
       );
+    }
 
     case "text":
       return (
@@ -221,7 +232,14 @@ function SelectionMark({ konva, shape, size, scale }) {
     );
   }
 
-  return <Circle radius={DIAGRAM_SIZES.selectionRadius * scale} dash={[2 * scale, 1.5 * scale]} {...common} />;
+  // A goal is longer than it is wide, so the marker ring has to grow to
+  // whichever way it is facing rather than sit inside it.
+  const radius =
+    shape.kind === "goal"
+      ? (Math.max(...Object.values(goalSize(orientationOf(shape)))) / 2 + 1) * scale
+      : DIAGRAM_SIZES.selectionRadius * scale;
+
+  return <Circle radius={radius} dash={[2 * scale, 1.5 * scale]} {...common} />;
 }
 
 function KonvaSurface({
@@ -334,6 +352,10 @@ export default function ExerciseDiagramEditor({
   // bytes) — set on a failed Save, cleared on the next successful mutation
   // or Save attempt, and never closes the popup or drops any work.
   const [saveError, setSaveError] = useState(null);
+  // Which way the *next* goal is placed. Rotating a goal updates it too, so
+  // laying out a line of goals the same way round is one rotation and then
+  // however many clicks — not a rotation per goal.
+  const [newGoalOrientation, setNewGoalOrientation] = useState(DEFAULT_ORIENTATION);
 
   // The stage is sized from the popup's own width so it never overflows the
   // dialog and every part of the pitch stays clickable; STAGE_SIZE is the
@@ -429,7 +451,8 @@ export default function ExerciseDiagramEditor({
     }
 
     if (!MARKER_KINDS.includes(tool)) return;
-    applyChange((d) => addShape(d, tool, point));
+    const attrs = tool === "goal" ? { ...point, orientation: newGoalOrientation } : point;
+    applyChange((d) => addShape(d, tool, attrs));
   };
 
   // line captures every point along the drag (freehand); arrow only needs
@@ -479,6 +502,24 @@ export default function ExerciseDiagramEditor({
     const pixel = { x: e.target.x(), y: e.target.y() };
     const point = normalise(pixel, stageSize);
     applyChange((d) => moveShape(d, shapeId, point));
+  };
+
+  const selectedShape = diagram.shapes.find((shape) => shape.id === selectedId) ?? null;
+  // Rotate turns the selected shape when there is one; with the Goal tool
+  // active and nothing selected it sets which way the next goal goes down,
+  // so a goal can be placed the right way round without a second step.
+  const canRotate = isRotatable(selectedShape) || (tool === "goal" && !selectedShape);
+
+  const handleRotate = () => {
+    if (isRotatable(selectedShape)) {
+      setNewGoalOrientation(
+        orientationOf(selectedShape) === "horizontal" ? "vertical" : "horizontal"
+      );
+      applyChange((d) => rotateShape(d, selectedShape.id));
+      return;
+    }
+    if (tool !== "goal" || selectedShape) return;
+    setNewGoalOrientation((o) => (o === "horizontal" ? "vertical" : "horizontal"));
   };
 
   const handleDelete = () => {
@@ -547,10 +588,18 @@ export default function ExerciseDiagramEditor({
             </Button>
           ))}
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <Button type="button" variant="danger" disabled={!selectedId} onClick={handleDelete}>
             Delete
           </Button>
+          <Button type="button" variant="secondary" disabled={!canRotate} onClick={handleRotate}>
+            Rotate
+          </Button>
+          {canRotate && !selectedShape && (
+            <span className="text-sm text-gray-500">
+              New goals: {newGoalOrientation}
+            </span>
+          )}
         </div>
         <div ref={containerRef} className="flex w-full justify-center overflow-hidden rounded">
           <CanvasErrorBoundary>

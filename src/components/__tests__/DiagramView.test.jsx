@@ -202,3 +202,46 @@ test("draws grass behind the pitch lines, which are white and would otherwise be
   // the grass paints first, so the markings land on top of it
   expect(grass.compareDocumentPosition(lines) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
+
+test("a goal renders turned when its orientation is vertical", () => {
+  const flat = addShape(createDiagram(), "goal", { x: 0.5, y: 0.5 });
+  const { rerender } = render(<DiagramView diagram={flat} />);
+  const flatRect = screen.getByTestId("diagram-shape");
+  const w = Number(flatRect.getAttribute("width"));
+  const h = Number(flatRect.getAttribute("height"));
+  expect(w).toBeGreaterThan(h);
+
+  const turned = {
+    ...flat,
+    shapes: [{ ...flat.shapes[0], orientation: "vertical" }],
+  };
+  rerender(<DiagramView diagram={turned} />);
+  const turnedRect = screen.getByTestId("diagram-shape");
+  expect(Number(turnedRect.getAttribute("width"))).toBe(h);
+  expect(Number(turnedRect.getAttribute("height"))).toBe(w);
+});
+
+test("a turned goal stays centred on its stored point", () => {
+  const diagram = {
+    ...createDiagram(),
+    shapes: [{ id: "g", kind: "goal", x: 0.5, y: 0.5, orientation: "vertical" }],
+  };
+  render(<DiagramView diagram={diagram} />);
+  const rect = screen.getByTestId("diagram-shape");
+  const centreX = Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")) / 2;
+  const centreY = Number(rect.getAttribute("y")) + Number(rect.getAttribute("height")) / 2;
+  expect(centreX).toBeCloseTo(50);
+  expect(centreY).toBeCloseTo(31);
+});
+
+test("a goal saved before orientation existed still renders horizontally", () => {
+  const diagram = {
+    ...createDiagram(),
+    shapes: [{ id: "g", kind: "goal", x: 0.5, y: 0.5 }],
+  };
+  render(<DiagramView diagram={diagram} />);
+  const rect = screen.getByTestId("diagram-shape");
+  expect(Number(rect.getAttribute("width"))).toBeGreaterThan(
+    Number(rect.getAttribute("height"))
+  );
+});

@@ -1,5 +1,5 @@
-import { deserialize } from "../lib/exerciseDiagram";
-import { PITCH_UNITS, DIAGRAM_COLORS, DIAGRAM_SIZES } from "../lib/diagramStyle";
+import { deserialize, orientationOf } from "../lib/exerciseDiagram";
+import { PITCH_UNITS, DIAGRAM_COLORS, DIAGRAM_SIZES, goalSize } from "../lib/diagramStyle";
 
 /**
  * Read-only diagram viewer (design.md: "Konva writes, SVG reads"). Renders
@@ -113,14 +113,17 @@ function Shape({ shape }) {
 
   if (kind === "goal") {
     const { x, y } = toPixel(shape);
+    const orientation = orientationOf(shape);
+    const { width, height } = goalSize(orientation);
     return (
       <rect
         data-testid="diagram-shape"
         data-shape-kind={kind}
-        x={x - DIAGRAM_SIZES.goalWidth / 2}
-        y={y - DIAGRAM_SIZES.goalHeight / 2}
-        width={DIAGRAM_SIZES.goalWidth}
-        height={DIAGRAM_SIZES.goalHeight}
+        data-orientation={orientation}
+        x={x - width / 2}
+        y={y - height / 2}
+        width={width}
+        height={height}
         fill="none"
         stroke={DIAGRAM_COLORS.goal}
         strokeWidth={DIAGRAM_SIZES.goalStrokeWidth}

@@ -1,7 +1,14 @@
 import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ExerciseDiagramEditor from "../ExerciseDiagramEditor";
-import { createDiagram, addShape, SHAPE_KINDS, LIMITS } from "../../lib/exerciseDiagram";
+import {
+  createDiagram,
+  addShape,
+  orientationOf,
+  SHAPE_KINDS,
+  LIMITS,
+  DEFAULT_ORIENTATION,
+} from "../../lib/exerciseDiagram";
 
 async function renderEditor(props = {}) {
   const utils = render(
@@ -584,4 +591,122 @@ test("an in-progress line is previewed while the drag is still going", async () 
 
   expect(screen.getAllByTestId("konva-shape")).toHaveLength(1);
   expect(screen.queryByTestId("konva-drawing-preview")).not.toBeInTheDocument();
+});
+
+// --- rotating a goal ------------------------------------------------------
+
+test("Rotate is disabled with nothing selected and no goal tool active", async () => {
+  await renderEditor();
+  expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
+});
+
+test("Rotate is disabled for a shape that has no orientation", async () => {
+  const user = userEvent.setup();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.3, y: 0.3 });
+  await renderEditor({ diagram });
+
+  await user.click(screen.getByTestId("konva-shape"));
+
+  expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
+});
+
+test("a selected goal can be rotated, and the stored orientation flips", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "goal", { x: 0.9, y: 0.5 });
+  await renderEditor({ diagram, onSave });
+
+  // select with a bare click: the react-konva mock turns any mouseup on a
+  // shape into an onDragEnd, and userEvent's click sends one at (0, 0),
+  // which would move the goal before we could assert it had not moved.
+  fireEvent.click(screen.getByTestId("konva-shape"));
+  await user.click(screen.getByRole("button", { name: "Rotate" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  const shape = onSave.mock.calls[0][0].shapes[0];
+  expect(orientationOf(shape)).toBe("vertical");
+  // rotating is a turn, not a move
+  expect(shape).toMatchObject({ x: 0.9, y: 0.5 });
+});
+
+test("rotating is undoable like any other change (AC DRAW-05.3)", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "goal", { x: 0.5, y: 0.5 });
+  await renderEditor({ diagram, onSave });
+
+  await user.click(screen.getByTestId("konva-shape"));
+  await user.click(screen.getByRole("button", { name: "Rotate" }));
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(orientationOf(onSave.mock.calls[0][0].shapes[0])).toBe(DEFAULT_ORIENTATION);
+});
+
+test("a goal is placed horizontally by default", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Goal" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 300, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(orientationOf(onSave.mock.calls[0][0].shapes[0])).toBe("horizontal");
+});
+
+test("with the Goal tool active, Rotate sets which way the next goal goes down", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  await renderEditor({ onSave });
+
+  await user.click(screen.getByRole("button", { name: "Goal" }));
+  await user.click(screen.getByRole("button", { name: "Rotate" }));
+  const stage = screen.getByTestId("diagram-stage");
+  fireEvent.click(stage, { clientX: 60, clientY: 186 });
+  fireEvent.click(stage, { clientX: 540, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  // both goals go down the way the tool was set — one rotation, not one per goal
+  const shapes = onSave.mock.calls[0][0].shapes;
+  expect(shapes).toHaveLength(2);
+  expect(shapes.map(orientationOf)).toEqual(["vertical", "vertical"]);
+});
+
+test("rotating a placed goal also sets which way the next one goes down", async () => {
+  const user = userEvent.setup();
+  const onSave = vi.fn();
+  const diagram = addShape(createDiagram(), "goal", { x: 0.1, y: 0.5 });
+  await renderEditor({ diagram, onSave });
+
+  await user.click(screen.getByTestId("konva-shape"));
+  await user.click(screen.getByRole("button", { name: "Rotate" }));
+
+  await user.click(screen.getByRole("button", { name: "Goal" }));
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 540, clientY: 186 });
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(onSave.mock.calls[0][0].shapes.map(orientationOf)).toEqual([
+    "vertical",
+    "vertical",
+  ]);
+});
+
+test("a rotated goal is drawn turned, not just recorded as turned", async () => {
+  const user = userEvent.setup();
+  const diagram = addShape(createDiagram(), "goal", { x: 0.5, y: 0.5 });
+  await renderEditor({ diagram });
+
+  const flat = within(screen.getByTestId("konva-shape")).getByTestId("konva-rect");
+  const flatWidth = Number(flat.getAttribute("data-konva-width"));
+  const flatHeight = Number(flat.getAttribute("data-konva-height"));
+  expect(flatWidth).toBeGreaterThan(flatHeight);
+
+  await user.click(screen.getByTestId("konva-shape"));
+  await user.click(screen.getByRole("button", { name: "Rotate" }));
+
+  const turned = within(screen.getByTestId("konva-shape")).getByTestId("konva-rect");
+  expect(Number(turned.getAttribute("data-konva-width"))).toBe(flatHeight);
+  expect(Number(turned.getAttribute("data-konva-height"))).toBe(flatWidth);
 });

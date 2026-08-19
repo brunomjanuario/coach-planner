@@ -89,7 +89,17 @@ vi.mock("react-konva", () => {
   // be able to see: a marker Group must carry its own position (otherwise a
   // drag reports an offset from the origin instead of a position), and a
   // shape with neither fill nor stroke is drawn as nothing at all.
-  const REFLECTED_PROPS = ["x", "y", "fill", "stroke", "radius", "text", "points"];
+  const REFLECTED_PROPS = [
+    "x",
+    "y",
+    "width",
+    "height",
+    "fill",
+    "stroke",
+    "radius",
+    "text",
+    "points",
+  ];
 
   function makePrimitive(testId) {
     return function MockKonvaPrimitive(props) {

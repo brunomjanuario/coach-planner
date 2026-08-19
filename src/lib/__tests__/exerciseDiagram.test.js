@@ -13,6 +13,11 @@ import {
   serialize,
   deserialize,
   validate,
+  rotateShape,
+  isRotatable,
+  orientationOf,
+  ORIENTATIONS,
+  DEFAULT_ORIENTATION,
 } from "../exerciseDiagram";
 
 // --- createDiagram --------------------------------------------------------
@@ -336,4 +341,79 @@ test("every exported function tolerates undefined/null arguments without throwin
   expect(() => serialize(undefined)).not.toThrow();
   expect(() => deserialize(undefined)).not.toThrow();
   expect(() => validate(undefined)).not.toThrow();
+});
+
+// --- orientation ----------------------------------------------------------
+
+describe("orientation", () => {
+  test("a goal has an orientation; a symmetric kind does not", () => {
+    const goal = addShape(createDiagram(), "goal", { x: 0.5, y: 0.5 }).shapes[0];
+    const cone = addShape(createDiagram(), "cone", { x: 0.5, y: 0.5 }).shapes[0];
+    expect(isRotatable(goal)).toBe(true);
+    expect(isRotatable(cone)).toBe(false);
+  });
+
+  test("a goal stored before orientation existed reads as the default, not undefined", () => {
+    expect(orientationOf({ kind: "goal", x: 0.5, y: 0.5 })).toBe(DEFAULT_ORIENTATION);
+    expect(ORIENTATIONS).toContain(DEFAULT_ORIENTATION);
+  });
+
+  test("an orientation that is not one of ORIENTATIONS falls back to the default", () => {
+    expect(orientationOf({ kind: "goal", orientation: "sideways" })).toBe(
+      DEFAULT_ORIENTATION
+    );
+    expect(orientationOf(null)).toBe(DEFAULT_ORIENTATION);
+  });
+
+  test("rotateShape turns a goal a quarter turn, and back again", () => {
+    const placed = addShape(createDiagram(), "goal", {
+      x: 0.5,
+      y: 0.5,
+      orientation: "horizontal",
+    });
+    const id = placed.shapes[0].id;
+
+    const turned = rotateShape(placed, id);
+    expect(orientationOf(turned.shapes[0])).toBe("vertical");
+
+    const back = rotateShape(turned, id);
+    expect(orientationOf(back.shapes[0])).toBe("horizontal");
+  });
+
+  test("rotateShape returns a new diagram and never mutates the one passed in", () => {
+    const placed = addShape(createDiagram(), "goal", { x: 0.5, y: 0.5 });
+    const snapshot = JSON.parse(JSON.stringify(placed));
+
+    const turned = rotateShape(placed, placed.shapes[0].id);
+
+    expect(turned).not.toBe(placed);
+    expect(placed).toEqual(snapshot);
+  });
+
+  test("rotating leaves a shape's position alone", () => {
+    const placed = addShape(createDiagram(), "goal", { x: 0.25, y: 0.75 });
+    const turned = rotateShape(placed, placed.shapes[0].id);
+    expect(turned.shapes[0]).toMatchObject({ x: 0.25, y: 0.75 });
+  });
+
+  test("rotating a kind with no orientation, or an unknown id, changes nothing", () => {
+    const placed = addShape(createDiagram(), "cone", { x: 0.5, y: 0.5 });
+    expect(rotateShape(placed, placed.shapes[0].id).shapes).toEqual(placed.shapes);
+    expect(rotateShape(placed, "no-such-id").shapes).toEqual(placed.shapes);
+  });
+
+  test("rotateShape is total — malformed input returns rather than throws", () => {
+    expect(rotateShape(null, "id")).toBe(null);
+    expect(rotateShape({ v: 1 }, "id")).toEqual({ v: 1, shapes: [] });
+  });
+
+  test("orientation survives a serialize/deserialize round trip", () => {
+    const placed = addShape(createDiagram(), "goal", {
+      x: 0.5,
+      y: 0.5,
+      orientation: "vertical",
+    });
+    const restored = deserialize(serialize(placed));
+    expect(orientationOf(restored.shapes[0])).toBe("vertical");
+  });
 });

@@ -27,6 +27,29 @@ const SHAPE_KIND_SET = new Set(SHAPE_KINDS);
 // point (marker or text) and stores `x`/`y` directly on the shape.
 const PATH_KINDS = new Set(["line", "arrow"]);
 
+// A goal is a bar, so which way it faces is part of what it *is* — it sits
+// across the pitch on a touchline, or along it on a goal line. Kinds that
+// are symmetric (a cone, a ball) have no orientation and never gain one.
+export const ORIENTATIONS = Object.freeze(["horizontal", "vertical"]);
+export const DEFAULT_ORIENTATION = "horizontal";
+const ROTATABLE_KINDS = new Set(["goal"]);
+
+/** Whether a shape of this kind has an orientation at all. */
+export function isRotatable(shape) {
+  return ROTATABLE_KINDS.has(shape?.kind);
+}
+
+/**
+ * A shape's orientation, defaulting for shapes stored before orientation
+ * existed and for anything with a value that is not one of ORIENTATIONS —
+ * old diagrams keep rendering exactly as they always did.
+ */
+export function orientationOf(shape) {
+  return ORIENTATIONS.includes(shape?.orientation)
+    ? shape.orientation
+    : DEFAULT_ORIENTATION;
+}
+
 export const LIMITS = Object.freeze({
   maxShapes: 60,
   maxBytes: 8192,
@@ -94,6 +117,26 @@ export function moveShape(diagram, id, point) {
     if (!("x" in shape) || !("y" in shape)) return shape;
     const { x, y } = clampToPitch(point ?? {});
     return { ...shape, x, y };
+  });
+
+  return { ...diagram, shapes: nextShapes };
+}
+
+/**
+ * Turns the shape with `id` a quarter turn (horizontal <-> vertical).
+ * A kind with no orientation, and an unknown id, are left untouched —
+ * always a new diagram, never a throw.
+ */
+export function rotateShape(diagram, id) {
+  if (!diagram || typeof diagram !== "object") return diagram;
+  const shapes = Array.isArray(diagram.shapes) ? diagram.shapes : [];
+
+  const nextShapes = shapes.map((shape) => {
+    if (!shape || shape.id !== id || !isRotatable(shape)) return shape;
+    return {
+      ...shape,
+      orientation: orientationOf(shape) === "horizontal" ? "vertical" : "horizontal",
+    };
   });
 
   return { ...diagram, shapes: nextShapes };
