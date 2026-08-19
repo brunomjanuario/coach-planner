@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useMemo, useState } from "react";
+import { Component, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import PopupShell from "./PopupShell";
 import Button from "./Button";
 import PopupActions from "./PopupActions";
@@ -13,6 +13,7 @@ import {
   validate,
   SHAPE_KINDS,
 } from "../lib/exerciseDiagram";
+import { PITCH_UNITS, DIAGRAM_COLORS, DIAGRAM_SIZES } from "../lib/diagramStyle";
 
 // The tools that place a single-point marker on a stage click.
 const MARKER_KINDS = ["player-a", "player-b", "cone", "ball", "goal"];
@@ -30,7 +31,17 @@ const UNDO_LIMIT = 20;
  */
 const DEFAULT_KONVA_LOADER = () => import("react-konva");
 
-const STAGE_SIZE = { width: 600, height: 372 }; // 100:62 aspect, matches DiagramView's viewBox
+// Fallback stage size, and the size every normalised coordinate is computed
+// against until the stage has been measured (100:62, DiagramView's viewBox).
+// The real size comes from the popup's own width — see `stageSize` below.
+const STAGE_SIZE = { width: 600, height: 372 };
+const PITCH_ASPECT = PITCH_UNITS.height / PITCH_UNITS.width;
+// PopupShell caps the dialog at 85vh; this is roughly what the title, the
+// tool palette, the Delete row and the pinned action row take out of that,
+// so the rest is the stage's to fill.
+const DIALOG_VIEWPORT_FRACTION = 0.85;
+const DIALOG_CHROME_HEIGHT = 330;
+const MIN_STAGE_HEIGHT = 160;
 
 const TOOL_LABELS = {
   select: "Select",
@@ -46,8 +57,171 @@ const TOOL_LABELS = {
 
 const TOOLS = ["select", ...SHAPE_KINDS];
 
+const PATH_KINDS = new Set(["line", "arrow"]);
+
 function flattenPoints(points, size) {
   return (points ?? []).flatMap(([x, y]) => [x * size.width, y * size.height]);
+}
+
+/**
+ * The pitch itself. `listening={false}` throughout so a click on the grass
+ * reaches the Stage handler rather than being swallowed by the background
+ * rect — the editor places markers from the Stage's click, not the pitch's.
+ */
+function Pitch({ konva, pitch, size, scale }) {
+  const { Rect, Line, Circle } = konva;
+  const stroke = {
+    stroke: DIAGRAM_COLORS.pitchLine,
+    strokeWidth: DIAGRAM_SIZES.pitchLineWidth * scale,
+    listening: false,
+  };
+
+  return (
+    <>
+      <Rect
+        x={0}
+        y={0}
+        width={size.width}
+        height={size.height}
+        fill={DIAGRAM_COLORS.pitch}
+        listening={false}
+      />
+      {pitch !== "blank" && (
+        <>
+          <Rect x={1 * scale} y={1 * scale} width={98 * scale} height={60 * scale} {...stroke} />
+          <Rect x={1 * scale} y={21 * scale} width={12 * scale} height={20 * scale} {...stroke} />
+          <Rect x={87 * scale} y={21 * scale} width={12 * scale} height={20 * scale} {...stroke} />
+          {pitch === "full" && (
+            <>
+              <Line points={[50 * scale, 1 * scale, 50 * scale, 61 * scale]} {...stroke} />
+              <Circle x={50 * scale} y={31 * scale} radius={8 * scale} {...stroke} fill={null} />
+            </>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+/**
+ * One shape's body, drawn in the parent Group's **local** coordinates —
+ * the Group carries the position, so everything here is centred on (0, 0).
+ * That is what makes dragging correct: a dragged Group's `x()`/`y()` is
+ * then the shape's new absolute position, not an offset from the origin.
+ *
+ * Geometry and colour come from lib/diagramStyle so this matches, mark for
+ * mark, what DiagramView renders for the same saved diagram.
+ */
+function ShapeBody({ konva, shape, size, scale }) {
+  const { Circle, Line, Rect, Text, Arrow } = konva;
+  const s = scale;
+
+  switch (shape.kind) {
+    case "player-a":
+    case "player-b":
+      return (
+        <Circle
+          radius={DIAGRAM_SIZES.playerRadius * s}
+          fill={shape.kind === "player-a" ? DIAGRAM_COLORS.playerA : DIAGRAM_COLORS.playerB}
+          stroke={DIAGRAM_COLORS.playerStroke}
+          strokeWidth={DIAGRAM_SIZES.playerStrokeWidth * s}
+        />
+      );
+
+    case "cone": {
+      const h = DIAGRAM_SIZES.coneHalf * s;
+      return (
+        <Line points={[0, -h, -h, h, h, h]} closed fill={DIAGRAM_COLORS.cone} />
+      );
+    }
+
+    case "ball":
+      return (
+        <Circle
+          radius={DIAGRAM_SIZES.ballRadius * s}
+          fill={DIAGRAM_COLORS.ball}
+          stroke={DIAGRAM_COLORS.ballStroke}
+          strokeWidth={DIAGRAM_SIZES.ballStrokeWidth * s}
+        />
+      );
+
+    case "goal":
+      return (
+        <Rect
+          x={(-DIAGRAM_SIZES.goalWidth / 2) * s}
+          y={(-DIAGRAM_SIZES.goalHeight / 2) * s}
+          width={DIAGRAM_SIZES.goalWidth * s}
+          height={DIAGRAM_SIZES.goalHeight * s}
+          stroke={DIAGRAM_COLORS.goal}
+          strokeWidth={DIAGRAM_SIZES.goalStrokeWidth * s}
+        />
+      );
+
+    case "text":
+      return (
+        <Text
+          // SVG anchors text on its baseline, Konva on its top edge; the
+          // offset keeps a label in the same place in both renderers.
+          y={-DIAGRAM_SIZES.fontSize * 0.8 * s}
+          text={shape.text ?? ""}
+          fontSize={DIAGRAM_SIZES.fontSize * s}
+          fill={DIAGRAM_COLORS.text}
+        />
+      );
+
+    case "arrow":
+      return (
+        <Arrow
+          points={flattenPoints(shape.points, size)}
+          stroke={DIAGRAM_COLORS.path}
+          fill={DIAGRAM_COLORS.path}
+          strokeWidth={DIAGRAM_SIZES.pathWidth * s}
+          pointerLength={DIAGRAM_SIZES.arrowHead * s}
+          pointerWidth={DIAGRAM_SIZES.arrowHead * s}
+          lineCap="round"
+          lineJoin="round"
+        />
+      );
+
+    case "line":
+      return (
+        <Line
+          points={flattenPoints(shape.points, size)}
+          stroke={DIAGRAM_COLORS.path}
+          strokeWidth={DIAGRAM_SIZES.pathWidth * s}
+          lineCap="round"
+          lineJoin="round"
+        />
+      );
+
+    default:
+      return null;
+  }
+}
+
+/** The highlight drawn under the selected shape so selection is visible. */
+function SelectionMark({ konva, shape, size, scale }) {
+  const { Circle, Line } = konva;
+  const common = {
+    stroke: DIAGRAM_COLORS.selection,
+    strokeWidth: DIAGRAM_SIZES.selectionWidth * scale,
+    listening: false,
+  };
+
+  if (PATH_KINDS.has(shape.kind)) {
+    return (
+      <Line
+        points={flattenPoints(shape.points, size)}
+        {...common}
+        strokeWidth={DIAGRAM_SIZES.pathWidth * 2.5 * scale}
+        opacity={0.7}
+        lineCap="round"
+        lineJoin="round"
+      />
+    );
+  }
+
+  return <Circle radius={DIAGRAM_SIZES.selectionRadius * scale} dash={[2 * scale, 1.5 * scale]} {...common} />;
 }
 
 function KonvaSurface({
@@ -61,8 +235,10 @@ function KonvaSurface({
   onShapeClick,
   onShapeDragEnd,
   selectedId,
+  drawingShape,
 }) {
-  const { Stage, Layer, Circle, Line, Text, Group } = konva;
+  const { Stage, Layer, Group } = konva;
+  const scale = stageSize.width / PITCH_UNITS.width;
 
   return (
     <Stage
@@ -75,29 +251,39 @@ function KonvaSurface({
       onMouseUp={onStageMouseUp}
     >
       <Layer>
+        <Pitch konva={konva} pitch={diagram.pitch} size={stageSize} scale={scale} />
         {diagram.shapes.map((shape) => {
           const isPointShape = "x" in shape && "y" in shape;
+          const isSelected = shape.id === selectedId;
           return (
             <Group
               key={shape.id}
               id={shape.id}
               data-testid="konva-shape"
               data-shape-kind={shape.kind}
-              data-selected={shape.id === selectedId}
+              data-selected={isSelected}
+              // A point shape's Group carries its position, so a drag end
+              // reports the position itself; path shapes keep their points
+              // in stage space and stay put.
+              x={isPointShape ? shape.x * stageSize.width : 0}
+              y={isPointShape ? shape.y * stageSize.height : 0}
               draggable={isPointShape}
-              onClick={() => onShapeClick?.(shape.id)}
+              onClick={(e) => onShapeClick?.(shape.id, e)}
+              onTap={(e) => onShapeClick?.(shape.id, e)}
               onDragEnd={isPointShape ? (e) => onShapeDragEnd?.(shape.id, e) : undefined}
             >
-              {shape.kind === "line" || shape.kind === "arrow" ? (
-                <Line points={flattenPoints(shape.points, stageSize)} />
-              ) : shape.kind === "text" ? (
-                <Text x={shape.x * stageSize.width} y={shape.y * stageSize.height} text={shape.text ?? ""} />
-              ) : (
-                <Circle x={shape.x * stageSize.width} y={shape.y * stageSize.height} radius={10} />
+              {isSelected && (
+                <SelectionMark konva={konva} shape={shape} size={stageSize} scale={scale} />
               )}
+              <ShapeBody konva={konva} shape={shape} size={stageSize} scale={scale} />
             </Group>
           );
         })}
+        {drawingShape && (
+          <Group listening={false} data-testid="konva-drawing-preview">
+            <ShapeBody konva={konva} shape={drawingShape} size={stageSize} scale={scale} />
+          </Group>
+        )}
       </Layer>
     </Stage>
   );
@@ -149,6 +335,42 @@ export default function ExerciseDiagramEditor({
   // or Save attempt, and never closes the popup or drops any work.
   const [saveError, setSaveError] = useState(null);
 
+  // The stage is sized from the popup's own width so it never overflows the
+  // dialog and every part of the pitch stays clickable; STAGE_SIZE is the
+  // fallback until the container has been measured (and in jsdom, which has
+  // no layout and no ResizeObserver, it is the size for good).
+  const containerRef = useRef(null);
+  const [stageSize, setStageSize] = useState(STAGE_SIZE);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const available = el.clientWidth;
+      if (!available) return;
+      // Also bounded by height: PopupShell caps the dialog at 85vh and only
+      // its body scrolls, so an unbounded stage would push the pitch half
+      // out of view on a short window.
+      const maxHeight = Math.max(
+        MIN_STAGE_HEIGHT,
+        window.innerHeight * DIALOG_VIEWPORT_FRACTION - DIALOG_CHROME_HEIGHT
+      );
+      const width = Math.min(available, Math.round(maxHeight / PITCH_ASPECT));
+      setStageSize({ width, height: Math.round(width * PITCH_ASPECT) });
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    return () => {
+      window.removeEventListener("resize", measure);
+      observer?.disconnect();
+    };
+  }, []);
+
   // Loaded once per popup instance (deps only on konvaLoader, never on
   // `diagram`) — `diagram` is passed down as a prop on every render instead
   // of being captured in this closure, which would otherwise go stale after
@@ -187,12 +409,17 @@ export default function ExerciseDiagramEditor({
     setDiagram(mutate(diagram));
   };
 
-  // Placing a marker or a text label consumes the click; the select tool
-  // (and line/arrow, which draw via mousedown/mousemove/mouseup instead)
-  // leave the diagram untouched.
+  // Placing a marker or a text label consumes the click; line/arrow draw
+  // via mousedown/mousemove/mouseup instead, and the select tool treats a
+  // click on empty grass as "deselect".
   const handleStageClick = (e) => {
+    if (tool === "select") {
+      setSelectedId(null);
+      return;
+    }
+
     const pointer = e.target.getStage().getPointerPosition();
-    const point = normalise(pointer, STAGE_SIZE);
+    const point = normalise(pointer, stageSize);
 
     if (tool === "text") {
       const text = window.prompt("Enter label text:");
@@ -211,20 +438,24 @@ export default function ExerciseDiagramEditor({
   const handleStageMouseDown = (e) => {
     if (tool !== "line" && tool !== "arrow") return;
     const pointer = e.target.getStage().getPointerPosition();
-    setDrawingPoints([normalise(pointer, STAGE_SIZE)]);
+    setDrawingPoints([normalise(pointer, stageSize)]);
   };
 
   const handleStageMouseMove = (e) => {
-    if (tool !== "line" || !drawingPoints) return;
+    if ((tool !== "line" && tool !== "arrow") || !drawingPoints) return;
     const pointer = e.target.getStage().getPointerPosition();
-    const point = normalise(pointer, STAGE_SIZE);
-    setDrawingPoints((points) => [...points, point]);
+    const point = normalise(pointer, stageSize);
+    // An arrow is always straight, so a move replaces its end point rather
+    // than extending the path — the preview follows the cursor either way.
+    setDrawingPoints((points) =>
+      tool === "arrow" ? [points[0], point] : [...points, point]
+    );
   };
 
   const handleStageMouseUp = (e) => {
     if ((tool !== "line" && tool !== "arrow") || !drawingPoints) return;
     const pointer = e.target.getStage().getPointerPosition();
-    const endPoint = normalise(pointer, STAGE_SIZE);
+    const endPoint = normalise(pointer, stageSize);
     const rawPoints = tool === "arrow" ? [drawingPoints[0], endPoint] : [...drawingPoints, endPoint];
     // addShape's path-kind branch expects [x, y] tuples, not {x, y} objects.
     const points = rawPoints.map((p) => [p.x, p.y]);
@@ -232,13 +463,21 @@ export default function ExerciseDiagramEditor({
     setDrawingPoints(null);
   };
 
-  const handleShapeClick = (shapeId) => {
+  // Selecting is the select tool's job; with a placement tool active the
+  // click falls through to the stage so a marker can be dropped on top of
+  // an existing one.
+  const handleShapeClick = (shapeId, e) => {
+    if (tool !== "select") return;
+    if (e) {
+      e.cancelBubble = true;
+      e.evt?.stopPropagation?.();
+    }
     setSelectedId(shapeId);
   };
 
   const handleShapeDragEnd = (shapeId, e) => {
     const pixel = { x: e.target.x(), y: e.target.y() };
-    const point = normalise(pixel, STAGE_SIZE);
+    const point = normalise(pixel, stageSize);
     applyChange((d) => moveShape(d, shapeId, point));
   };
 
@@ -261,9 +500,17 @@ export default function ExerciseDiagramEditor({
     setSelectedId(null);
   };
 
+  // The line/arrow being dragged right now, shaped like a real shape so the
+  // canvas can draw it with exactly the same code as a committed one.
+  const drawingShape =
+    drawingPoints && drawingPoints.length > 1
+      ? { id: "__drawing__", kind: tool, points: drawingPoints.map((p) => [p.x, p.y]) }
+      : null;
+
   return (
     <PopupShell
       title="Draw diagram"
+      width="max-w-3xl"
       footer={
         <PopupActions>
           <Button variant="secondary" disabled={history.length === 0} onClick={handleUndo}>
@@ -305,21 +552,24 @@ export default function ExerciseDiagramEditor({
             Delete
           </Button>
         </div>
-        <CanvasErrorBoundary>
-          <Suspense fallback={<div role="status">Loading the diagram editor…</div>}>
-            <DiagramCanvas
-              diagram={diagram}
-              stageSize={STAGE_SIZE}
-              onStageClick={handleStageClick}
-              onStageMouseDown={handleStageMouseDown}
-              onStageMouseMove={handleStageMouseMove}
-              onStageMouseUp={handleStageMouseUp}
-              onShapeClick={handleShapeClick}
-              onShapeDragEnd={handleShapeDragEnd}
-              selectedId={selectedId}
-            />
-          </Suspense>
-        </CanvasErrorBoundary>
+        <div ref={containerRef} className="flex w-full justify-center overflow-hidden rounded">
+          <CanvasErrorBoundary>
+            <Suspense fallback={<div role="status">Loading the diagram editor…</div>}>
+              <DiagramCanvas
+                diagram={diagram}
+                stageSize={stageSize}
+                onStageClick={handleStageClick}
+                onStageMouseDown={handleStageMouseDown}
+                onStageMouseMove={handleStageMouseMove}
+                onStageMouseUp={handleStageMouseUp}
+                onShapeClick={handleShapeClick}
+                onShapeDragEnd={handleShapeDragEnd}
+                selectedId={selectedId}
+                drawingShape={drawingShape}
+              />
+            </Suspense>
+          </CanvasErrorBoundary>
+        </div>
       </div>
     </PopupShell>
   );

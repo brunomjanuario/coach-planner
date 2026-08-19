@@ -85,17 +85,30 @@ vi.mock("react-konva", () => {
     );
   });
 
+  // Konva props the editor's correctness depends on and that a test needs to
+  // be able to see: a marker Group must carry its own position (otherwise a
+  // drag reports an offset from the origin instead of a position), and a
+  // shape with neither fill nor stroke is drawn as nothing at all.
+  const REFLECTED_PROPS = ["x", "y", "fill", "stroke", "radius", "text", "points"];
+
   function makePrimitive(testId) {
     return function MockKonvaPrimitive(props) {
       const { children, onClick, onDragEnd, id, ...rest } = props;
       const domProps = Object.fromEntries(
         Object.entries(rest).filter(([key]) => key.startsWith("data-"))
       );
+      const reflected = Object.fromEntries(
+        REFLECTED_PROPS.filter((key) => rest[key] != null).map((key) => [
+          `data-konva-${key}`,
+          String(rest[key]),
+        ])
+      );
       return React.createElement(
         "div",
         {
           "data-testid": testId,
           "data-konva-id": id,
+          ...reflected,
           ...domProps,
           onClick: (e) => {
             e.stopPropagation();
@@ -130,6 +143,7 @@ vi.mock("react-konva", () => {
     Rect: makePrimitive("konva-rect"),
     RegularPolygon: makePrimitive("konva-polygon"),
     Line: makePrimitive("konva-line"),
+    Arrow: makePrimitive("konva-arrow"),
     Text: makePrimitive("konva-text"),
   };
 });

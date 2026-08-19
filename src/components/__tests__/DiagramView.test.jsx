@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { render, screen } from "@testing-library/react";
 import DiagramView from "../DiagramView";
 import { createDiagram, addShape, DIAGRAM_VERSION } from "../../lib/exerciseDiagram";
+import { DIAGRAM_COLORS } from "../../lib/diagramStyle";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -188,4 +189,16 @@ test("the module's source imports no konva or react-konva anywhere in its graph 
   const importsKonva = /from\s+["']react-konva["']|from\s+["']konva["']|require\(\s*["'](react-)?konva["']/i;
   expect(diagramViewSource).not.toMatch(importsKonva);
   expect(modelSource).not.toMatch(importsKonva);
+});
+
+test("draws grass behind the pitch lines, which are white and would otherwise be invisible", () => {
+  const { container } = render(<DiagramView diagram={createDiagram("full")} />);
+  const lines = screen.getByTestId("pitch-lines");
+  const grass = container.querySelector("svg > rect");
+
+  expect(grass).toBeInTheDocument();
+  expect(grass.getAttribute("fill")).toBe(DIAGRAM_COLORS.pitch);
+  expect(lines.getAttribute("stroke")).toBe(DIAGRAM_COLORS.pitchLine);
+  // the grass paints first, so the markings land on top of it
+  expect(grass.compareDocumentPosition(lines) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

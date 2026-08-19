@@ -1,4 +1,5 @@
 import { deserialize } from "../lib/exerciseDiagram";
+import { PITCH_UNITS, DIAGRAM_COLORS, DIAGRAM_SIZES } from "../lib/diagramStyle";
 
 /**
  * Read-only diagram viewer (design.md: "Konva writes, SVG reads"). Renders
@@ -11,9 +12,9 @@ import { deserialize } from "../lib/exerciseDiagram";
  * initial bundle and breaks the whole point of this component existing.
  */
 
-const VIEW_BOX = "0 0 100 62";
-const PITCH_WIDTH = 100;
-const PITCH_HEIGHT = 62;
+const PITCH_WIDTH = PITCH_UNITS.width;
+const PITCH_HEIGHT = PITCH_UNITS.height;
+const VIEW_BOX = `0 0 ${PITCH_WIDTH} ${PITCH_HEIGHT}`;
 
 function toPixel(point) {
   return { x: (point?.x ?? 0) * PITCH_WIDTH, y: (point?.y ?? 0) * PITCH_HEIGHT };
@@ -29,7 +30,12 @@ function PitchLines({ pitch }) {
   if (pitch === "blank") return null;
 
   return (
-    <g data-testid="pitch-lines" stroke="white" fill="none" strokeWidth="0.3">
+    <g
+      data-testid="pitch-lines"
+      stroke={DIAGRAM_COLORS.pitchLine}
+      fill="none"
+      strokeWidth={DIAGRAM_SIZES.pitchLineWidth}
+    >
       <rect x="1" y="1" width={PITCH_WIDTH - 2} height={PITCH_HEIGHT - 2} />
       <rect x="1" y="21" width="12" height="20" />
       <rect x={PITCH_WIDTH - 13} y="21" width="12" height="20" />
@@ -48,12 +54,26 @@ function Shape({ shape }) {
 
   if (kind === "player-a" || kind === "player-b") {
     const { x, y } = toPixel(shape);
-    const fill = kind === "player-a" ? "#3b82f6" : "#ef4444";
+    const fill = kind === "player-a" ? DIAGRAM_COLORS.playerA : DIAGRAM_COLORS.playerB;
     return (
       <g data-testid="diagram-shape" data-shape-kind={kind}>
-        <circle cx={x} cy={y} r="2" fill={fill} />
+        <circle
+          cx={x}
+          cy={y}
+          r={DIAGRAM_SIZES.playerRadius}
+          fill={fill}
+          stroke={DIAGRAM_COLORS.playerStroke}
+          strokeWidth={DIAGRAM_SIZES.playerStrokeWidth}
+        />
         {shape.label != null && (
-          <text x={x} y={y} fontSize="2" textAnchor="middle" dominantBaseline="middle">
+          <text
+            x={x}
+            y={y}
+            fontSize="2"
+            fill={DIAGRAM_COLORS.text}
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
             {shape.label}
           </text>
         )}
@@ -67,8 +87,10 @@ function Shape({ shape }) {
       <polygon
         data-testid="diagram-shape"
         data-shape-kind={kind}
-        points={`${x},${y - 1.5} ${x - 1.5},${y + 1.5} ${x + 1.5},${y + 1.5}`}
-        fill="#f97316"
+        points={`${x},${y - DIAGRAM_SIZES.coneHalf} ${x - DIAGRAM_SIZES.coneHalf},${
+          y + DIAGRAM_SIZES.coneHalf
+        } ${x + DIAGRAM_SIZES.coneHalf},${y + DIAGRAM_SIZES.coneHalf}`}
+        fill={DIAGRAM_COLORS.cone}
       />
     );
   }
@@ -81,10 +103,10 @@ function Shape({ shape }) {
         data-shape-kind={kind}
         cx={x}
         cy={y}
-        r="1"
-        fill="white"
-        stroke="black"
-        strokeWidth="0.2"
+        r={DIAGRAM_SIZES.ballRadius}
+        fill={DIAGRAM_COLORS.ball}
+        stroke={DIAGRAM_COLORS.ballStroke}
+        strokeWidth={DIAGRAM_SIZES.ballStrokeWidth}
       />
     );
   }
@@ -95,13 +117,13 @@ function Shape({ shape }) {
       <rect
         data-testid="diagram-shape"
         data-shape-kind={kind}
-        x={x - 3}
-        y={y - 0.75}
-        width="6"
-        height="1.5"
+        x={x - DIAGRAM_SIZES.goalWidth / 2}
+        y={y - DIAGRAM_SIZES.goalHeight / 2}
+        width={DIAGRAM_SIZES.goalWidth}
+        height={DIAGRAM_SIZES.goalHeight}
         fill="none"
-        stroke="black"
-        strokeWidth="0.3"
+        stroke={DIAGRAM_COLORS.goal}
+        strokeWidth={DIAGRAM_SIZES.goalStrokeWidth}
       />
     );
   }
@@ -113,8 +135,10 @@ function Shape({ shape }) {
         data-shape-kind={kind}
         points={pointsToAttr(shape.points)}
         fill="none"
-        stroke="black"
-        strokeWidth="0.4"
+        stroke={DIAGRAM_COLORS.path}
+        strokeWidth={DIAGRAM_SIZES.pathWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     );
   }
@@ -126,8 +150,10 @@ function Shape({ shape }) {
         data-shape-kind={kind}
         points={pointsToAttr(shape.points)}
         fill="none"
-        stroke="black"
-        strokeWidth="0.4"
+        stroke={DIAGRAM_COLORS.path}
+        strokeWidth={DIAGRAM_SIZES.pathWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         markerEnd="url(#diagram-arrowhead)"
       />
     );
@@ -136,7 +162,14 @@ function Shape({ shape }) {
   if (kind === "text") {
     const { x, y } = toPixel(shape);
     return (
-      <text data-testid="diagram-shape" data-shape-kind={kind} x={x} y={y} fontSize="3">
+      <text
+        data-testid="diagram-shape"
+        data-shape-kind={kind}
+        x={x}
+        y={y}
+        fontSize={DIAGRAM_SIZES.fontSize}
+        fill={DIAGRAM_COLORS.text}
+      >
         {shape.text}
       </text>
     );
@@ -169,9 +202,19 @@ export default function DiagramView({ diagram, className }) {
           refY="2"
           orient="auto"
         >
-          <path d="M0,0 L4,2 L0,4 Z" fill="black" />
+          <path d="M0,0 L4,2 L0,4 Z" fill={DIAGRAM_COLORS.path} />
         </marker>
       </defs>
+      {/* The grass. Without it the white pitch lines below are drawn onto
+          whatever the container's background happens to be — invisible on
+          a light one. */}
+      <rect
+        x="0"
+        y="0"
+        width={PITCH_WIDTH}
+        height={PITCH_HEIGHT}
+        fill={DIAGRAM_COLORS.pitch}
+      />
       <PitchLines pitch={parsed.pitch} />
       {parsed.shapes.map((shape) => (
         <Shape key={shape.id} shape={shape} />

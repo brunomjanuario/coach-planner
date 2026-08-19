@@ -467,3 +467,121 @@ test("Cancel closes the editor and returns the diagram unchanged from what it wa
   // the in-editor edit only ever touched the editor's own working copy.
   expect(original).toEqual(originalSnapshot);
 });
+
+// --- what is actually drawn on the canvas ---------------------------------
+// These cover the class of bug the rest of this file cannot see: a diagram
+// whose state is perfectly correct but that draws nothing, or that draws a
+// marker somewhere other than where it is stored.
+
+test("every marker's Group carries its own position, so a drag reports a position and not an offset", async () => {
+  // A Group left at the origin with the marker positioned inside it makes
+  // Konva's onDragEnd report the drag *delta* — the marker then teleports
+  // to roughly the distance dragged, measured from the top-left corner.
+  const diagram = addShape(createDiagram(), "cone", { x: 0.25, y: 0.5 });
+  await renderEditor({ diagram });
+
+  const group = screen.getByTestId("konva-shape");
+  // stage is 600x372 in jsdom (STAGE_SIZE, since there is no layout to
+  // measure): 0.25 * 600 = 150, 0.5 * 372 = 186.
+  expect(group).toHaveAttribute("data-konva-x", "150");
+  expect(group).toHaveAttribute("data-konva-y", "186");
+});
+
+test("a path shape's Group stays at the origin — its points are already in stage space", async () => {
+  const diagram = addShape(createDiagram(), "line", {
+    points: [
+      [0.1, 0.1],
+      [0.9, 0.9],
+    ],
+  });
+  await renderEditor({ diagram });
+
+  const group = screen.getByTestId("konva-shape");
+  expect(group).toHaveAttribute("data-konva-x", "0");
+  expect(group).toHaveAttribute("data-konva-y", "0");
+});
+
+test.each(SHAPE_KINDS)("a %s is drawn with a fill or a stroke, never invisible", async (kind) => {
+  const point = kind === "line" || kind === "arrow"
+    ? { points: [[0.2, 0.2], [0.8, 0.8]] }
+    : { x: 0.5, y: 0.5, text: "label" };
+  const diagram = addShape(createDiagram(), kind, point);
+  await renderEditor({ diagram });
+
+  const group = screen.getByTestId("konva-shape");
+  // A Konva node with neither fill nor stroke paints nothing at all, so a
+  // shape can be present in state, hit-testable, and still not there.
+  const painted = Array.from(group.querySelectorAll("*")).some(
+    (node) => node.hasAttribute("data-konva-fill") || node.hasAttribute("data-konva-stroke")
+  );
+  expect(painted).toBe(true);
+});
+
+test("the pitch is drawn behind the shapes, so the coach draws onto a pitch", async () => {
+  await renderEditor({ diagram: createDiagram("full") });
+
+  const stage = screen.getByTestId("diagram-stage");
+  const grass = within(stage)
+    .getAllByTestId("konva-rect")
+    .find((node) => node.getAttribute("data-konva-fill"));
+  expect(grass).toBeDefined();
+  // the centre circle and halfway line only exist on a full pitch
+  expect(within(stage).getAllByTestId("konva-line").length).toBeGreaterThan(0);
+  expect(within(stage).getAllByTestId("konva-circle").length).toBeGreaterThan(0);
+});
+
+test("a blank pitch draws the grass but no markings", async () => {
+  await renderEditor({ diagram: createDiagram("blank") });
+
+  const stage = screen.getByTestId("diagram-stage");
+  expect(within(stage).getAllByTestId("konva-rect")).toHaveLength(1);
+  expect(within(stage).queryAllByTestId("konva-circle")).toHaveLength(0);
+});
+
+test("the selected shape is marked on the canvas, not only in the Delete button's state", async () => {
+  const user = userEvent.setup();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.3, y: 0.3 });
+  await renderEditor({ diagram });
+
+  const group = screen.getByTestId("konva-shape");
+  expect(group).toHaveAttribute("data-selected", "false");
+  // one child: the cone body, with nothing highlighting it
+  const before = group.children.length;
+
+  await user.click(group);
+
+  expect(group).toHaveAttribute("data-selected", "true");
+  expect(group.children.length).toBeGreaterThan(before);
+});
+
+test("clicking empty grass with the select tool clears the selection", async () => {
+  const user = userEvent.setup();
+  const diagram = addShape(createDiagram(), "cone", { x: 0.3, y: 0.3 });
+  await renderEditor({ diagram });
+
+  await user.click(screen.getByTestId("konva-shape"));
+  expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
+
+  fireEvent.click(screen.getByTestId("diagram-stage"), { clientX: 500, clientY: 300 });
+
+  expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+});
+
+test("an in-progress line is previewed while the drag is still going", async () => {
+  const user = userEvent.setup();
+  await renderEditor();
+
+  await user.click(screen.getByRole("button", { name: "Line" }));
+  const stage = screen.getByTestId("diagram-stage");
+  fireEvent.mouseDown(stage, { clientX: 60, clientY: 93 });
+  fireEvent.mouseMove(stage, { clientX: 240, clientY: 279 });
+
+  // nothing committed to the diagram yet, but the coach can see the line
+  expect(screen.queryAllByTestId("konva-shape")).toHaveLength(0);
+  expect(screen.getByTestId("konva-drawing-preview")).toBeInTheDocument();
+
+  fireEvent.mouseUp(stage, { clientX: 300, clientY: 300 });
+
+  expect(screen.getAllByTestId("konva-shape")).toHaveLength(1);
+  expect(screen.queryByTestId("konva-drawing-preview")).not.toBeInTheDocument();
+});
