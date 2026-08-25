@@ -18,6 +18,7 @@ import {
   ApiError,
   NetworkError,
 } from "./errors";
+import { filenameFromDisposition } from "./contentDisposition";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
@@ -72,7 +73,14 @@ export async function silentRefresh() {
   return doRefresh();
 }
 
-export async function apiFetch(path, { method = "GET", body, isRetry = false } = {}) {
+/**
+ * The request core every reader (apiFetch, apiFetchBlob) sits on top of:
+ * token attachment, network-error wrapping, the single 401-expired
+ * refresh-and-retry (deduped via refreshInFlight), and non-2xx -> typed
+ * error mapping. Resolves with the raw ok Response so each reader decides
+ * how to consume the body (.json() vs .blob()).
+ */
+async function requestCore(path, { method = "GET", body, isRetry = false } = {}) {
   const accessToken = getAccessToken();
   let res;
   try {
@@ -100,13 +108,32 @@ export async function apiFetch(path, { method = "GET", body, isRetry = false } =
         if (err instanceof AuthError) notifyAuthFailure();
         throw err;
       }
-      return apiFetch(path, { method, body, isRetry: true });
+      return requestCore(path, { method, body, isRetry: true });
     }
   }
 
   if (!res.ok) {
     throw await toTypedError(res);
   }
+  return res;
+}
+
+export async function apiFetch(path, opts = {}) {
+  const res = await requestCore(path, opts);
   if (res.status === 204) return null;
   return res.json();
+}
+
+/**
+ * The binary sibling of apiFetch (F2, AD-026), for endpoints whose
+ * response isn't JSON -- e.g. GET /trainings/{id}/export.pdf. Shares
+ * requestCore's token attachment, single-flight refresh-and-retry, and
+ * typed-error mapping so a raw fetch never has to duplicate any of that.
+ * GET only: nothing in scope uploads binary data.
+ */
+export async function apiFetchBlob(path, { fallbackFilename = "download.pdf" } = {}) {
+  const res = await requestCore(path, { method: "GET" });
+  const blob = await res.blob();
+  const filename = filenameFromDisposition(res.headers.get("Content-Disposition"), fallbackFilename);
+  return { blob, filename };
 }
