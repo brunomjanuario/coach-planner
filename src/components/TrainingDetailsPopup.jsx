@@ -42,7 +42,12 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
   };
 
   const handleExport = async () => {
-    if (exporting) return; // guards a double-click into a single request (PDFEX-21)
+    // Defense-in-depth beyond the button's own `disabled` attribute (PDFEX-21):
+    // React batches setState inside an event handler, so two synchronous
+    // calls to handleExport in the same tick would both run before the DOM
+    // re-renders as disabled -- a scenario no click-based test can drive,
+    // since userEvent/real clicks are already blocked by `disabled` first.
+    if (exporting) return;
     setExporting(true);
     setExportError(null); // clears any previous failure before this attempt (PDFEX-27)
     try {

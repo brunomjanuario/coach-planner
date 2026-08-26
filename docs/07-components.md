@@ -174,7 +174,8 @@ descriptions (or "No exercises"). Handles `day` being either a `Date` or a
 string.
 
 An **Export PDF** button in the action row calls
-`trainingService.exportPdf(training.id)` and hands the resolved
+`trainingService.exportPdf(training.id)` (which calls `apiFetchBlob` under
+the hood) and hands the resolved
 `{ blob, filename }` to `src/lib/download.js`'s `triggerDownload`. While the
 request is in flight the button reads "Exporting…" and is disabled, guarding
 against a double click. A failed export shows an inline `role="alert"`

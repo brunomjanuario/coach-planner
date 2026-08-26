@@ -140,6 +140,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: COMPOSE-03 (spec.md F4 AC3) (docker,verification)
 - last seen: 2026-08-18T21:29:47Z
 
+### L-022 — When a header/value parser has two branches that derive the same output (e.g. a preferred `filename*` and a fallback `filename=`) via a shared path-safety helper, add a dedicated test exercising the safety behavior on each branch independently, not just the branch used in the primary spec examples.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/lib` · harmful: 0
+- features: 41-training-pdf-export
+- evidence: src/lib/contentDisposition.js:22-24 (mutant 1, validation.md — traversal-stripping untested on the filename*= branch, PDFEX-19) (src/lib)
+- last seen: 2026-08-26T00:00:00Z
+
+### L-023 — When a click handler's own guard clause (e.g. `if (inFlight) return`) is backed by a `disabled` UI attribute during the same interaction, a userEvent.click-driven double-click test only proves the DOM attribute works — add a dedicated test that reaches the handler directly to prove the guard clause itself, or document it explicitly as defense-in-depth.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/components` · harmful: 0
+- features: 41-training-pdf-export
+- evidence: src/components/TrainingDetailsPopup.jsx:45 (mutant 3, validation.md — removing the explicit exporting guard left all 47 tests green, PDFEX-21) (src/components)
+- last seen: 2026-08-26T00:00:00Z
+
+### L-024 — When a spec's Independent Test for a documentation AC specifies an exact grep string across multiple named files, use that literal string in every named file rather than a cross-reference to another file that has it — a cross-reference reads fine to a human but fails the AC's own defined test.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `docs` · harmful: 0
+- features: 41-training-pdf-export
+- evidence: docs/07-components.md:176-186 (validation.md — PDFEX-28's grep -r apiFetchBlob docs/ CLAUDE.md not literally satisfied for this file) (docs)
+- last seen: 2026-08-26T00:00:00Z
+
 ## Quarantined (failed when applied — ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

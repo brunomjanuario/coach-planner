@@ -40,6 +40,14 @@ describe("filenameFromDisposition", () => {
     ).toBe("evil.pdf");
   });
 
+  it("keeps only the final path segment for a traversal path in filename* too (PDFEX-19, PDFEX-17)", () => {
+    // filename* is percent-decoded before path-stripping, so the traversal
+    // segments themselves are plain text in the encoded value.
+    expect(
+      filenameFromDisposition("attachment; filename*=UTF-8''..%2Fevil.pdf", FALLBACK)
+    ).toBe("evil.pdf");
+  });
+
   it("keeps only the final path segment for an absolute unix path (PDFEX-19)", () => {
     expect(
       filenameFromDisposition('attachment; filename="/etc/x.pdf"', FALLBACK)

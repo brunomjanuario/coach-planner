@@ -222,11 +222,16 @@ places, and `AD-026` exists in `.specs/STATE.md` with `status: active`.
 | --- | --- | --- | --- |
 | PDFEX-01…07 | F1: Export button | T6 | Verified |
 | PDFEX-08…15 | F2: Binary transport | T2 | Verified |
-| PDFEX-16…19 | F3: Filename | T1 | Verified |
-| PDFEX-20…27 | F4: Failure feedback | T7 | Verified |
-| PDFEX-28 | F5: Documentation | T8 | Verified |
+| PDFEX-16…18 | F3: Filename | T1 | Verified |
+| PDFEX-19 | F3: Filename | T1 | Verified — coverage gap: traversal-stripping is untested on the `filename*=` branch (see `validation.md` Fix 1) |
+| PDFEX-20 | F4: Failure feedback | T7 | Verified |
+| PDFEX-21 | F4: Failure feedback | T7 | Verified — assertion proves the outcome via the button's `disabled` attribute, not the handler's own double-click guard (see `validation.md` Fix 2) |
+| PDFEX-22…27 | F4: Failure feedback | T7 | Verified |
+| PDFEX-28 | F5: Documentation | T8 | Verified — `docs/07-components.md` doesn't literally name `apiFetchBlob` as the spec's own grep-based Independent Test expects (see `validation.md` Fix 3) |
 
-**Coverage:** 28 total, 28 mapped to tasks (see `tasks.md`), 0 unmapped
+**Coverage:** 28 total, 28 mapped to tasks (see `tasks.md`), 0 unmapped. Verifier pass on
+2026-08-26 found 3 Minor/Cosmetic gaps (2 test-coverage, 1 doc-literalism) — see
+`validation.md`. All are non-blocking; production behavior is correct for every AC.
 
 ---
 
