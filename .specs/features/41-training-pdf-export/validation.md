@@ -194,3 +194,83 @@ The `spec.md` Requirement Traceability table has been updated accordingly (see b
 3. `docs/07-components.md` doesn't literally say `apiFetchBlob`, only cross-references the file that does — one-line addition closes it (Fix 3, Cosmetic).
 
 **Next steps**: These are all Minor/Cosmetic — none block shipping. Recommend applying Fix 1 and Fix 3 (both trivial, < 5 min each) before closing the feature; Fix 2 is a judgment call between "accept as defense-in-depth" and "add a harder-to-write test," left to the team.
+
+---
+
+## Re-verification (iteration 2)
+
+**Date**: 2026-08-26
+**Scope**: The 3 Minor/Cosmetic gaps above, as closed by fix commit `a96ef1a`
+("fix(export): close Verifier gaps — filename* traversal test, guard comment,
+doc literalism"). The other 25 already-clean ACs were not re-run.
+
+### Gap 1 — `filename*=` traversal test (PDFEX-19) — **Closed**
+
+`src/lib/__tests__/contentDisposition.test.js` gained one case (`"keeps only
+the final path segment for a traversal path in filename* too (PDFEX-19,
+PDFEX-17)"`) that drives `"attachment; filename*=UTF-8''..%2Fevil.pdf"`
+through `filenameFromDisposition` and asserts `"evil.pdf"` — this exercises
+the `filename*=` branch (`FILENAME_STAR`/`decoded` path), not `filename=`.
+
+Re-applied the Verifier's exact mutant to `src/lib/contentDisposition.js`
+(replacing `const segment = lastPathSegment(decoded); if (segment) return
+segment;` with `if (decoded) return decoded;` in the `filename*=` branch) and
+ran `npx vitest run src/lib/__tests__/contentDisposition.test.js`: 11 passed,
+1 failed — exactly and only the new PDFEX-19/PDFEX-17 case, with
+`expected '../evil.pdf' to be 'evil.pdf'`. Every other case (including the
+pre-existing `filename=` traversal case) stayed green. Reverted with
+`git checkout -- src/lib/contentDisposition.js`; `git status` confirmed clean
+before and after. The mutant is now killed by exactly the branch it targets.
+
+### Gap 2 — Double-click guard comment (PDFEX-21) — **Accepted as documented**
+
+`src/components/TrainingDetailsPopup.jsx:45-49` now carries a comment above
+`if (exporting) return;` explaining the guard is defense-in-depth against a
+same-tick double-invocation of `handleExport` that React's setState batching
+can't rule out, and that no click-based test can reach it because the
+button's own `disabled` attribute (`<Button ... disabled={exporting}>` at
+line 99) already blocks a second `userEvent.click`/native click first.
+
+This is an accurate, non-hand-wavy explanation, not an overclaim: React does
+batch state updates from within a synchronous event-handler invocation, so
+the DOM doesn't reflect `disabled` until the handler yields — a genuine
+(if narrow) window where two synchronous same-tick calls to `handleExport`
+would both pass the guard's absence undetected. The fix plan's own
+harder option (b) — invoking the handler twice synchronously without going
+through RTL's click semantics — would require exposing an internal
+handler reference the component doesn't otherwise need, which is a real
+cost, not an excuse; option (a) (document it) is the reasonable call here.
+No stronger, cheaper test path was found. Verdict: accepted as documented,
+this gap is closed by the fix plan's own option (a), not by new test
+coverage — correctly so, since PDFEX-21 was never a functional defect.
+
+### Gap 3 — Docs literalism (PDFEX-28) — **Closed**
+
+`git grep -n apiFetchBlob docs/ CLAUDE.md` (re-run fresh, not from cached
+output) now returns hits in all three files the spec's Independent Test
+names:
+
+```
+CLAUDE.md:86:`apiFetchBlob` instead of `apiFetch` — the same module, sharing the same
+docs/05-services.md:49,55,59,69
+docs/07-components.md:177:`trainingService.exportPdf(training.id)` (which calls `apiFetchBlob` under
+```
+
+`docs/07-components.md`'s Export PDF paragraph now literally names
+`apiFetchBlob` alongside its existing description. Gap closed.
+
+### Gate
+
+`npm run lint && npm run build && npm test -- --run`: lint clean (no
+output), build succeeded (`✓ built in 1.74s`), tests **1444 passed, 0
+failed, 0 skipped, 73 files passed**. Delta vs. the prior pass's 1443 is
+exactly **+1** (the one new `contentDisposition.test.js` case) — matches
+expectation, no unexplained drift.
+
+`git status` confirmed clean (no leftover mutation artifacts) both mid-way
+through gap 1's mutation-and-revert and at the end of this pass.
+
+### Overall
+
+**PASS ✅** — all 3 flagged gaps are closed or explicitly and soundly
+accepted as documented. No new issues found. No regressions in the gate.

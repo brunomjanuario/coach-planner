@@ -1,7 +1,7 @@
 # Training PDF Export (Frontend) — Specification
 
 **Feature:** `41-training-pdf-export` · **Scope:** Large (transport layer + service + component + docs)
-**Created:** 2026-08-25 · **Status:** Implemented — 8/8 tasks done, Verifier pending
+**Created:** 2026-08-25 · **Status:** Done — 8/8 tasks implemented, Verifier PASS after one fix→re-verify cycle
 **Backend counterpart:** `coach-planner-api` `.specs/features/01-training-pdf-export` (done)
 
 ---
@@ -29,13 +29,13 @@ teaching `apiClient` to return bytes. This spec chooses the latter (see AD-026 i
 
 ## Goals
 
-- [ ] A coach can click one button in the training details popup and get the training's
+- [x] A coach can click one button in the training details popup and get the training's
       PDF as a file download, with the filename the backend chose.
-- [ ] The printed header date matches the date the popup shows on screen — not a
+- [x] The printed header date matches the date the popup shows on screen — not a
       UTC-shifted one.
-- [ ] Binary responses reuse the *existing* auth path — same bearer token, same
+- [x] Binary responses reuse the *existing* auth path — same bearer token, same
       single refresh-and-retry, same typed errors — with zero duplicated fetch logic.
-- [ ] Every failure the endpoint can produce (401 past retry, 404, 400, 500, offline)
+- [x] Every failure the endpoint can produce (401 past retry, 404, 400, 500, offline)
       surfaces as a comprehensible message in the popup, never a silent no-op.
 
 ## Out of Scope
@@ -222,23 +222,25 @@ places, and `AD-026` exists in `.specs/STATE.md` with `status: active`.
 | --- | --- | --- | --- |
 | PDFEX-01…07 | F1: Export button | T6 | Verified |
 | PDFEX-08…15 | F2: Binary transport | T2 | Verified |
-| PDFEX-16…18 | F3: Filename | T1 | Verified |
-| PDFEX-19 | F3: Filename | T1 | Verified — coverage gap: traversal-stripping is untested on the `filename*=` branch (see `validation.md` Fix 1) |
-| PDFEX-20 | F4: Failure feedback | T7 | Verified |
-| PDFEX-21 | F4: Failure feedback | T7 | Verified — assertion proves the outcome via the button's `disabled` attribute, not the handler's own double-click guard (see `validation.md` Fix 2) |
-| PDFEX-22…27 | F4: Failure feedback | T7 | Verified |
-| PDFEX-28 | F5: Documentation | T8 | Verified — `docs/07-components.md` doesn't literally name `apiFetchBlob` as the spec's own grep-based Independent Test expects (see `validation.md` Fix 3) |
+| PDFEX-16…19 | F3: Filename | T1 | Verified |
+| PDFEX-20…27 | F4: Failure feedback | T7 | Verified |
+| PDFEX-28 | F5: Documentation | T8 | Verified |
 
-**Coverage:** 28 total, 28 mapped to tasks (see `tasks.md`), 0 unmapped. Verifier pass on
-2026-08-26 found 3 Minor/Cosmetic gaps (2 test-coverage, 1 doc-literalism) — see
-`validation.md`. All are non-blocking; production behavior is correct for every AC.
+**Coverage:** 28 total, 28 mapped to tasks (see `tasks.md`), 0 unmapped. First Verifier pass
+on 2026-08-26 found 3 Minor/Cosmetic gaps (2 test-coverage, 1 doc-literalism) — production
+behavior was correct for every AC even before the fix; a fix commit
+(`a96ef1a`) closed all three, and a scoped re-verification the same day
+confirmed PDFEX-19's `filename*=` branch is now traversal-tested, PDFEX-28's
+doc gap is closed, and PDFEX-21's guard is accurately documented as
+defense-in-depth no click-based test can reach. See `validation.md` for the
+full report and the re-verification section.
 
 ---
 
 ## Success Criteria
 
-- [ ] A coach opens a training, clicks one button, and a correctly-named PDF lands in their downloads — verified in a real browser against a running backend, not only in jsdom.
-- [ ] `src/lib/apiClient.js` contains exactly one place where the token is attached, one place where the refresh-and-retry happens, and one place where statuses become typed errors — after the change as before it.
-- [ ] The pre-existing `src/lib/__tests__/apiClient.test.js` passes unmodified.
-- [ ] Every failure mode produces a distinguishable message; no click ever silently does nothing.
-- [ ] Full gate green: `npm run lint && npm run build && npm test` — with a test count above the 1385 baseline and no test removed.
+- [x] A coach opens a training, clicks one button, and a correctly-named PDF lands in their downloads — verified in a real browser against a running backend, not only in jsdom.
+- [x] `src/lib/apiClient.js` contains exactly one place where the token is attached, one place where the refresh-and-retry happens, and one place where statuses become typed errors — after the change as before it.
+- [x] The pre-existing `src/lib/__tests__/apiClient.test.js` passes unmodified.
+- [x] Every failure mode produces a distinguishable message; no click ever silently does nothing.
+- [x] Full gate green: `npm run lint && npm run build && npm test` — with a test count above the 1385 baseline and no test removed.
