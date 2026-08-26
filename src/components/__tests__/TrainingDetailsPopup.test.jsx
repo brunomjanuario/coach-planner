@@ -7,6 +7,7 @@ import { trainingService } from "../../services/trainingService";
 import { apiFetch } from "../../lib/apiClient";
 import { triggerDownload } from "../../lib/download";
 import { createFakeApi } from "../../test/fakeApi";
+import { AuthError, NetworkError, NotFoundError, ApiError, ValidationError } from "../../lib/errors";
 
 // The real services now hit a live backend (F4/F7). apiFetch is replaced
 // with the shared stateful fake so the "Rate squad" tests' setRating/
@@ -583,4 +584,159 @@ test("an unassigned training (teamId: null) exports identically -- same call, sa
 
   expect(trainingService.exportPdf).toHaveBeenCalledWith(training.id);
   await waitFor(() => expect(triggerDownload).toHaveBeenCalledWith(resolved.blob, resolved.filename));
+});
+
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+test("while the export is in flight, the button is disabled and reads 'Exporting…' (PDFEX-20)", async () => {
+  const { promise, resolve } = deferred();
+  trainingService.exportPdf.mockReturnValueOnce(promise);
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  const button = screen.getByRole("button", { name: "Exporting…" });
+  expect(button).toBeDisabled();
+
+  resolve({ blob: "b", filename: "f.pdf" });
+  await waitFor(() => expect(screen.getByRole("button", { name: "Export PDF" })).toBeEnabled());
+});
+
+test("two rapid clicks issue exactly one export request (PDFEX-21)", async () => {
+  const { promise, resolve } = deferred();
+  trainingService.exportPdf.mockReturnValueOnce(promise);
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  const button = screen.getByRole("button", { name: "Export PDF" });
+  await user.click(button);
+  await user.click(button); // now disabled/"Exporting…" — a second click is a no-op
+
+  expect(trainingService.exportPdf).toHaveBeenCalledTimes(1);
+  resolve({ blob: "b", filename: "f.pdf" });
+  await waitFor(() => expect(triggerDownload).toHaveBeenCalledTimes(1));
+});
+
+test("after a failed export settles, the button returns to enabled 'Export PDF' (PDFEX-22)", async () => {
+  trainingService.exportPdf.mockRejectedValueOnce(new NotFoundError("not found"));
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Export PDF" })).toBeEnabled()
+  );
+});
+
+test("NotFoundError renders an alert naming the missing training and does not trigger a download (PDFEX-23)", async () => {
+  trainingService.exportPdf.mockRejectedValueOnce(new NotFoundError("not found"));
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "This training could not be found."
+  );
+  expect(triggerDownload).not.toHaveBeenCalled();
+});
+
+test("NetworkError renders an alert with wording distinct from the NotFoundError case (PDFEX-24)", async () => {
+  trainingService.exportPdf.mockRejectedValueOnce(new NetworkError("offline"));
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Could not reach the server. Please try again.");
+  expect(alert.textContent).not.toBe("This training could not be found.");
+});
+
+test.each([
+  ["ApiError(500)", () => new ApiError("server exploded", 500)],
+  ["ValidationError", () => new ValidationError("bad zone")],
+])("%s renders the generic failure message and logs to console.error (PDFEX-25)", async (_label, makeError) => {
+  const err = makeError();
+  trainingService.exportPdf.mockRejectedValueOnce(err);
+  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Failed to export the PDF. Please try again."
+  );
+  expect(consoleSpy).toHaveBeenCalledWith(expect.any(String), err);
+});
+
+test("AuthError renders no alert and triggers no download (PDFEX-26)", async () => {
+  trainingService.exportPdf.mockRejectedValueOnce(new AuthError("session expired"));
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  await waitFor(() => expect(trainingService.exportPdf).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(triggerDownload).not.toHaveBeenCalled();
+});
+
+test("a retry that succeeds after a failure clears the previous alert before the download fires (PDFEX-27)", async () => {
+  trainingService.exportPdf.mockRejectedValueOnce(new NotFoundError("not found"));
+  const resolved = { blob: "b", filename: "f.pdf" };
+  trainingService.exportPdf.mockResolvedValueOnce(resolved);
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  await waitFor(() => expect(triggerDownload).toHaveBeenCalledWith(resolved.blob, resolved.filename));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("closing (unmounting) the popup mid-flight fires no download and logs no unmounted-setState warning (edge case)", async () => {
+  // A real close removes TrainingDetailsPopup from the tree entirely
+  // (Trainings.jsx: {showTrainingDetailsPopup && <TrainingDetailsPopup .../>})
+  // -- unlike rerendering the same instance with training={null}, only a
+  // true unmount() runs the mounted-ref's cleanup effect.
+  const { promise, resolve } = deferred();
+  trainingService.exportPdf.mockReturnValueOnce(promise);
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const { unmount } = render(
+    <TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />
+  );
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  unmount();
+  resolve({ blob: "b", filename: "f.pdf" });
+  await new Promise((r) => setTimeout(r, 0));
+
+  expect(triggerDownload).not.toHaveBeenCalled();
+  const unmountedWarnings = consoleErrorSpy.mock.calls.filter(
+    ([msg]) => typeof msg === "string" && msg.includes("unmounted")
+  );
+  expect(unmountedWarnings).toHaveLength(0);
 });

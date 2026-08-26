@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
 import { triggerDownload } from "../lib/download";
 import { trainingService } from "../services/trainingService";
+import { AuthError, NetworkError, NotFoundError } from "../lib/errors";
 import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
 import ExerciseDetailsPopup from "./ExerciseDetailsPopup";
@@ -13,6 +14,16 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRatingPopup, setShowRatingPopup] = useState(false);
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+  const mountedRef = useRef(true);
+
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    []
+  );
 
   if (!training) return null;
 
@@ -31,8 +42,31 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
   };
 
   const handleExport = async () => {
-    const { blob, filename } = await trainingService.exportPdf(training.id);
-    triggerDownload(blob, filename);
+    if (exporting) return; // guards a double-click into a single request (PDFEX-21)
+    setExporting(true);
+    setExportError(null); // clears any previous failure before this attempt (PDFEX-27)
+    try {
+      const { blob, filename } = await trainingService.exportPdf(training.id);
+      if (!mountedRef.current) return; // popup closed mid-flight (Edge Cases)
+      triggerDownload(blob, filename);
+    } catch (err) {
+      console.error("Failed to export training PDF:", err);
+      if (!mountedRef.current) return;
+      // AuthError: the global auth-failure handler already redirects to
+      // /signin (apiClient's notifyAuthFailure) -- an inline message here
+      // would just flash before that redirect unmounts the popup (PDFEX-26).
+      if (err instanceof AuthError) {
+        // no-op
+      } else if (err instanceof NotFoundError) {
+        setExportError("This training could not be found.");
+      } else if (err instanceof NetworkError) {
+        setExportError("Could not reach the server. Please try again.");
+      } else {
+        setExportError("Failed to export the PDF. Please try again.");
+      }
+    } finally {
+      if (mountedRef.current) setExporting(false);
+    }
   };
 
   return (
@@ -57,8 +91,8 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
             <Button variant="secondary" onClick={() => setShowRatingPopup(true)}>
               Rate squad
             </Button>
-            <Button variant="secondary" onClick={handleExport}>
-              Export PDF
+            <Button variant="secondary" onClick={handleExport} disabled={exporting}>
+              {exporting ? "Exporting…" : "Export PDF"}
             </Button>
             <Button variant="primary" onClick={onEdit}>
               Edit
@@ -112,6 +146,11 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
               </p>
             )}
           </div>
+          {exportError && (
+            <p role="alert" className="text-sm text-red-500">
+              {exportError}
+            </p>
+          )}
         </div>
       </PopupShell>
       {showDeleteConfirm && (
