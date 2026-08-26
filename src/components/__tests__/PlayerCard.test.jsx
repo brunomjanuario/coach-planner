@@ -14,7 +14,7 @@ import { createFakeApi } from "../../test/fakeApi";
 // later reads so these round-trip assertions still discriminate a broken
 // handler, and so the fake's modeled cascade (deleting a player removes its
 // cards/ratings) is exercised for real instead of asserted via a mock.
-vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn(), apiFetchBlob: vi.fn() }));
 
 let fake;
 

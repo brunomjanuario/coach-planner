@@ -16,6 +16,7 @@ import { ApiError } from "../../lib/errors";
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
   silentRefresh: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 let fake;

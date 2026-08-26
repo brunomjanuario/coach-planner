@@ -140,6 +140,7 @@ const TRAININGS_SEED = {
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
   silentRefresh: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 beforeEach(() => {

@@ -1,5 +1,5 @@
-import { apiFetch } from "../lib/apiClient";
-import { parseApiDate } from "../lib/dates";
+import { apiFetch, apiFetchBlob } from "../lib/apiClient";
+import { parseApiDate, browserTimeZone } from "../lib/dates";
 
 // Trainings and exercises against the real API (F5). `number` comes
 // straight from the response — no client-side numbering (lib/trainingNumber
@@ -42,4 +42,12 @@ export const trainingService = {
     ),
 
   delete: (id) => apiFetch(`/trainings/${id}`, { method: "DELETE" }),
+
+  // The browser's own zone (F1 user decision), so the PDF header's date
+  // matches what the popup already shows via day.toLocaleString(). Omitted
+  // entirely when unknown (PDFEX-03) rather than sent as "undefined".
+  exportPdf: (id, { zone = browserTimeZone() } = {}) =>
+    apiFetchBlob(`/trainings/${id}/export.pdf${zone ? `?zone=${encodeURIComponent(zone)}` : ""}`, {
+      fallbackFilename: `training-${id}.pdf`,
+    }),
 };

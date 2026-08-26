@@ -5,6 +5,7 @@ import { ValidationError, NotFoundError } from "../../lib/errors";
 
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 describe("cardService", () => {

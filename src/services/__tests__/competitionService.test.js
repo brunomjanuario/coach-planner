@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../../lib/errors"
 
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 vi.mock("../gameService", () => ({

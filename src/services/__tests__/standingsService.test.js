@@ -5,6 +5,7 @@ import { NotFoundError, ValidationError } from "../../lib/errors";
 
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 function validRow(overrides = {}) {

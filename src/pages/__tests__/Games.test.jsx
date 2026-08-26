@@ -21,6 +21,7 @@ import { createFakeApi } from "../../test/fakeApi";
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
   silentRefresh: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 beforeEach(() => {

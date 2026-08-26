@@ -10,7 +10,7 @@ import { createFakeApi } from "../../test/fakeApi";
 // apiFetch is the shared seam every service goes through; a stateful fake
 // keeps writes (add a card) readable by later reads (cardService.getByGame)
 // so these round-trip assertions still discriminate a broken handler.
-vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn(), apiFetchBlob: vi.fn() }));
 
 let fake;
 

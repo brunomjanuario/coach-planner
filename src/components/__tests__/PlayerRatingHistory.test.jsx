@@ -13,7 +13,7 @@ import { createFakeApi } from "../../test/fakeApi";
 // (ratingService.getByPlayer) so these round-trip assertions still
 // discriminate a broken handler, and the fake's modeled cascade (deleting a
 // game removes its ratings) backs the "orphaned rating" edge case for real.
-vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn(), apiFetchBlob: vi.fn() }));
 
 let fake;
 

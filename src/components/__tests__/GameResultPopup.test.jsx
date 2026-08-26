@@ -12,7 +12,7 @@ import { createFakeApi } from "../../test/fakeApi";
 // keeps writes (add a card, save a rating) readable by later reads
 // (cardService.getByGame, ratingService.getByEvent) so these round-trip
 // assertions still discriminate a broken handler.
-vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn() }));
+vi.mock("../../lib/apiClient", () => ({ apiFetch: vi.fn(), silentRefresh: vi.fn(), apiFetchBlob: vi.fn() }));
 
 let fake;
 

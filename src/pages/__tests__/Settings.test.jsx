@@ -27,6 +27,7 @@ vi.mock("../../components/Tabs", async (importOriginal) => {
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
   silentRefresh: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 const DEFAULT_ACCOUNT = {

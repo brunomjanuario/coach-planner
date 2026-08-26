@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { trainingService } from "../trainingService";
-import { apiFetch } from "../../lib/apiClient";
+import { apiFetch, apiFetchBlob } from "../../lib/apiClient";
 import { ratingService } from "../ratingService";
 import { NotFoundError } from "../../lib/errors";
+import * as dates from "../../lib/dates";
 
 vi.mock("../../lib/apiClient", () => ({
   apiFetch: vi.fn(),
+  apiFetchBlob: vi.fn(),
 }));
 
 vi.mock("../ratingService", () => ({
@@ -145,5 +147,94 @@ describe("trainingService", () => {
     const numbered = await trainingService.getAllNumbered();
 
     expect(numbered.map((t) => t.number)).toEqual([7, 2]);
+  });
+});
+
+describe("trainingService.exportPdf", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("calls apiFetchBlob with /trainings/{id}/export.pdf?zone=<browser zone> (PDFEX-02, PDFEX-03)", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue("America/Sao_Paulo");
+    apiFetchBlob.mockResolvedValueOnce({ blob: "the-blob", filename: "session.pdf" });
+
+    await trainingService.exportPdf("tr1");
+
+    expect(apiFetchBlob).toHaveBeenCalledWith(
+      "/trainings/tr1/export.pdf?zone=America%2FSao_Paulo",
+      { fallbackFilename: "training-tr1.pdf" }
+    );
+  });
+
+  it("URL-encodes the zone in the query string (PDFEX-04)", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue("America/Sao_Paulo");
+    apiFetchBlob.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+
+    await trainingService.exportPdf("tr1");
+
+    const [path] = apiFetchBlob.mock.calls[0];
+    expect(path).toContain("zone=America%2FSao_Paulo");
+    expect(path).not.toContain("America/Sao_Paulo");
+  });
+
+  it("omits ?zone= entirely when the browser zone is null (PDFEX-03)", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue(null);
+    apiFetchBlob.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+
+    await trainingService.exportPdf("tr1");
+
+    expect(apiFetchBlob).toHaveBeenCalledWith("/trainings/tr1/export.pdf", {
+      fallbackFilename: "training-tr1.pdf",
+    });
+  });
+
+  it("omits ?zone= entirely when the browser zone is an empty string (PDFEX-03)", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue("");
+    apiFetchBlob.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+
+    await trainingService.exportPdf("tr1");
+
+    const [path] = apiFetchBlob.mock.calls[0];
+    expect(path).toBe("/trainings/tr1/export.pdf");
+  });
+
+  it("an explicit { zone } argument overrides the browser zone", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue("UTC");
+    apiFetchBlob.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+
+    await trainingService.exportPdf("tr1", { zone: "Europe/Lisbon" });
+
+    const [path] = apiFetchBlob.mock.calls[0];
+    expect(path).toBe("/trainings/tr1/export.pdf?zone=Europe%2FLisbon");
+  });
+
+  it("returns the { blob, filename } from apiFetchBlob unchanged (PDFEX-14)", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue(null);
+    const resolved = { blob: "the-actual-blob", filename: "sub-11-session-3-2026-08-25.pdf" };
+    apiFetchBlob.mockResolvedValueOnce(resolved);
+
+    const result = await trainingService.exportPdf("tr1");
+
+    expect(result).toBe(resolved);
+  });
+
+  it("passes a fallback filename ending in .pdf", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue(null);
+    apiFetchBlob.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+
+    await trainingService.exportPdf("tr42");
+
+    const [, opts] = apiFetchBlob.mock.calls[0];
+    expect(opts.fallbackFilename).toMatch(/\.pdf$/);
+  });
+
+  it("propagates a rejection from apiFetchBlob untouched", async () => {
+    vi.spyOn(dates, "browserTimeZone").mockReturnValue(null);
+    apiFetchBlob.mockRejectedValueOnce(new NotFoundError("Training not found"));
+
+    await expect(trainingService.exportPdf("no-such-training")).rejects.toBeInstanceOf(
+      NotFoundError
+    );
   });
 });
