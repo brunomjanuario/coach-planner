@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import TrainingDetailsPopup from "../TrainingDetailsPopup";
 import { teamService } from "../../services/teamService";
 import { ratingService } from "../../services/ratingService";
+import { trainingService } from "../../services/trainingService";
 import { apiFetch } from "../../lib/apiClient";
+import { triggerDownload } from "../../lib/download";
 import { createFakeApi } from "../../test/fakeApi";
 
 // The real services now hit a live backend (F4/F7). apiFetch is replaced
@@ -16,6 +18,15 @@ vi.mock("../../lib/apiClient", () => ({
   silentRefresh: vi.fn(),
   apiFetchBlob: vi.fn(),
 }));
+
+// exportPdf is a binary call fakeApi's JSON-only routing can't stand in
+// for, and triggerDownload touches the DOM/URL APIs jsdom doesn't fully
+// implement (T3) -- both are mocked directly rather than exercised.
+vi.mock("../../services/trainingService", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, trainingService: { ...actual.trainingService, exportPdf: vi.fn() } };
+});
+vi.mock("../../lib/download", () => ({ triggerDownload: vi.fn() }));
 
 beforeEach(() => {
   apiFetch.mockImplementation(createFakeApi().apiFetch);
@@ -511,4 +522,65 @@ test("stepping between exercises does not close or remount the training popup be
 
   expect(screen.getByRole("heading", { name: "Second" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+});
+
+test("renders an enabled 'Export PDF' action in the action row (PDFEX-01)", () => {
+  const training = { ...baseTraining, number: 4, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  const exportButton = screen.getByRole("button", { name: "Export PDF" });
+  expect(exportButton).toBeInTheDocument();
+  expect(exportButton).toBeEnabled();
+});
+
+test("clicking 'Export PDF' calls trainingService.exportPdf exactly once with the training's id (PDFEX-02)", async () => {
+  trainingService.exportPdf.mockResolvedValueOnce({ blob: "the-blob", filename: "session.pdf" });
+  const training = { ...baseTraining, id: "tr-99", number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  expect(trainingService.exportPdf).toHaveBeenCalledTimes(1);
+  expect(trainingService.exportPdf).toHaveBeenCalledWith("tr-99");
+});
+
+test("on a successful export, hands the resolved blob and filename to triggerDownload (PDFEX-05)", async () => {
+  const resolved = { blob: "the-blob", filename: "sub-11-session-4-2026-08-25.pdf" };
+  trainingService.exportPdf.mockResolvedValueOnce(resolved);
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  await waitFor(() => expect(triggerDownload).toHaveBeenCalledTimes(1));
+  expect(triggerDownload).toHaveBeenCalledWith(resolved.blob, resolved.filename);
+});
+
+test("after a successful export the popup stays open, still showing the training, with no alert (PDFEX-06)", async () => {
+  trainingService.exportPdf.mockResolvedValueOnce({ blob: "b", filename: "f.pdf" });
+  const training = { ...baseTraining, number: 4, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+  await waitFor(() => expect(triggerDownload).toHaveBeenCalledTimes(1));
+
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("an unassigned training (teamId: null) exports identically -- same call, same download (PDFEX-07)", async () => {
+  const resolved = { blob: "b", filename: "training-2026-08-25.pdf" };
+  trainingService.exportPdf.mockResolvedValueOnce(resolved);
+  const training = { ...baseTraining, teamId: null, number: null, exercises: [] };
+  const user = userEvent.setup();
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} />);
+
+  await user.click(screen.getByRole("button", { name: "Export PDF" }));
+
+  expect(trainingService.exportPdf).toHaveBeenCalledWith(training.id);
+  await waitFor(() => expect(triggerDownload).toHaveBeenCalledWith(resolved.blob, resolved.filename));
 });

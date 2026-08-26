@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { totalPlannedMinutes } from "../lib/trainingDuration";
+import { triggerDownload } from "../lib/download";
+import { trainingService } from "../services/trainingService";
 import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
 import ExerciseDetailsPopup from "./ExerciseDetailsPopup";
@@ -28,6 +30,11 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
     onClose();
   };
 
+  const handleExport = async () => {
+    const { blob, filename } = await trainingService.exportPdf(training.id);
+    triggerDownload(blob, filename);
+  };
+
   return (
     <>
       <PopupShell
@@ -49,6 +56,9 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
             </Button>
             <Button variant="secondary" onClick={() => setShowRatingPopup(true)}>
               Rate squad
+            </Button>
+            <Button variant="secondary" onClick={handleExport}>
+              Export PDF
             </Button>
             <Button variant="primary" onClick={onEdit}>
               Edit
