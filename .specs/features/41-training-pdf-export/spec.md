@@ -1,7 +1,7 @@
 # Training PDF Export (Frontend) — Specification
 
 **Feature:** `41-training-pdf-export` · **Scope:** Large (transport layer + service + component + docs)
-**Created:** 2026-08-25 · **Status:** Draft — awaiting approval
+**Created:** 2026-08-25 · **Status:** Implemented — 8/8 tasks done, Verifier pending
 **Backend counterpart:** `coach-planner-api` `.specs/features/01-training-pdf-export` (done)
 
 ---
@@ -220,13 +220,13 @@ places, and `AD-026` exists in `.specs/STATE.md` with `status: active`.
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| PDFEX-01…07 | F1: Export button | Design | Pending |
-| PDFEX-08…15 | F2: Binary transport | Design | Pending |
-| PDFEX-16…19 | F3: Filename | Design | Pending |
-| PDFEX-20…27 | F4: Failure feedback | Design | Pending |
-| PDFEX-28 | F5: Documentation | Design | Pending |
+| PDFEX-01…07 | F1: Export button | T6 | Verified |
+| PDFEX-08…15 | F2: Binary transport | T2 | Verified |
+| PDFEX-16…19 | F3: Filename | T1 | Verified |
+| PDFEX-20…27 | F4: Failure feedback | T7 | Verified |
+| PDFEX-28 | F5: Documentation | T8 | Verified |
 
-**Coverage:** 28 total, 0 mapped to tasks yet (see `tasks.md`), 0 unmapped ⚠️
+**Coverage:** 28 total, 28 mapped to tasks (see `tasks.md`), 0 unmapped
 
 ---
 

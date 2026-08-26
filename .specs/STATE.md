@@ -227,7 +227,32 @@
 - **Date**: 2026-08-18
 - **Status**: active
 
+### AD-026
+
+- **Decision**: Binary/non-JSON responses are fetched through a dedicated `apiFetchBlob` export in `src/lib/apiClient.js` that shares one request core with `apiFetch`. No service may call `fetch` directly.
+- **Reason**: The bearer token, the single-flight 401 refresh-and-retry (`refreshInFlight`) and the RFC 9457 → typed-error mapping exist in exactly one place today; a raw `fetch` in a service would fork all three, and a second refresh implementation would race the first rather than dedupe with it.
+- **Trade-off**: `apiClient` grows a second exported entry point and an internal `Response`-returning core (`requestCore`). Accepted; the pre-existing `apiClient.test.js` passed completely unmodified (only the import line changed) as the regression harness that keeps the JSON path honest.
+- **Scope**: `41-training-pdf-export`, `src/lib/apiClient.js`, `src/lib/contentDisposition.js`, `src/lib/download.js`, `src/services/trainingService.js`.
+- **Date**: 2026-08-26
+- **Status**: active
+
 ## Handoff
+
+- **Feature**: `41-training-pdf-export` — all 8 tasks implemented and gate-green; awaiting the automatic Verifier pass that closes out Execute (about to be dispatched).
+- **Phase / Task**: All 4 phases complete — Phase 1/T1–T3 (`src/lib/contentDisposition.js` filename parsing, `apiClient.js`'s `requestCore` split + new `apiFetchBlob`, `src/lib/download.js`'s `triggerDownload` — commits `378bb55`, `62d889b`, `cd3514b`) → Phase 2/T4–T5 (`browserTimeZone()` in `dates.js`, `trainingService.exportPdf` plus the 24-file `apiFetchBlob: vi.fn()` mock-factory sweep the new import forced — `3e5be42`, `44b4c80`) → Phase 3/T6–T7 (the Export PDF button, then its in-flight/error states — `0193a0f`, `e241b75`) → Phase 4/T8 (this docs pass, in progress).
+- **Verified end-to-end in a real browser** against a live `coach-planner-api` + Postgres (started for this check, stopped afterward) and the Vite dev server: exported a training scheduled `2026-08-27T00:30` local (Europe/Lisbon) and confirmed the downloaded filename was the backend-derived `pdf-export-fc-session-1-2026-08-27.pdf` (not the `training-{id}.pdf` fallback — proving `Content-Disposition` reads cross-origin in dev) and that its date matched the popup's displayed local date rather than the UTC date (00:30 Lisbon = 23:30 UTC the day before) — confirming `?zone=` does what it was built for.
+- **Verifier**: not yet run — dispatching next.
+- **Completed**: T1–T8 each committed individually on `main` (no feature branch — matches how `39-backend-integration` and `40-frontend-docker` shipped), plan docs (`c989d38`) plus this Handoff/AD-026 update pending commit.
+- **In-progress** (file:line): docs-only — `.specs/STATE.md` Handoff (this edit), `.specs/features/41-training-pdf-export/{spec,tasks}.md` status fields not yet flipped to Done.
+- **Next step**: dispatch the Verifier sub-agent per `implement.md` step 10; route any gaps as fix tasks (bounded to 3 iterations) before reporting the feature done.
+- **Blockers**: none.
+- **Uncommitted files**: `docs/05-services.md`, `docs/07-components.md`, `CLAUDE.md`, `.specs/STATE.md` (this Handoff + AD-026), `.specs/features/41-training-pdf-export/{spec,tasks}.md` status fields — all part of T8, about to be committed together.
+- **Branch**: `main` — this feature was executed directly on `main`, matching `39`/`40`'s precedent (see git log around `ee18f68`).
+- **Open items carried forward**: all pre-`41` open items (see the superseded `28` handoff below) are unchanged by this feature — none of them touch `apiClient.js`, `trainingService.js`, or `TrainingDetailsPopup.jsx`. New from `41`: (1) `docs/05-services.md`'s `standingsService` row still describes the pre-AD-022 client-side-computed "our row" — stale, not touched here since it's outside this feature's scope; (2) `docs/07-components.md`'s `TrainingDetailsPopup` section still calls it a "read-only view" despite Delete/Rate squad/Edit/Export PDF all being present — the Export PDF paragraph was added without rewriting the stale opening line, since a full rewrite was out of scope for this feature.
+
+---
+
+## Superseded handoff (28-training-exercise-details)
 
 - **Feature**: `28-training-exercise-details` — **done and verified (PASS, one flagged Minor gap closed immediately, no formal re-verify cycle needed).** Fifth round-three feature executed; the foundation `29-exercise-designer` builds on.
 - **Phase / Task**: All 4 tasks complete — T1 (`src/lib/trainingDuration.js`: `plannedShare(exercise, exercises)` weighs the exercise's own `duration × repetitions` against `totalPlannedMinutes`, matching that function's own weighting so shares sum to ~100% across a training; returns `null` (not `NaN`/`Infinity`) when the total is 0 or the exercise's own duration is missing — AC EXDET-04, `d1735ad`) → T2 (`src/components/ExerciseDetailsPopup.jsx` new: labelled fields replace the crammed one-line row; the diagram slot for `29` is left with zero code — no stub, no dead conditional — until that feature introduces `exercise.diagram` — AC EXDET-01/02, `d6ea97e`) → T3 (`TrainingDetailsPopup`'s exercise rows become buttons opening the stacked detail popup, same pattern as `SquadRatingPopup` — AC EXDET-01, `089dbf9`) → T4 (Previous/Next step within the same popup instance via a locally-owned `index`, bounded at both ends — AC EXDET-03, `bd0a8a4`).

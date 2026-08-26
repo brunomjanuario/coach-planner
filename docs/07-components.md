@@ -173,6 +173,18 @@ Read-only view: formatted date/time, duration, and a list of exercise
 descriptions (or "No exercises"). Handles `day` being either a `Date` or a
 string.
 
+An **Export PDF** button in the action row calls
+`trainingService.exportPdf(training.id)` and hands the resolved
+`{ blob, filename }` to `src/lib/download.js`'s `triggerDownload`. While the
+request is in flight the button reads "Exporting…" and is disabled, guarding
+against a double click. A failed export shows an inline `role="alert"`
+message inside the popup body — worded differently for "training not found"
+vs. "server unreachable" vs. a generic failure (which also logs to
+`console.error`) — except an expired/invalid session, which shows no inline
+message since the global auth-failure handler already redirects to
+`/signin`. See [05 — Services](05-services.md#binary-responses) for
+`exportPdf` itself.
+
 ---
 
 ## `ConfirmationPopup`

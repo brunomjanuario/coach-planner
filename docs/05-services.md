@@ -43,12 +43,46 @@ export const teamService = {
   rejects (offline, DNS failure, CORS block).
 - Returns `null` for a `204 No Content` response.
 
+## Binary responses
+
+`apiFetch` ends in `res.json()`, so it can't carry a non-JSON body. For that,
+`apiClient.js` also exports `apiFetchBlob(path, { fallbackFilename })`,
+sharing the same request core as `apiFetch` — the same token attachment,
+the same single-flight 401 refresh-and-retry, the same RFC 9457 error
+mapping — but reading the response as a `Blob` instead of JSON:
+
+```js
+import { apiFetchBlob } from "../lib/apiClient";
+
+export const trainingService = {
+  exportPdf: (id, { zone = browserTimeZone() } = {}) =>
+    apiFetchBlob(`/trainings/${id}/export.pdf${zone ? `?zone=${encodeURIComponent(zone)}` : ""}`, {
+      fallbackFilename: `training-${id}.pdf`,
+    }),
+};
+```
+
+It resolves `{ blob, filename }` — `filename` is parsed from the response's
+`Content-Disposition` header (`src/lib/contentDisposition.js`), falling
+back to the caller-supplied default when the header is missing or
+unparseable. No service calls `fetch` directly (see `AD-026` in
+`.specs/STATE.md`); a binary endpoint always goes through `apiFetchBlob`.
+
+`trainingService.exportPdf(id, { zone })` is the one consumer today —
+`TrainingDetailsPopup`'s Export PDF button calls it, then hands the result
+to `src/lib/download.js`'s `triggerDownload(blob, filename)` to save it.
+`zone` defaults to the browser's own IANA zone
+(`src/lib/dates.js`'s `browserTimeZone()`) so the PDF's header date matches
+what the popup already shows via `day.toLocaleString()`; it's omitted
+entirely when the zone can't be determined, rather than sent as the string
+`"undefined"`.
+
 ## The eight services
 
 | Service | Backend resource | Notes |
 | --- | --- | --- |
 | `teamService` | `/teams`, `/teams/{id}/players` | `getById` now **throws** `NotFoundError` for an unknown id (the old mock returned `null`). |
-| `trainingService` | `/trainings`, `/trainings/{id}/exercises` | `number` comes straight from the API — no client-side numbering. `day` is rehydrated to a `Date` via `lib/dates.js`. |
+| `trainingService` | `/trainings`, `/trainings/{id}/exercises`, `/trainings/{id}/export.pdf` | `number` comes straight from the API — no client-side numbering. `day` is rehydrated to a `Date` via `lib/dates.js`. `exportPdf` is the one method that returns a binary blob instead of JSON — see [Binary responses](#binary-responses) above. |
 | `gameService` | `/games`, `/games/{id}/result` | `getScheduled`/`getPlayed` are `?status=` querystring calls, not fetch-all-then-filter. `date` is rehydrated to a `Date`. |
 | `standingsService` | `/standings/rivals` | Rival rows only — the "our team" row is still computed client-side in `pages/Games.jsx` from `gameService.getAll(teamId)` via `lib/standings.js`. Client-side won+drawn+lost validation is kept as an early, cheap reject in addition to the server's own `400`. |
 | `cardService` | `/cards` | `removeByGame`/`removeByPlayer` no longer exist — the backend cascades a deleted game/player's cards via FK actions. |

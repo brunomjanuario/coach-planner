@@ -82,6 +82,12 @@ access token, and maps API errors to typed errors (`NotFoundError`,
 — `src/lib/errors.js`). There is no local mock store; every read/write goes
 to the real `coach-planner-api` backend.
 
+A non-JSON response (e.g. `trainingService.exportPdf`'s PDF) goes through
+`apiFetchBlob` instead of `apiFetch` — the same module, sharing the same
+token/refresh/error-mapping core, just reading the body as a `Blob` and
+resolving `{ blob, filename }` (AD-026 in `.specs/STATE.md`). No service
+calls `fetch` directly.
+
 `trainingService`/`gameService` rehydrate `day`/`date` fields to `Date`
 instances on read (`src/lib/dates.js`) so callers keep using them like plain
 `Date` objects. Cascading deletes (e.g. deleting a team removes its

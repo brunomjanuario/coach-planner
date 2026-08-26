@@ -13,7 +13,7 @@ Verifier, discrimination sensor).
 
 **Spec**: `.specs/features/41-training-pdf-export/spec.md`
 **Design**: `.specs/features/41-training-pdf-export/design.md`
-**Status**: Draft — awaiting approval
+**Status**: Done — all 8 tasks implemented and committed; Verifier pending
 
 **Baseline before any work**: `71` test files, `1385` tests, all green (measured
 2026-08-25). Every task's test count is stated against this.
