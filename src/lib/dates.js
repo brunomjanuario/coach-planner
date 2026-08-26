@@ -18,3 +18,18 @@ export function serializeApiDate(date) {
   if (date == null) return null;
   return date.toISOString();
 }
+
+/**
+ * The browser's own IANA time zone, or null when it can't be determined
+ * (no Intl, a throwing resolvedOptions(), or an empty/missing zone) --
+ * trainingService.exportPdf sends this as the export's ?zone= so the PDF's
+ * header date matches what the popup already shows via toLocaleString().
+ */
+export function browserTimeZone() {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return zone ? zone : null;
+  } catch {
+    return null;
+  }
+}
