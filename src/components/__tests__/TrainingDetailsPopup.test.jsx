@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TrainingDetailsPopup from "../TrainingDetailsPopup";
+import { createDiagram, addShape, serialize } from "../../lib/exerciseDiagram";
 import { teamService } from "../../services/teamService";
 import { ratingService } from "../../services/ratingService";
 import { trainingService } from "../../services/trainingService";
@@ -739,4 +740,216 @@ test("closing (unmounting) the popup mid-flight fires no download and logs no un
     ([msg]) => typeof msg === "string" && msg.includes("unmounted")
   );
   expect(unmountedWarnings).toHaveLength(0);
+});
+
+// ---------------------------------------------------------------------------
+// Feature: exercise-diagram-in-training-details (TDIAG-01 … TDIAG-09)
+// Each exercise's diagram should render inline, read-only, in the training
+// details popup — no click-through required. Diagrams are built with the
+// public model helpers and stored the realistic way (a serialized string),
+// so these tests assert the spec's expected outcome, not the render internals.
+// ---------------------------------------------------------------------------
+
+// A diagram distinguished by a single shape kind, so a test can prove *which*
+// exercise a rendered preview belongs to (TDIAG-02).
+function diagramWith(kind) {
+  return serialize(addShape(createDiagram("full"), kind, { x: 0.5, y: 0.5 }));
+}
+
+test("TDIAG-01: an exercise with a usable diagram shows an inline diagram preview with no click", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("cone") },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  // No interaction — the preview must already be on the training details view.
+  const preview = screen.getByTestId("diagram-view");
+  expect(preview).toBeInTheDocument();
+  expect(preview.tagName.toLowerCase()).toBe("svg");
+  // It lives inside the exercise's own list item, not off in the footer etc.
+  const item = screen.getByText(/SSG/).closest("li");
+  expect(item).toContainElement(preview);
+});
+
+test("TDIAG-02: each exercise renders its own diagram, correctly associated (none shared, none swapped)", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "Cone drill", duration: 10, numberOfPlayers: 6, repetitions: 2, diagram: diagramWith("cone") },
+      { id: 2, description: "Ball drill", duration: 15, numberOfPlayers: 8, repetitions: 1, diagram: diagramWith("ball") },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  const coneItem = screen.getByText(/Cone drill/).closest("li");
+  const ballItem = screen.getByText(/Ball drill/).closest("li");
+
+  // Two distinct previews, one per exercise.
+  expect(screen.getAllByTestId("diagram-view")).toHaveLength(2);
+  // The cone exercise's preview contains the cone shape and not the ball.
+  expect(within(coneItem).getByTestId("diagram-shape").getAttribute("data-shape-kind")).toBe("cone");
+  // The ball exercise's preview contains the ball shape and not the cone.
+  expect(within(ballItem).getByTestId("diagram-shape").getAttribute("data-shape-kind")).toBe("ball");
+});
+
+test("TDIAG-03: the inline preview is read-only — SVG read path only, no editor control or Konva canvas", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("player-a") },
+    ],
+  };
+
+  const { container } = render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  const preview = screen.getByTestId("diagram-view");
+  // A vector image announced read-only, not an interactive editor surface.
+  expect(preview).toHaveAttribute("role", "img");
+  expect(within(preview).queryByRole("button")).not.toBeInTheDocument();
+  // Konva paints onto a <canvas>; the read path must not pull it in.
+  expect(container.querySelector("canvas")).toBeNull();
+});
+
+test("TDIAG-04: the preview is bounded to a preview size (constrained width), not full-bleed", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("cone") },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  const preview = screen.getByTestId("diagram-view");
+  // A fixed/max width keeps the list scannable; it must not stretch full width
+  // the way the full detail view (ExerciseDetailsPopup) deliberately does.
+  // (An <svg>'s .className is an SVGAnimatedString, so read the class attr.)
+  const classAttr = preview.getAttribute("class") ?? "";
+  expect(classAttr).toMatch(/(\bw-\d|\bmax-w-)/);
+  // Not full-bleed: a standalone `w-full` would fill the popup. `max-w-full`
+  // (a cap, not a width) is fine, so exclude the `max-` prefix from this guard.
+  expect(classAttr).not.toMatch(/(?<!max-)\bw-full\b/);
+});
+
+test("TDIAG-05: an exercise with no diagram renders no diagram region (no empty frame)", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "Plain", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: null },
+      { id: 2, description: "Absent", duration: 10, numberOfPlayers: 5, repetitions: 1 },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  expect(screen.queryByTestId("diagram-view")).not.toBeInTheDocument();
+  // The row text itself is unchanged.
+  expect(screen.getByText(/Plain/)).toBeInTheDocument();
+});
+
+test("TDIAG-06: a corrupt or unknown-version diagram renders no region and does not throw", () => {
+  const training = {
+    ...baseTraining,
+    exercises: [
+      { id: 1, description: "Corrupt JSON", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: "{not valid json" },
+      { id: 2, description: "Unknown version", duration: 15, numberOfPlayers: 6, repetitions: 2, diagram: serialize({ v: 99, pitch: "full", shapes: [{ id: "a", kind: "cone", x: 0.5, y: 0.5 }] }) },
+    ],
+  };
+
+  expect(() =>
+    render(<TrainingDetailsPopup training={training} onClose={() => {}} />)
+  ).not.toThrow();
+
+  expect(screen.queryByTestId("diagram-view")).not.toBeInTheDocument();
+  expect(screen.getByText(/Corrupt JSON/)).toBeInTheDocument();
+  expect(screen.getByText(/Unknown version/)).toBeInTheDocument();
+});
+
+test("TDIAG-07: the no-exercises state is unchanged and shows no diagram region", () => {
+  const training = { ...baseTraining, exercises: [] };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} />);
+
+  expect(screen.getByText("No exercises")).toBeInTheDocument();
+  expect(screen.queryByTestId("diagram-view")).not.toBeInTheDocument();
+});
+
+test("TDIAG-08: clicking a diagram-bearing exercise still opens its ExerciseDetailsPopup", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    number: 4,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("cone") },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+  // The preview is present, yet the row still opens the full detail view.
+  expect(screen.getByTestId("diagram-view")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: /SSG/ }));
+
+  expect(screen.getByRole("heading", { name: "SSG" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Training #4" })).toBeInTheDocument();
+});
+
+test("TDIAG-09: with a preview present, the footer actions (Close, Rate squad, Export PDF, Edit, Delete) remain functional", async () => {
+  const user = userEvent.setup();
+  const onClose = vi.fn();
+  const onEdit = vi.fn();
+  const onDelete = vi.fn().mockResolvedValue();
+  const training = {
+    ...baseTraining,
+    number: 4,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("ball") },
+    ],
+  };
+
+  render(
+    <TrainingDetailsPopup training={training} onClose={onClose} onEdit={onEdit} onDelete={onDelete} />
+  );
+  expect(screen.getByTestId("diagram-view")).toBeInTheDocument();
+
+  // All five actions are present and operable with the preview in the list.
+  expect(screen.getByRole("button", { name: "Rate squad" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Export PDF" })).toBeEnabled();
+
+  await user.click(screen.getByRole("button", { name: "Edit" }));
+  expect(onEdit).toHaveBeenCalledTimes(1);
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+  await user.click(screen.getByRole("button", { name: "Submit" }));
+  expect(onDelete).toHaveBeenCalledWith(training);
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("TDIAG edge case: the same exercise renders the same diagram inline and in ExerciseDetailsPopup (single source, no divergence)", async () => {
+  const user = userEvent.setup();
+  const training = {
+    ...baseTraining,
+    number: 4,
+    exercises: [
+      { id: 1, description: "SSG", duration: 20, numberOfPlayers: 8, repetitions: 3, diagram: diagramWith("goal") },
+    ],
+  };
+
+  render(<TrainingDetailsPopup training={training} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />);
+
+  const inlineShapeKind = screen.getByTestId("diagram-shape").getAttribute("data-shape-kind");
+
+  await user.click(screen.getByRole("button", { name: /SSG/ }));
+
+  // Both views now render a diagram; both derive from the same exercise.diagram.
+  const shapes = screen.getAllByTestId("diagram-shape");
+  expect(shapes.length).toBeGreaterThanOrEqual(2);
+  for (const shape of shapes) {
+    expect(shape.getAttribute("data-shape-kind")).toBe(inlineShapeKind);
+  }
 });

@@ -3,8 +3,10 @@ import { totalPlannedMinutes } from "../lib/trainingDuration";
 import { triggerDownload } from "../lib/download";
 import { trainingService } from "../services/trainingService";
 import { AuthError, NetworkError, NotFoundError } from "../lib/errors";
+import { deserialize } from "../lib/exerciseDiagram";
 import Button from "./Button";
 import ConfirmationPopup from "./ConfirmationPopup";
+import DiagramView from "./DiagramView";
 import ExerciseDetailsPopup from "./ExerciseDetailsPopup";
 import PopupActions from "./PopupActions";
 import SquadRatingPopup from "./SquadRatingPopup";
@@ -126,21 +128,30 @@ export default function TrainingDetailsPopup({ training, onClose, onEdit, onDele
             <label className="block text-sm font-medium">Exercises</label>
             <ul>
               {training.exercises && training.exercises.length > 0 ? (
-                training.exercises.map((ex) => (
-                  <li key={ex.id} className="mb-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedExerciseId(ex.id)}
-                      className="w-full text-left bg-gray-100 rounded px-2 py-1 break-words hover:bg-gray-200 focus:outline-2 focus:outline-blue-500"
-                    >
-                      {ex.description} — {ex.duration != null ? ex.duration : "—"}min
-                      {" · "}
-                      {ex.numberOfPlayers != null ? ex.numberOfPlayers : "—"} players
-                      {" · x"}
-                      {ex.repetitions != null ? ex.repetitions : "—"}
-                    </button>
-                  </li>
-                ))
+                training.exercises.map((ex) => {
+                  const hasDiagram = deserialize(ex.diagram) != null;
+                  return (
+                    <li key={ex.id} className="mb-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedExerciseId(ex.id)}
+                        className="w-full text-left bg-gray-100 rounded px-2 py-1 break-words hover:bg-gray-200 focus:outline-2 focus:outline-blue-500"
+                      >
+                        {ex.description} — {ex.duration != null ? ex.duration : "—"}min
+                        {" · "}
+                        {ex.numberOfPlayers != null ? ex.numberOfPlayers : "—"} players
+                        {" · x"}
+                        {ex.repetitions != null ? ex.repetitions : "—"}
+                      </button>
+                      {hasDiagram && (
+                        <DiagramView
+                          diagram={ex.diagram}
+                          className="mt-1 w-40 max-w-full rounded border bg-gray-50"
+                        />
+                      )}
+                    </li>
+                  );
+                })
               ) : (
                 <li className="text-gray-500">No exercises</li>
               )}
