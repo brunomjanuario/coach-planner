@@ -99,7 +99,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="w-full m-5 md:m-10 rounded-2xl bg-white p-4 shadow-lg md:p-8">
+    <div className="m-5 md:m-10 rounded-2xl bg-white p-4 shadow-lg md:p-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <button
           onClick={prevMonth}

@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import AuthLayout, { AuthField } from "../components/AuthLayout";
+import Button from "../components/Button";
 
 export default function SignIn() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
@@ -20,106 +23,59 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await signIn(form.email, form.password);
-    if (result.success) {
-      setError("");
-      navigate("/");
-    } else {
-      setError(result.message);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await signIn(form.email, form.password);
+      if (result.success) {
+        setError("");
+        navigate("/");
+      } else {
+        setError(result.message);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 400,
-        margin: "80px auto",
-        background: "#fff",
-        borderRadius: 16,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-        padding: 32,
-        color: "black",
-        height: "50%",
-      }}
+    <AuthLayout
+      title="Sign In"
+      error={error}
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link to="/signup" className="font-semibold text-blue-500 hover:text-blue-400">
+            Sign Up
+          </Link>
+        </>
+      }
     >
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 24 }}>
-        Sign In
-      </h1>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 18 }}>
-          <label
-            htmlFor="email"
-            style={{ display: "block", fontWeight: 500, marginBottom: 6 }}
-          >
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #ccc",
-              fontSize: 16,
-            }}
-            required
-          />
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <label
-            htmlFor="password"
-            style={{ display: "block", fontWeight: 500, marginBottom: 6 }}
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            style={{
-              width: "100%",
-              padding: 8,
-              borderRadius: 6,
-              border: "1px solid #ccc",
-              fontSize: 16,
-            }}
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: 10,
-            borderRadius: 8,
-            background: "#1a73e8",
-            color: "#fff",
-            fontWeight: 600,
-            fontSize: 16,
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Sign In
-        </button>
-        {error && (
-          <div style={{ color: "#d32f2f", marginTop: 16, textAlign: "center" }}>
-            {error}
-          </div>
-        )}
+        <AuthField
+          id="email"
+          name="email"
+          type="email"
+          label="Email"
+          value={form.email}
+          onChange={handleChange}
+          autoComplete="email"
+          required
+        />
+        <AuthField
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          value={form.password}
+          onChange={handleChange}
+          autoComplete="current-password"
+          required
+        />
+        <Button type="submit" variant="primary" disabled={submitting} className="w-full mt-2">
+          {submitting ? "Signing in…" : "Sign In"}
+        </Button>
       </form>
-      <div style={{ marginTop: 24, textAlign: "center" }}>
-        Don't have an account?{" "}
-        <Link to="/signup" style={{ color: "#1a73e8", fontWeight: 600 }}>
-          Sign Up
-        </Link>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }
